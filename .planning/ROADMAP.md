@@ -35,13 +35,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Any failure in a tool call surfaces an error message — no silent pass-through
   4. The Remote Script communicates with the MCP server using length-prefix framing without parsing errors
   5. All Python 2 compatibility code is absent from the codebase — no `from __future__`, no `Queue as queue`, no `decode()` try/except
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 01-01: Strip Python 2 compatibility code and upgrade to Python 3.11 idioms in Remote Script
-- [ ] 01-02: Fix instrument loading race condition (selected_track + load_item in same callback with device verification)
-- [ ] 01-03: Replace bare except blocks with specific exception logging throughout both layers
-- [ ] 01-04: Add threading.Lock to AbletonConnection singleton and upgrade socket to length-prefix framing
+- [ ] 01-01-PLAN.md — Python 3 cleanup: strip Py2 code, upgrade to Py3.11 idioms, replace bare excepts, set up test infrastructure
+- [ ] 01-02-PLAN.md — Protocol and concurrency: length-prefix framing on both sides, threading.Lock, remove time.sleep delays, ping command
+- [ ] 01-03-PLAN.md — Dispatch and reliability: dict-based command router, fix instrument loading, browser typo fix, health-check tool
 
 ### Phase 2: Infrastructure Refactor
 **Goal**: The codebase is organized into domain modules with a scalable dispatch architecture ready to accept 50+ commands
@@ -206,11 +205,11 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation Repair | 0/4 | Not started | - |
+| 1. Foundation Repair | 0/3 | Planning complete | - |
 | 2. Infrastructure Refactor | 0/4 | Not started | - |
 | 3. Track Management | 0/4 | Not started | - |
 | 4. Mixing Controls | 0/4 | Not started | - |
