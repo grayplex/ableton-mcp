@@ -17,20 +17,20 @@ created: 2026-03-10
 
 | Property | Value |
 |----------|-------|
-| **Framework** | pytest 7.x + pytest-asyncio |
-| **Config file** | none — Wave 0 installs |
-| **Quick run command** | `pytest tests/ -x -q` |
-| **Full suite command** | `pytest tests/ -v` |
+| **Framework** | pytest 8.3+ with pytest-asyncio 0.25+ |
+| **Config file** | none — Wave 0 adds `[tool.pytest.ini_options]` to `pyproject.toml` |
+| **Quick run command** | `uv run pytest tests/ -x --timeout=10` |
+| **Full suite command** | `uv run pytest tests/ -v` |
 | **Estimated runtime** | ~5 seconds |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `pytest tests/ -x -q`
-- **After every plan wave:** Run `pytest tests/ -v`
+- **After every task commit:** Run `uv run pytest tests/ -x --timeout=10`
+- **After every plan wave:** Run `uv run pytest tests/ -v`
 - **Before `/gsd:verify-work`:** Full suite must be green
-- **Max feedback latency:** 5 seconds
+- **Max feedback latency:** 10 seconds
 
 ---
 
@@ -38,12 +38,12 @@ created: 2026-03-10
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 1-01-01 | 01 | 1 | FNDN-01 | unit | `pytest tests/test_py3_cleanup.py -x -q` | ❌ W0 | ⬜ pending |
-| 1-01-02 | 01 | 1 | FNDN-02 | unit | `pytest tests/test_py3_cleanup.py -x -q` | ❌ W0 | ⬜ pending |
-| 1-02-01 | 02 | 1 | FNDN-05 | unit | `pytest tests/test_error_handling.py -x -q` | ❌ W0 | ⬜ pending |
-| 1-03-01 | 03 | 2 | FNDN-03 | unit | `pytest tests/test_socket_framing.py -x -q` | ❌ W0 | ⬜ pending |
-| 1-03-02 | 03 | 2 | FNDN-04 | unit | `pytest tests/test_connection.py -x -q` | ❌ W0 | ⬜ pending |
-| 1-04-01 | 04 | 2 | FNDN-06 | manual | N/A — requires Ableton Live running | ❌ | ⬜ pending |
+| 01-01-01 | 01 | 1 | FNDN-01 | unit (grep-based) | `uv run pytest tests/test_python3_cleanup.py -x` | ❌ W0 | ⬜ pending |
+| 01-01-02 | 01 | 1 | FNDN-02 | unit (AST/grep) | `uv run pytest tests/test_python3_cleanup.py -x` | ❌ W0 | ⬜ pending |
+| 01-02-01 | 02 | 1 | FNDN-05 | unit (grep-based) | `uv run pytest tests/test_python3_cleanup.py::test_no_bare_excepts -x` | ❌ W0 | ⬜ pending |
+| 01-03-01 | 03 | 2 | FNDN-03 | unit | `uv run pytest tests/test_protocol.py -x` | ❌ W0 | ⬜ pending |
+| 01-03-02 | 03 | 2 | FNDN-04 | unit (threading) | `uv run pytest tests/test_connection.py -x` | ❌ W0 | ⬜ pending |
+| 01-04-01 | 04 | 2 | FNDN-06 | unit | `uv run pytest tests/test_dispatch.py -x` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -51,14 +51,14 @@ created: 2026-03-10
 
 ## Wave 0 Requirements
 
+- [ ] `pyproject.toml` — add `[tool.pytest.ini_options]` with `asyncio_mode = "auto"`
+- [ ] `tests/__init__.py` — empty init for test package
 - [ ] `tests/conftest.py` — shared fixtures (mock socket, mock Ableton connection)
-- [ ] `tests/test_py3_cleanup.py` — stubs for FNDN-01, FNDN-02
-- [ ] `tests/test_error_handling.py` — stubs for FNDN-05
-- [ ] `tests/test_socket_framing.py` — stubs for FNDN-03
-- [ ] `tests/test_connection.py` — stubs for FNDN-04
-- [ ] `pip install pytest pytest-asyncio` — if no framework detected
-
-*If none: "Existing infrastructure covers all phase requirements."*
+- [ ] `tests/test_python3_cleanup.py` — grep-based tests for FNDN-01, FNDN-02, FNDN-05
+- [ ] `tests/test_protocol.py` — length-prefix framing roundtrip tests for FNDN-03
+- [ ] `tests/test_connection.py` — threading.Lock concurrent access tests for FNDN-04
+- [ ] `tests/test_dispatch.py` — dict router tests for FNDN-06
+- [ ] Framework install: `uv add --dev pytest>=8.3 pytest-asyncio>=0.25`
 
 ---
 
@@ -66,7 +66,8 @@ created: 2026-03-10
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| Instrument loads and plays sound | FNDN-06 (load fix) | Requires Ableton Live running with Remote Script | 1. Start Ableton, load Remote Script 2. Call load_instrument tool 3. Create MIDI clip with notes 4. Fire clip — verify audible sound |
+| Instrument loading produces audible sound | FNDN-01, FNDN-02 | Requires live Ableton session with audio output | 1. Open Ableton with Remote Script loaded 2. Create MIDI track 3. Call load_instrument tool 4. Play notes — verify audio output |
+| Concurrent MCP calls don't crash connection | FNDN-04 | Requires real MCP client sending parallel requests | 1. Start MCP server 2. Send 2+ tool calls simultaneously 3. Verify both return results without crash |
 
 ---
 
@@ -76,7 +77,7 @@ created: 2026-03-10
 - [ ] Sampling continuity: no 3 consecutive tasks without automated verify
 - [ ] Wave 0 covers all MISSING references
 - [ ] No watch-mode flags
-- [ ] Feedback latency < 5s
+- [ ] Feedback latency < 10s
 - [ ] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
