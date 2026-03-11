@@ -154,13 +154,85 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (populated during roadmap creation) | | |
+| FNDN-01 | Phase 1 | Pending |
+| FNDN-02 | Phase 1 | Pending |
+| FNDN-03 | Phase 1 | Pending |
+| FNDN-04 | Phase 1 | Pending |
+| FNDN-05 | Phase 1 | Pending |
+| FNDN-06 | Phase 1 | Pending |
+| FNDN-07 | Phase 2 | Pending |
+| FNDN-08 | Phase 2 | Pending |
+| FNDN-09 | Phase 2 | Pending |
+| FNDN-10 | Phase 2 | Pending |
+| TRCK-01 | Phase 3 | Pending |
+| TRCK-02 | Phase 3 | Pending |
+| TRCK-03 | Phase 3 | Pending |
+| TRCK-04 | Phase 3 | Pending |
+| TRCK-05 | Phase 3 | Pending |
+| TRCK-06 | Phase 3 | Pending |
+| TRCK-07 | Phase 3 | Pending |
+| TRCK-08 | Phase 3 | Pending |
+| TRCK-09 | Phase 3 | Pending |
+| MIX-01 | Phase 4 | Pending |
+| MIX-02 | Phase 4 | Pending |
+| MIX-03 | Phase 4 | Pending |
+| MIX-04 | Phase 4 | Pending |
+| MIX-05 | Phase 4 | Pending |
+| MIX-06 | Phase 4 | Pending |
+| MIX-07 | Phase 4 | Pending |
+| MIX-08 | Phase 4 | Pending |
+| CLIP-01 | Phase 5 | Pending |
+| CLIP-02 | Phase 5 | Pending |
+| CLIP-03 | Phase 5 | Pending |
+| CLIP-04 | Phase 5 | Pending |
+| CLIP-05 | Phase 5 | Pending |
+| CLIP-06 | Phase 5 | Pending |
+| CLIP-07 | Phase 5 | Pending |
+| CLIP-08 | Phase 5 | Pending |
+| CLIP-09 | Phase 5 | Pending |
+| MIDI-01 | Phase 6 | Pending |
+| MIDI-02 | Phase 6 | Pending |
+| MIDI-03 | Phase 6 | Pending |
+| MIDI-04 | Phase 6 | Pending |
+| MIDI-05 | Phase 6 | Pending |
+| DEV-01 | Phase 7 | Pending |
+| DEV-02 | Phase 7 | Pending |
+| DEV-03 | Phase 7 | Pending |
+| DEV-04 | Phase 7 | Pending |
+| DEV-05 | Phase 7 | Pending |
+| DEV-06 | Phase 7 | Pending |
+| DEV-07 | Phase 7 | Pending |
+| DEV-08 | Phase 7 | Pending |
+| SCNE-01 | Phase 8 | Pending |
+| SCNE-02 | Phase 8 | Pending |
+| SCNE-03 | Phase 8 | Pending |
+| SCNE-04 | Phase 8 | Pending |
+| TRNS-01 | Phase 8 | Pending |
+| TRNS-02 | Phase 8 | Pending |
+| TRNS-03 | Phase 8 | Pending |
+| TRNS-04 | Phase 8 | Pending |
+| TRNS-05 | Phase 8 | Pending |
+| TRNS-06 | Phase 8 | Pending |
+| TRNS-07 | Phase 8 | Pending |
+| TRNS-08 | Phase 8 | Pending |
+| TRNS-09 | Phase 8 | Pending |
+| TRNS-10 | Phase 8 | Pending |
+| AUTO-01 | Phase 9 | Pending |
+| AUTO-02 | Phase 9 | Pending |
+| AUTO-03 | Phase 9 | Pending |
+| ROUT-01 | Phase 10 | Pending |
+| ROUT-02 | Phase 10 | Pending |
+| ROUT-03 | Phase 10 | Pending |
+| ROUT-04 | Phase 10 | Pending |
+| ACLP-01 | Phase 10 | Pending |
+| ACLP-02 | Phase 10 | Pending |
+| ACLP-03 | Phase 10 | Pending |
 
 **Coverage:**
 - v1 requirements: 53 total
-- Mapped to phases: 0
-- Unmapped: 53
+- Mapped to phases: 53
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-10*
-*Last updated: 2026-03-10 after initial definition*
+*Last updated: 2026-03-10 after roadmap creation — all 53 requirements mapped*
