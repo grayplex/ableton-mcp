@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-03-13T22:48:51Z"
-last_activity: 2026-03-13 — Completed Plan 01-01 Python 3 cleanup
+last_updated: "2026-03-13T22:55:53Z"
+last_activity: 2026-03-13 — Completed Plan 01-02 Socket protocol framing
 progress:
   total_phases: 10
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 3
+  completed_plans: 2
+  percent: 7
 ---
 
 # Project State
@@ -26,28 +26,28 @@ See: .planning/PROJECT.md (updated 2026-03-10)
 ## Current Position
 
 Phase: 1 of 10 (Foundation Repair)
-Plan: 1 of 3 in current phase (complete)
+Plan: 2 of 3 in current phase (complete)
 Status: Executing
-Last activity: 2026-03-13 — Completed Plan 01-01 Python 3 cleanup
+Last activity: 2026-03-13 — Completed Plan 01-02 Socket protocol framing
 
-Progress: [▓░░░░░░░░░] 3%
+Progress: [▓▓░░░░░░░░] 7%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 6min
-- Total execution time: 0.1 hours
+- Total plans completed: 2
+- Average duration: 5min
+- Total execution time: 0.2 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01-foundation-repair | 1/3 | 6min | 6min |
+| 01-foundation-repair | 2/3 | 10min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (6min)
-- Trend: Starting
+- Last 5 plans: 01-01 (6min), 01-02 (4min)
+- Trend: Accelerating
 
 *Updated after each plan completion*
 
@@ -63,6 +63,8 @@ Recent decisions affecting current work:
 - [Roadmap]: Fine granularity selected — 10 phases to let natural domain boundaries stand
 - [01-01]: Used grep-based tests reading actual source files for cleanup verification
 - [01-01]: Kept buffer as string (not bytearray) -- Plan 02 replaces entire _handle_client
+- [01-02]: Protocol functions as standalone module-level functions (not class methods) for reuse on both sides
+- [01-02]: Tiered timeout constants by operation type (read=10s, write=15s, browser=30s, ping=5s)
 
 ### Pending Todos
 
@@ -76,6 +78,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-13T22:48:51Z
-Stopped at: Completed 01-01-PLAN.md
-Resume file: .planning/phases/01-foundation-repair/01-01-SUMMARY.md
+Last session: 2026-03-13T22:55:53Z
+Stopped at: Completed 01-02-PLAN.md
+Resume file: .planning/phases/01-foundation-repair/01-02-SUMMARY.md
