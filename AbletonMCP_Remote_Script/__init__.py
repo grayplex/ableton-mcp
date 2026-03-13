@@ -1,11 +1,47 @@
 # AbletonMCP/init.py
 from _Framework.ControlSurface import ControlSurface
 import socket
+import struct
 import json
 import queue
 import threading
 import time
 import traceback
+
+
+# --- Length-prefix framing protocol ---
+
+def _recv_exact(sock, n):
+    """Read exactly n bytes from socket."""
+    buf = bytearray()
+    while len(buf) < n:
+        chunk = sock.recv(n - len(buf))
+        if not chunk:
+            return None
+        buf.extend(chunk)
+    return bytes(buf)
+
+
+def send_message(sock, data):
+    """Send a length-prefixed JSON message."""
+    payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
+    header = struct.pack(">I", len(payload))
+    sock.sendall(header + payload)
+
+
+def recv_message(sock, timeout=15.0):
+    """Receive a length-prefixed JSON message."""
+    sock.settimeout(timeout)
+    header = _recv_exact(sock, 4)
+    if not header:
+        raise ConnectionError("Connection closed while reading header")
+    length = struct.unpack(">I", header)[0]
+    if length > 10 * 1024 * 1024:  # 10MB safety limit
+        raise ValueError(f"Message too large: {length} bytes")
+    payload = _recv_exact(sock, length)
+    if not payload:
+        raise ConnectionError("Connection closed while reading payload")
+    return json.loads(payload.decode("utf-8"))
 
 # Constants for socket communication
 DEFAULT_PORT = 9877
@@ -124,58 +160,32 @@ class AbletonMCP(ControlSurface):
             self.log_message(f"Server thread error: {e}")
     
     def _handle_client(self, client):
-        """Handle communication with a connected client"""
+        """Handle communication with a connected client.
+
+        Uses length-prefix framing for reliable message boundaries.
+        Each message is a 4-byte big-endian length header followed by
+        a UTF-8 JSON payload.
+        """
         self.log_message("Client handler started")
         client.settimeout(None)  # No timeout for client socket
-        buffer = ''
-        
+
         try:
             while self.running:
                 try:
-                    # Receive data
-                    data = client.recv(8192)
-                    
-                    if not data:
-                        # Client disconnected
-                        self.log_message("Client disconnected")
-                        break
-                    
-                    # Accumulate data in buffer
-                    buffer += data.decode('utf-8')
-                    
-                    try:
-                        # Try to parse command from buffer
-                        command = json.loads(buffer)  # Removed decode('utf-8')
-                        buffer = ''  # Clear buffer after successful parse
-                        
-                        self.log_message(f"Received command: {command.get('type', 'unknown')}")
-                        
-                        # Process the command and get response
-                        response = self._process_command(command)
-                        
-                        # Send the response
-                        client.sendall(json.dumps(response).encode('utf-8'))
-                    except ValueError:
-                        # Incomplete data, wait for more
-                        continue
-                        
+                    command = recv_message(client)
+                    self.log_message(f"Received command: {command.get('type', 'unknown')}")
+                    response = self._process_command(command)
+                    send_message(client, response)
+                except (ConnectionError, ConnectionResetError, BrokenPipeError) as e:
+                    self.log_message(f"Client connection lost: {e}")
+                    break
                 except Exception as e:
-                    self.log_message(f"Error handling client data: {e}")
+                    self.log_message(f"[ERROR] Error handling command: {e}")
                     self.log_message(traceback.format_exc())
-                    
-                    # Send error response if possible
-                    error_response = {
-                        "status": "error",
-                        "message": str(e)
-                    }
                     try:
-                        client.sendall(json.dumps(error_response).encode('utf-8'))
-                    except Exception as e:
-                        self.log_message(f"[ERROR] Failed to send error response, connection dead: {e}")
-                        break
-                    
-                    # For serious errors, break the loop
-                    if not isinstance(e, ValueError):
+                        send_message(client, {"status": "error", "message": str(e)})
+                    except Exception as send_err:
+                        self.log_message(f"[ERROR] Failed to send error response: {send_err}")
                         break
         except Exception as e:
             self.log_message(f"Error in client handler: {e}")
@@ -199,7 +209,9 @@ class AbletonMCP(ControlSurface):
         
         try:
             # Route the command to the appropriate handler
-            if command_type == "get_session_info":
+            if command_type == "ping":
+                response["result"] = self._ping(params)
+            elif command_type == "get_session_info":
                 response["result"] = self._get_session_info()
             elif command_type == "get_track_info":
                 track_index = params.get("track_index", 0)
@@ -317,7 +329,11 @@ class AbletonMCP(ControlSurface):
         return response
     
     # Command implementations
-    
+
+    def _ping(self, params=None):
+        """Respond to health check."""
+        return {"pong": True, "version": "1.0"}
+
     def _get_session_info(self):
         """Get information about the current session"""
         try:
