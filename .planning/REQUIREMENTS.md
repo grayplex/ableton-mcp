@@ -57,11 +57,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### MIDI Editing
 
-- [ ] **MIDI-01**: User can add MIDI notes to a clip (pitch, start, duration, velocity)
-- [ ] **MIDI-02**: User can read back all notes from a clip
-- [ ] **MIDI-03**: User can remove notes from a clip (by time/pitch range)
-- [ ] **MIDI-04**: User can quantize notes in a clip (grid size, strength)
-- [ ] **MIDI-05**: User can transpose all notes in a clip by semitones
+- [x] **MIDI-01**: User can add MIDI notes to a clip (pitch, start, duration, velocity)
+- [x] **MIDI-02**: User can read back all notes from a clip
+- [x] **MIDI-03**: User can remove notes from a clip (by time/pitch range)
+- [x] **MIDI-04**: User can quantize notes in a clip (grid size, strength)
+- [x] **MIDI-05**: User can transpose all notes in a clip by semitones
 
 ### Device & Browser
 
@@ -190,11 +190,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLIP-07 | Phase 5 | Complete |
 | CLIP-08 | Phase 5 | Complete |
 | CLIP-09 | Phase 5 | Complete |
-| MIDI-01 | Phase 6 | Pending |
-| MIDI-02 | Phase 6 | Pending |
-| MIDI-03 | Phase 6 | Pending |
-| MIDI-04 | Phase 6 | Pending |
-| MIDI-05 | Phase 6 | Pending |
+| MIDI-01 | Phase 6 | Complete |
+| MIDI-02 | Phase 6 | Complete |
+| MIDI-03 | Phase 6 | Complete |
+| MIDI-04 | Phase 6 | Complete |
+| MIDI-05 | Phase 6 | Complete |
 | DEV-01 | Phase 7 | Pending |
 | DEV-02 | Phase 7 | Pending |
 | DEV-03 | Phase 7 | Pending |
