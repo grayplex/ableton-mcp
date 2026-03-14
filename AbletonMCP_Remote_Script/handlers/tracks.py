@@ -486,9 +486,13 @@ class TrackHandlers:
                 "color": color_name,
                 "volume": track.mixer_device.volume.value,
                 "panning": track.mixer_device.panning.value,
-                "mute": track.mute,
-                "solo": track.solo,
             }
+
+            # Mute/solo (not available on master track)
+            if hasattr(track, "mute"):
+                result["mute"] = track.mute
+            if hasattr(track, "solo"):
+                result["solo"] = track.solo
 
             # Add index for non-master tracks
             if track_type != "master":
