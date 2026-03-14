@@ -18,7 +18,18 @@ ROOT = Path(__file__).resolve().parent.parent
 
 @pytest.fixture
 def remote_script_source():
-    return (ROOT / "AbletonMCP_Remote_Script" / "__init__.py").read_text()
+    """Read all Remote Script source (init + registry + handler modules)."""
+    base = ROOT / "AbletonMCP_Remote_Script"
+    sources = [(base / "__init__.py").read_text()]
+    reg = base / "registry.py"
+    if reg.exists():
+        sources.append(reg.read_text())
+    handlers = base / "handlers"
+    if handlers.is_dir():
+        for f in sorted(handlers.iterdir()):
+            if f.suffix == ".py":
+                sources.append(f.read_text())
+    return "\n".join(sources)
 
 
 @pytest.fixture

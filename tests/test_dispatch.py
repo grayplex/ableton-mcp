@@ -1,33 +1,70 @@
-"""Tests verifying dict-based command dispatch in the Remote Script.
+"""Tests verifying command dispatch via CommandRegistry in the Remote Script.
 
-These tests grep the actual source files to confirm:
-- _read_commands and _write_commands dicts exist
+These tests verify:
+- CommandRegistry builds read_commands and write_commands dispatch dicts
 - No elif command dispatch chain remains in _process_command
 - Unknown commands produce an error naming the command
-- All existing command type strings are registered as dict keys
+- All existing command type strings are registered via @command decorators
+- Self-scheduling commands are correctly flagged
 """
 
 import re
+import sys
 
-import pytest
+
+def _stub_framework():
+    """Stub Ableton _Framework module for import outside Ableton runtime."""
+    if '_Framework' not in sys.modules:
+        sys.modules['_Framework'] = type(sys)('_Framework')
+        sys.modules['_Framework.ControlSurface'] = type(sys)('_Framework.ControlSurface')
+        sys.modules['_Framework.ControlSurface'].ControlSurface = type('ControlSurface', (), {})
 
 
-class TestDictDispatchExists:
-    """Verify dispatch dicts are defined as class attributes."""
+class TestRegistryDispatchExists:
+    """Verify dispatch dicts are built by CommandRegistry."""
 
-    def test_read_commands_dict_exists(self, remote_script_source):
-        """_read_commands dict is defined as an attribute assignment."""
-        assert re.search(r"self\._read_commands\s*[=:]\s*\{", remote_script_source), (
-            "_read_commands dict not found in Remote Script -- "
-            "expected self._read_commands = { ... } or self._read_commands: dict = { ... }"
+    def test_read_commands_built_by_registry(self, remote_script_source):
+        """_read_commands is assigned from CommandRegistry.build_tables."""
+        assert "CommandRegistry.build_tables" in remote_script_source, (
+            "CommandRegistry.build_tables not found in Remote Script -- "
+            "dispatch tables must be built from the registry"
+        )
+        assert "_read_commands" in remote_script_source, (
+            "_read_commands attribute not found in Remote Script"
         )
 
-    def test_write_commands_dict_exists(self, remote_script_source):
-        """_write_commands dict is defined as an attribute assignment."""
-        assert re.search(r"self\._write_commands\s*[=:]\s*\{", remote_script_source), (
-            "_write_commands dict not found in Remote Script -- "
-            "expected self._write_commands = { ... } or self._write_commands: dict = { ... }"
+    def test_write_commands_built_by_registry(self, remote_script_source):
+        """_write_commands is assigned from CommandRegistry.build_tables."""
+        assert "_write_commands" in remote_script_source, (
+            "_write_commands attribute not found in Remote Script"
         )
+
+    def test_registry_returns_three_values(self):
+        """CommandRegistry.build_tables returns (read, write, self_scheduling)."""
+        _stub_framework()
+        from AbletonMCP_Remote_Script.registry import CommandRegistry
+        # Reset entries for isolated test
+        original = CommandRegistry._entries[:]
+        try:
+            CommandRegistry._entries = [
+                ("test_read", "method_r", False, False),
+                ("test_write", "method_w", True, False),
+                ("test_sched", "method_s", True, True),
+            ]
+
+            class FakeInstance:
+                def method_r(self): pass
+                def method_w(self): pass
+                def method_s(self): pass
+
+            read_cmds, write_cmds, self_sched = CommandRegistry.build_tables(FakeInstance())
+            assert "test_read" in read_cmds
+            assert "test_write" in write_cmds
+            assert "test_sched" in write_cmds
+            assert "test_sched" in self_sched
+            assert "test_read" not in write_cmds
+        finally:
+            CommandRegistry._entries = original
 
 
 class TestNoElifChain:
@@ -35,7 +72,6 @@ class TestNoElifChain:
 
     def test_no_elif_chain_in_process_command(self, remote_script_source):
         """_process_command does not contain 'elif command_type ==' pattern."""
-        # Extract _process_command method body
         lines = remote_script_source.splitlines()
         in_method = False
         method_body = []
@@ -120,28 +156,32 @@ class TestUnknownCommandError:
         )
 
 
-class TestPingInReadCommands:
-    """Verify ping is registered in the read commands dict."""
+class TestPingRegistered:
+    """Verify ping is registered via @command decorator."""
 
-    def test_ping_in_read_commands(self, remote_script_source):
-        """'ping' appears as a key in the _read_commands dict definition."""
-        # Find the _read_commands dict block
-        match = re.search(
-            r"self\._read_commands\s*(?::\s*dict\[.*?\]\s*)?=\s*\{([^}]+)\}",
-            remote_script_source,
-            re.DOTALL,
+    def test_ping_in_registry(self):
+        """'ping' is registered in CommandRegistry._entries."""
+        _stub_framework()
+        from AbletonMCP_Remote_Script.registry import CommandRegistry
+        import AbletonMCP_Remote_Script.handlers  # noqa: F401 -- triggers registration
+        names = [e[0] for e in CommandRegistry._entries]
+        assert "ping" in names, (
+            "'ping' not registered via @command decorator"
         )
-        assert match, "_read_commands dict definition not found"
-        dict_body = match.group(1)
-        assert '"ping"' in dict_body or "'ping'" in dict_body, (
-            "'ping' not found as a key in _read_commands dict"
-        )
+
+    def test_ping_is_read_command(self):
+        """'ping' is registered as a read command (write=False)."""
+        _stub_framework()
+        from AbletonMCP_Remote_Script.registry import CommandRegistry
+        import AbletonMCP_Remote_Script.handlers  # noqa: F401
+        ping_entries = [e for e in CommandRegistry._entries if e[0] == "ping"]
+        assert len(ping_entries) == 1, f"Expected 1 ping entry, got {len(ping_entries)}"
+        assert ping_entries[0][2] is False, "ping should be a read command (write=False)"
 
 
 class TestAllExistingCommandsRegistered:
-    """Verify every known command type string appears as a dict key."""
+    """Verify every known command type string is registered via @command."""
 
-    # All command type strings from the current codebase
     EXPECTED_COMMANDS = [
         "get_session_info",
         "get_track_info",
@@ -162,17 +202,26 @@ class TestAllExistingCommandsRegistered:
         "get_browser_tree",
         "get_browser_items_at_path",
         "ping",
+        "set_device_parameter",
+        "load_instrument_or_effect",
     ]
 
-    def test_all_existing_commands_registered(self, remote_script_source):
-        """All existing command type strings appear as dict keys in source."""
-        missing = []
-        for cmd in self.EXPECTED_COMMANDS:
-            # Check for the command string as a dict key: "command_name": or 'command_name':
-            pattern = rf'["\']{re.escape(cmd)}["\']'
-            if not re.search(pattern, remote_script_source):
-                missing.append(cmd)
+    def test_all_existing_commands_registered(self):
+        """All 21 command type strings are registered in CommandRegistry."""
+        _stub_framework()
+        from AbletonMCP_Remote_Script.registry import CommandRegistry
+        import AbletonMCP_Remote_Script.handlers  # noqa: F401
+        registered = {e[0] for e in CommandRegistry._entries}
+        missing = [cmd for cmd in self.EXPECTED_COMMANDS if cmd not in registered]
+        assert not missing, f"Commands not registered: {missing}"
+        assert len(registered) == 21, f"Expected 21 commands, got {len(registered)}"
 
-        assert not missing, (
-            f"Commands not found as dict keys in source: {missing}"
+    def test_self_scheduling_commands_flagged(self):
+        """load_browser_item and load_instrument_or_effect are self-scheduling."""
+        _stub_framework()
+        from AbletonMCP_Remote_Script.registry import CommandRegistry
+        import AbletonMCP_Remote_Script.handlers  # noqa: F401
+        self_sched = {e[0] for e in CommandRegistry._entries if e[3]}
+        assert self_sched == {"load_browser_item", "load_instrument_or_effect"}, (
+            f"Self-scheduling commands wrong: {self_sched}"
         )

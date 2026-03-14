@@ -1,20 +1,21 @@
 """Command registry with decorator-based handler registration.
 
-Usage in handler modules:
+Usage in handler modules::
+
     from AbletonMCP_Remote_Script.registry import command
 
-    class TransportHandlers:
-        @command("start_playback", write=True)
-        def _start_playback(self, params=None):
+    class MyHandlers:
+        @command("my_read_cmd")
+        def _my_read_cmd(self, params=None):
             ...
 
-        @command("set_tempo", write=True)
-        def _set_tempo(self, params):
+        @command("my_write_cmd", write=True)
+        def _my_write_cmd(self, params):
             ...
 
-    @command("load_browser_item", write=True, self_scheduling=True)
-    def _load_browser_item(self, params):
-        ...
+        @command("my_scheduled_cmd", write=True, self_scheduling=True)
+        def _my_scheduled_cmd(self, params):
+            ...
 """
 
 
