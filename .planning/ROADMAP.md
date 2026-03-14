@@ -102,13 +102,11 @@ Plans:
   3. User can duplicate a clip to another slot and the copy is independent
   4. User can set clip loop enabled/disabled and adjust loop start/end and clip start/end markers
   5. User can fire (launch) a clip and stop it — playback responds immediately
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 05-01: Implement ClipHandler in Remote Script — create_midi_clip, delete_clip, duplicate_clip, rename_clip
-- [ ] 05-02: Implement clip loop controls — set_clip_loop_enabled, set_clip_loop_start, set_clip_loop_end, set_clip_start_marker, set_clip_end_marker
-- [ ] 05-03: Implement fire_clip and stop_clip in ClipHandler
-- [ ] 05-04: Add corresponding MCP tools in tools/clips.py
+- [ ] 05-01-PLAN.md — Remote Script clip handlers: _resolve_clip_slot helper, _clip_info_dict helper, 5 new handlers (delete_clip, duplicate_clip, get_clip_info, set_clip_color, set_clip_loop), enhanced fire_clip/stop_clip responses, _WRITE_COMMANDS update
+- [ ] 05-02-PLAN.md — MCP clip tools and smoke tests: 5 new tool functions (get_clip_info, delete_clip, duplicate_clip, set_clip_color, set_clip_loop), enhanced create_clip/fire_clip/stop_clip to return JSON, 12 smoke tests
 
 ### Phase 6: MIDI Editing
 **Goal**: Users can read and write MIDI note data with full editing capabilities including quantize and transpose
@@ -210,7 +208,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 2. Infrastructure Refactor | 3/3 | Complete | 2026-03-14 |
 | 3. Track Management | 4/4 | Complete | 2026-03-14 |
 | 4. Mixing Controls | 2/2 | Complete | 2026-03-14 |
-| 5. Clip Management | 0/4 | Not started | - |
+| 5. Clip Management | 0/2 | Not started | - |
 | 6. MIDI Editing | 0/4 | Not started | - |
 | 7. Device & Browser | 0/6 | Not started | - |
 | 8. Scene & Transport | 0/5 | Not started | - |
