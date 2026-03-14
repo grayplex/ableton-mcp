@@ -3,14 +3,44 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-03-14T22:33:48.247Z"
+last_activity: 2026-03-14 — Completed Plan 05-02 Clip MCP Tools
+progress:
+  total_phases: 10
+  completed_phases: 5
+  total_plans: 14
+  completed_plans: 14
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-03-14T22:33:31.859Z"
+last_activity: 2026-03-14 — Completed Plan 05-02 Clip MCP Tools
+progress:
+  total_phases: 10
+  completed_phases: 5
+  total_plans: 14
+  completed_plans: 14
+---
+
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: in_progress
 stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-03-14T22:28:45.405Z"
+last_updated: "2026-03-14T22:32:43.364Z"
 last_activity: 2026-03-14 — Completed Plan 05-01 Clip Handlers
 progress:
   total_phases: 10
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 14
-  completed_plans: 13
+  completed_plans: 14
 ---
 
 ---
@@ -66,22 +96,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-10)
 
 **Core value:** An AI assistant can produce actual music in Ableton — instruments load, notes play, effects shape sound, and the mix comes together.
-**Current focus:** Phase 5 in progress -- clip lifecycle handlers complete, MCP tools next.
+**Current focus:** Phase 5 complete -- clip handlers and MCP tools fully implemented.
 
 ## Current Position
 
-Phase: 5 of 10 (Clip Management)
-Plan: 1 of 2 in current phase -- COMPLETE
+Phase: 5 of 10 (Clip Management) -- COMPLETE
+Plan: 2 of 2 in current phase -- COMPLETE
 Status: In Progress
-Last activity: 2026-03-14 — Completed Plan 05-01 Clip Handlers
+Last activity: 2026-03-14 — Completed Plan 05-02 Clip MCP Tools
 
-Progress: [█████████░] 93%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: 4min
+- Total plans completed: 14
+- Average duration: 3min
 - Total execution time: 0.7 hours
 
 **By Phase:**
@@ -104,6 +134,7 @@ Progress: [█████████░] 93%
 | Phase 04 P01 | 2min | 2 tasks | 4 files |
 | Phase 04 P02 | 4min | 2 tasks | 5 files |
 | Phase 05 P01 | 2min | 2 tasks | 3 files |
+| Phase 05 P02 | 2min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -152,6 +183,9 @@ Recent decisions affecting current work:
 - [05-01]: delete_clip returns deleted clip's name for confirmation
 - [05-01]: stop_clip omits clip_name key for empty slots instead of returning null
 - [05-01]: Safe ordering pattern for loop_start/loop_end writes (widen first, then narrow)
+- [05-02]: Kept add_notes_to_clip and set_clip_name unchanged (Phase 6 scope)
+- [05-02]: set_clip_loop builds params dict conditionally -- only non-None values sent to send_command
+- [05-02]: All structured clip tool responses use json.dumps(result, indent=2) for consistency
 
 ### Pending Todos
 
@@ -165,6 +199,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T22:28:45.403Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-03-14T22:33:30.842Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
