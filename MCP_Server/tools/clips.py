@@ -44,11 +44,11 @@ def add_notes_to_clip(
     """
     try:
         ableton = get_ableton_connection()
-        ableton.send_command(
+        result = ableton.send_command(
             "add_notes_to_clip",
             {"track_index": track_index, "clip_index": clip_index, "notes": notes},
         )
-        return f"Added {len(notes)} notes to clip at track {track_index}, slot {clip_index}"
+        return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
             "Failed to add notes to clip",

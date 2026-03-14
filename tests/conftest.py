@@ -17,6 +17,7 @@ _GAC_PATCH_TARGETS = [
     "MCP_Server.tools.devices.get_ableton_connection",
     "MCP_Server.tools.browser.get_ableton_connection",
     "MCP_Server.tools.mixer.get_ableton_connection",
+    "MCP_Server.tools.notes.get_ableton_connection",
 ]
 
 
