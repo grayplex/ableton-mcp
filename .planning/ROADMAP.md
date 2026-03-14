@@ -51,13 +51,12 @@ Plans:
   2. The Remote Script dispatches commands via dict lookup — no if/elif chain exists
   3. Linting passes with ruff on both the MCP server and Remote Script codebases
   4. A test suite with pytest can run smoke tests against the server using FastMCP in-memory client
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 02-01: Extract Remote Script handlers into domain package (base.py, transport.py, tracks.py, clips.py, notes.py, devices.py, mixer.py, scenes.py, browser.py) with @main_thread decorator
-- [ ] 02-02: Replace if/elif command chain with dict-based CommandDispatcher router
-- [ ] 02-03: Split MCP_Server/server.py into tools/ domain modules (tracks, clips, mixing, devices, scenes, transport)
-- [ ] 02-04: Configure ruff linting and establish pytest + pytest-asyncio test infrastructure with initial smoke tests
+- [ ] 02-01-PLAN.md — Extract Remote Script handlers into domain package with @command decorator registry (base, transport, tracks, clips, notes, devices, mixer, scenes, browser)
+- [ ] 02-02-PLAN.md — Split MCP_Server/server.py into connection.py, protocol.py, and tools/ domain modules with standardized tool names and docstrings
+- [ ] 02-03-PLAN.md — Configure ruff linting and build pytest + FastMCP in-memory smoke test infrastructure across all domains
 
 ### Phase 3: Track Management
 **Goal**: Users can create, configure, and inspect every track type that Ableton supports
@@ -209,8 +208,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation Repair | 0/3 | Planning complete | - |
-| 2. Infrastructure Refactor | 0/4 | Not started | - |
+| 1. Foundation Repair | 3/3 | Complete | 2026-03-13 |
+| 2. Infrastructure Refactor | 0/3 | Planning complete | - |
 | 3. Track Management | 0/4 | Not started | - |
 | 4. Mixing Controls | 0/4 | Not started | - |
 | 5. Clip Management | 0/4 | Not started | - |
