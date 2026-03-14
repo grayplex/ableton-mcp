@@ -45,15 +45,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Clip Management
 
-- [ ] **CLIP-01**: User can create MIDI clips with specified length in any clip slot
-- [ ] **CLIP-02**: User can delete clips from any clip slot
-- [ ] **CLIP-03**: User can duplicate clips to another slot
-- [ ] **CLIP-04**: User can rename clips
-- [ ] **CLIP-05**: User can set clip loop enabled/disabled
-- [ ] **CLIP-06**: User can set clip loop start and end positions
-- [ ] **CLIP-07**: User can set clip start and end markers
-- [ ] **CLIP-08**: User can fire (launch) any clip
-- [ ] **CLIP-09**: User can stop any clip
+- [x] **CLIP-01**: User can create MIDI clips with specified length in any clip slot
+- [x] **CLIP-02**: User can delete clips from any clip slot
+- [x] **CLIP-03**: User can duplicate clips to another slot
+- [x] **CLIP-04**: User can rename clips
+- [x] **CLIP-05**: User can set clip loop enabled/disabled
+- [x] **CLIP-06**: User can set clip loop start and end positions
+- [x] **CLIP-07**: User can set clip start and end markers
+- [x] **CLIP-08**: User can fire (launch) any clip
+- [x] **CLIP-09**: User can stop any clip
 
 ### MIDI Editing
 
@@ -181,15 +181,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MIX-06 | Phase 4 | Complete |
 | MIX-07 | Phase 4 | Complete |
 | MIX-08 | Phase 4 | Complete |
-| CLIP-01 | Phase 5 | Pending |
-| CLIP-02 | Phase 5 | Pending |
-| CLIP-03 | Phase 5 | Pending |
-| CLIP-04 | Phase 5 | Pending |
-| CLIP-05 | Phase 5 | Pending |
-| CLIP-06 | Phase 5 | Pending |
-| CLIP-07 | Phase 5 | Pending |
-| CLIP-08 | Phase 5 | Pending |
-| CLIP-09 | Phase 5 | Pending |
+| CLIP-01 | Phase 5 | Complete |
+| CLIP-02 | Phase 5 | Complete |
+| CLIP-03 | Phase 5 | Complete |
+| CLIP-04 | Phase 5 | Complete |
+| CLIP-05 | Phase 5 | Complete |
+| CLIP-06 | Phase 5 | Complete |
+| CLIP-07 | Phase 5 | Complete |
+| CLIP-08 | Phase 5 | Complete |
+| CLIP-09 | Phase 5 | Complete |
 | MIDI-01 | Phase 6 | Pending |
 | MIDI-02 | Phase 6 | Pending |
 | MIDI-03 | Phase 6 | Pending |
