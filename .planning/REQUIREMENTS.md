@@ -16,7 +16,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **FNDN-05**: All error handling uses specific exception types — no bare except:pass blocks
 - [x] **FNDN-06**: Remote Script command dispatch uses dict-based router instead of if/elif chain
 - [x] **FNDN-07**: MCP tools organized into domain modules (tracks, clips, mixing, etc.)
-- [ ] **FNDN-08**: Remote Script handlers organized into domain modules with @main_thread decorator
+- [x] **FNDN-08**: Remote Script handlers organized into domain modules with @main_thread decorator
 - [ ] **FNDN-09**: Linting configured with ruff (target Python 3.11, PEP 8, import ordering)
 - [ ] **FNDN-10**: Test infrastructure with pytest + pytest-asyncio using FastMCP in-memory client
 
@@ -161,7 +161,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FNDN-05 | Phase 1 | Complete |
 | FNDN-06 | Phase 1 | Complete |
 | FNDN-07 | Phase 2 | Complete |
-| FNDN-08 | Phase 2 | Pending |
+| FNDN-08 | Phase 2 | Complete |
 | FNDN-09 | Phase 2 | Pending |
 | FNDN-10 | Phase 2 | Pending |
 | TRCK-01 | Phase 3 | Pending |
