@@ -59,6 +59,11 @@ _WRITE_COMMANDS = frozenset(
         "set_track_solo",
         "set_track_arm",
         "set_send_level",
+        # Phase 5: Clip Management
+        "delete_clip",
+        "duplicate_clip",
+        "set_clip_color",
+        "set_clip_loop",
     ]
 )
 
