@@ -214,3 +214,30 @@ async def test_set_track_name_with_type(mcp_server, mock_connection):
     mock_connection.send_command.assert_called_once_with(
         "set_track_name", {"track_index": 0, "name": "FX Send", "track_type": "return"}
     )
+
+
+async def test_set_track_name_returns_type(mcp_server, mock_connection):
+    """set_track_name response includes track type for non-default types."""
+    mock_connection.send_command.return_value = {"name": "My Return", "type": "return", "index": 0}
+    result = await mcp_server.call_tool(
+        "set_track_name", {"track_index": 0, "name": "My Return", "track_type": "return"}
+    )
+    text = result[0].text
+    assert "My Return" in text
+    # Verify the wire command receives track_type
+    mock_connection.send_command.assert_called_once_with(
+        "set_track_name", {"track_index": 0, "name": "My Return", "track_type": "return"}
+    )
+
+
+async def test_set_track_name_master(mcp_server, mock_connection):
+    """set_track_name works for master track."""
+    mock_connection.send_command.return_value = {"name": "MASTER", "type": "master"}
+    result = await mcp_server.call_tool(
+        "set_track_name", {"track_index": 0, "name": "MASTER", "track_type": "master"}
+    )
+    text = result[0].text
+    assert "MASTER" in text
+    mock_connection.send_command.assert_called_once_with(
+        "set_track_name", {"track_index": 0, "name": "MASTER", "track_type": "master"}
+    )
