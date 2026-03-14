@@ -1,6 +1,5 @@
 """Note handlers: MIDI note editing with Live 11+ APIs."""
 
-import Live.Clip
 from AbletonMCP_Remote_Script.handlers.clips import _resolve_clip_slot
 from AbletonMCP_Remote_Script.registry import command
 
@@ -11,6 +10,8 @@ class NoteHandlers:
     @command("add_notes_to_clip", write=True)
     def _add_notes_to_clip(self, params):
         """Add MIDI notes to a clip using Live 11+ append-mode API."""
+        import Live.Clip
+
         track_index = params.get("track_index", 0)
         clip_index = params.get("clip_index", 0)
         notes = params.get("notes", [])
@@ -145,6 +146,8 @@ class NoteHandlers:
     @command("quantize_notes", write=True)
     def _quantize_clip_notes(self, params):
         """Quantize note start times to a grid with configurable strength."""
+        import Live.Clip
+
         track_index = params.get("track_index", 0)
         clip_index = params.get("clip_index", 0)
         grid_size = params.get("grid_size", 0.25)
@@ -207,6 +210,8 @@ class NoteHandlers:
     @command("transpose_notes", write=True)
     def _transpose_clip_notes(self, params):
         """Transpose all notes in a clip by semitones with pre-validation."""
+        import Live.Clip
+
         track_index = params.get("track_index", 0)
         clip_index = params.get("clip_index", 0)
         semitones = params.get("semitones", 0)

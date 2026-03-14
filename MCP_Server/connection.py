@@ -64,6 +64,10 @@ _WRITE_COMMANDS = frozenset(
         "duplicate_clip",
         "set_clip_color",
         "set_clip_loop",
+        # Phase 6: MIDI Editing
+        "remove_notes",
+        "quantize_notes",
+        "transpose_notes",
     ]
 )
 

@@ -99,7 +99,7 @@ class TestFullRegistry:
         from AbletonMCP_Remote_Script.registry import CommandRegistry
 
         registered = {e[0] for e in CommandRegistry._entries}
-        assert len(registered) == 40, f"Expected 40 commands, got {len(registered)}: {registered}"
+        assert len(registered) == 44, f"Expected 44 commands, got {len(registered)}: {registered}"
 
         expected = {
             "get_session_info",
@@ -144,6 +144,11 @@ class TestFullRegistry:
             "get_clip_info",
             "set_clip_color",
             "set_clip_loop",
+            # Phase 6: MIDI Editing
+            "get_notes",
+            "remove_notes",
+            "quantize_notes",
+            "transpose_notes",
         }
         missing = expected - registered
         assert not missing, f"Commands not registered: {missing}"
