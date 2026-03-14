@@ -22,15 +22,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Track Management
 
-- [ ] **TRCK-01**: User can create MIDI tracks at specified index
-- [ ] **TRCK-02**: User can create audio tracks at specified index
-- [ ] **TRCK-03**: User can create return tracks
-- [ ] **TRCK-04**: User can create group tracks
-- [ ] **TRCK-05**: User can delete any track by index
-- [ ] **TRCK-06**: User can duplicate any track by index
-- [ ] **TRCK-07**: User can rename any track
-- [ ] **TRCK-08**: User can set track color
-- [ ] **TRCK-09**: User can get detailed info about any track (name, type, devices, clips, routing)
+- [x] **TRCK-01**: User can create MIDI tracks at specified index
+- [x] **TRCK-02**: User can create audio tracks at specified index
+- [x] **TRCK-03**: User can create return tracks
+- [x] **TRCK-04**: User can create group tracks
+- [x] **TRCK-05**: User can delete any track by index
+- [x] **TRCK-06**: User can duplicate any track by index
+- [x] **TRCK-07**: User can rename any track
+- [x] **TRCK-08**: User can set track color
+- [x] **TRCK-09**: User can get detailed info about any track (name, type, devices, clips, routing)
 
 ### Mixing
 
@@ -164,15 +164,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FNDN-08 | Phase 2 | Complete |
 | FNDN-09 | Phase 2 | Complete |
 | FNDN-10 | Phase 2 | Complete |
-| TRCK-01 | Phase 3 | Pending |
-| TRCK-02 | Phase 3 | Pending |
-| TRCK-03 | Phase 3 | Pending |
-| TRCK-04 | Phase 3 | Pending |
-| TRCK-05 | Phase 3 | Pending |
-| TRCK-06 | Phase 3 | Pending |
-| TRCK-07 | Phase 3 | Pending |
-| TRCK-08 | Phase 3 | Pending |
-| TRCK-09 | Phase 3 | Pending |
+| TRCK-01 | Phase 3 | Complete |
+| TRCK-02 | Phase 3 | Complete |
+| TRCK-03 | Phase 3 | Complete |
+| TRCK-04 | Phase 3 | Complete |
+| TRCK-05 | Phase 3 | Complete |
+| TRCK-06 | Phase 3 | Complete |
+| TRCK-07 | Phase 3 | Complete |
+| TRCK-08 | Phase 3 | Complete |
+| TRCK-09 | Phase 3 | Complete |
 | MIX-01 | Phase 4 | Pending |
 | MIX-02 | Phase 4 | Pending |
 | MIX-03 | Phase 4 | Pending |
