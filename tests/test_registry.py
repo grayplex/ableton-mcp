@@ -93,19 +93,27 @@ class TestFullRegistry:
     """Test the populated registry after all handler imports."""
 
     def test_all_commands_registered(self):
-        """All 21 command type strings are registered in CommandRegistry."""
+        """All 29 command type strings are registered in CommandRegistry."""
         _stub_framework()
         import AbletonMCP_Remote_Script.handlers  # noqa: F401
         from AbletonMCP_Remote_Script.registry import CommandRegistry
 
         registered = {e[0] for e in CommandRegistry._entries}
-        assert len(registered) == 21, f"Expected 21 commands, got {len(registered)}: {registered}"
+        assert len(registered) == 29, f"Expected 29 commands, got {len(registered)}: {registered}"
 
         expected = {
             "get_session_info",
             "get_track_info",
+            "get_all_tracks",
             "create_midi_track",
+            "create_audio_track",
+            "create_return_track",
+            "create_group_track",
             "set_track_name",
+            "delete_track",
+            "duplicate_track",
+            "set_track_color",
+            "set_group_fold",
             "create_clip",
             "add_notes_to_clip",
             "set_clip_name",

@@ -36,7 +36,13 @@ _WRITE_COMMANDS = frozenset(
     [
         "create_midi_track",
         "create_audio_track",
+        "create_return_track",
+        "create_group_track",
         "set_track_name",
+        "delete_track",
+        "duplicate_track",
+        "set_track_color",
+        "set_group_fold",
         "create_clip",
         "add_notes_to_clip",
         "set_clip_name",
