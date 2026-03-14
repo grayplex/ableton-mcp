@@ -315,14 +315,15 @@ class TrackHandlers:
         """Set the name of a track."""
         track_index = params.get("track_index", 0)
         name = params.get("name", "")
+        track_type = params.get("track_type", "track")
         try:
-            if track_index < 0 or track_index >= len(self._song.tracks):
-                raise IndexError("Track index out of range")
-
-            track = self._song.tracks[track_index]
+            track = _resolve_track(self._song, track_type, track_index)
             track.name = name
 
-            return {"name": track.name}
+            result = {"name": track.name, "type": track_type}
+            if track_type != "master":
+                result["index"] = track_index
+            return result
         except Exception as e:
             self.log_message(f"Error setting track name: {e}")
             raise
