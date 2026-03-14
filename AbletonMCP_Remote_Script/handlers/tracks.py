@@ -489,9 +489,8 @@ class TrackHandlers:
             }
 
             # Mute/solo (not available on master track)
-            if hasattr(track, "mute"):
+            if track_type != "master":
                 result["mute"] = track.mute
-            if hasattr(track, "solo"):
                 result["solo"] = track.solo
 
             # Add index for non-master tracks
