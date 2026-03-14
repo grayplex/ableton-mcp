@@ -52,6 +52,13 @@ _WRITE_COMMANDS = frozenset(
         "set_device_parameter",
         "start_playback",
         "stop_playback",
+        # Phase 4: Mixing Controls
+        "set_track_volume",
+        "set_track_pan",
+        "set_track_mute",
+        "set_track_solo",
+        "set_track_arm",
+        "set_send_level",
     ]
 )
 
