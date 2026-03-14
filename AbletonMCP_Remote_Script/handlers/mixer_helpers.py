@@ -5,40 +5,30 @@ mixer.py (imports _resolve_track from tracks.py) and tracks.py
 (imports _to_db/_pan_label for get_track_info enrichment).
 """
 
-# Calibrated against Ableton Live's fader curve: (parameter_value, dB)
-_VOL_CURVE = [
-    (0.0, None),
-    (0.1, -48.6),
-    (0.225, -31.5),
-    (0.35, -20.6),
-    (0.475, -15.0),
-    (0.6, -10.0),
-    (0.725, -5.0),
-    (0.85, 0.0),
-    (0.975, 5.0),
-    (1.0, 6.0),
-]
+import math
+
+# Lower-range coefficients (log + quadratic, constrained to f(0.4) = -18)
+_A = 1.1141800562
+_B = -182.5062752046
+_C = 187.6312710131
+_D = -62.8305915134
 
 
 def _to_db(value):
     """Convert normalized 0.0-1.0 volume to dB string.
 
-    Uses a lookup table calibrated against Ableton Live's fader curve
-    with linear interpolation between points.
+    Two-piece formula fitted to 77 calibration points from Ableton Live.
+    Upper range (v >= 0.4): linear, dB = 40v - 34 (exact).
+    Lower range (v < 0.4): log + quadratic taper.
+    RMS 0.13 dB, max 0.35 dB across all calibration points.
     """
     if value <= 0:
         return "-inf dB"
-    for i in range(1, len(_VOL_CURVE)):
-        if value <= _VOL_CURVE[i][0]:
-            v0, db0 = _VOL_CURVE[i - 1]
-            v1, db1 = _VOL_CURVE[i]
-            if db0 is None:
-                # Below lowest calibration point — extrapolate from next segment
-                slope = (_VOL_CURVE[2][1] - db1) / (_VOL_CURVE[2][0] - v1)
-                return f"{db1 + slope * (value - v1):.1f} dB"
-            t = (value - v0) / (v1 - v0)
-            return f"{db0 + t * (db1 - db0):.1f} dB"
-    return f"{_VOL_CURVE[-1][1]:.1f} dB"
+    if value >= 0.4:
+        db = 40.0 * value - 34.0
+    else:
+        db = _A * math.log(value) + _B * value * value + _C * value + _D
+    return f"{db:.1f} dB"
 
 
 def _pan_label(value):
