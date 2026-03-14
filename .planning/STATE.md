@@ -36,7 +36,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-10)
 
 **Core value:** An AI assistant can produce actual music in Ableton — instruments load, notes play, effects shape sound, and the mix comes together.
-**Current focus:** Phase 4 Mixing Controls complete. Ready for Phase 5.
+**Current focus:** Phase 4 complete (including dB calibration). Ready for Phase 5.
 
 ## Current Position
 
@@ -130,6 +130,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T19:36:52.676Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-03-14
+Stopped at: Completed dB calibration formula — lookup table replaced with fitted formula
 Resume file: None
