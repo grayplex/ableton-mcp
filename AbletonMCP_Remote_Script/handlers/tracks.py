@@ -1,5 +1,6 @@
 """Track handlers: create, rename, delete, duplicate, color, fold, query tracks."""
 
+from AbletonMCP_Remote_Script.handlers.mixer_helpers import _to_db, _pan_label
 from AbletonMCP_Remote_Script.registry import command
 
 # Ableton Live color palette: 70 colors (indices 0-69)
@@ -485,7 +486,9 @@ class TrackHandlers:
                 "type": type_str,
                 "color": color_name,
                 "volume": track.mixer_device.volume.value,
+                "volume_db": _to_db(track.mixer_device.volume.value),
                 "panning": track.mixer_device.panning.value,
+                "pan_label": _pan_label(track.mixer_device.panning.value),
             }
 
             # Mute/solo (not available on master track)
@@ -522,6 +525,22 @@ class TrackHandlers:
                             "index": group_index,
                             "name": group.name,
                         }
+
+            # Send levels (not on master -- master has no sends)
+            if track_type != "master" and hasattr(track.mixer_device, "sends"):
+                sends = []
+                for i, send in enumerate(track.mixer_device.sends):
+                    send_info = {
+                        "return_index": i,
+                        "level": send.value,
+                        "level_db": _to_db(send.value),
+                    }
+                    # Include return track name if available
+                    if i < len(self._song.return_tracks):
+                        send_info["return_name"] = self._song.return_tracks[i].name
+                    sends.append(send_info)
+                if sends:  # Only include if there are return tracks
+                    result["sends"] = sends
 
             # Clip slots (regular and return tracks, not master)
             if track_type != "master" and hasattr(track, "clip_slots"):
@@ -579,6 +598,8 @@ class TrackHandlers:
                         "name": track.name,
                         "type": type_str,
                         "color": color_name,
+                        "volume": track.mixer_device.volume.value,
+                        "volume_db": _to_db(track.mixer_device.volume.value),
                     }
                 )
 
@@ -592,6 +613,8 @@ class TrackHandlers:
                         "name": track.name,
                         "type": "return",
                         "color": color_name,
+                        "volume": track.mixer_device.volume.value,
+                        "volume_db": _to_db(track.mixer_device.volume.value),
                     }
                 )
 
@@ -606,6 +629,8 @@ class TrackHandlers:
                     "name": master.name,
                     "type": "master",
                     "color": master_color,
+                    "volume": master.mixer_device.volume.value,
+                    "volume_db": _to_db(master.mixer_device.volume.value),
                 },
             }
         except Exception as e:
