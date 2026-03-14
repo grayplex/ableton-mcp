@@ -77,7 +77,7 @@ Plans:
 - [ ] 03-04-PLAN.md — Gap closure: fix _get_track_info to guard mute/solo access with hasattr so master track does not crash (TRCK-05)
 
 ### Phase 4: Mixing Controls
-**Goal**: Users can control the complete mixer surface — levels, panning, routing enables, and master/return channels
+**Goal**: Users can control the complete mixer surface — levels, panning, mute/solo/arm, sends, and master/return channels
 **Depends on**: Phase 3
 **Requirements**: MIX-01, MIX-02, MIX-03, MIX-04, MIX-05, MIX-06, MIX-07, MIX-08
 **Success Criteria** (what must be TRUE):
@@ -86,13 +86,11 @@ Plans:
   3. User can arm and disarm any track for recording
   4. User can set send levels from any track to any return channel
   5. User can set master track volume and return track volume/pan independently
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 04-01: Implement MixerHandler in Remote Script — set_track_volume, set_track_pan, set_master_volume
-- [ ] 04-02: Implement mute/unmute, solo/unsolo, arm/disarm in MixerHandler
-- [ ] 04-03: Implement set_send_level and set_return_volume/pan in MixerHandler
-- [ ] 04-04: Add corresponding MCP tools in tools/mixing.py
+- [ ] 04-01-PLAN.md — Remote Script mixer handlers: all 6 command handlers (set_track_volume, set_track_pan, set_track_mute, set_track_solo, set_track_arm, set_send_level) with dB helper, plus _WRITE_COMMANDS update
+- [ ] 04-02-PLAN.md — MCP mixer tools, smoke tests, and get_track_info enhancement: 6 tool definitions in tools/mixer.py, conftest/init wiring, dB+sends in get_track_info, 14+ smoke tests
 
 ### Phase 5: Clip Management
 **Goal**: Users can create, edit, launch, and delete clips with full control over loop and playback regions
@@ -210,8 +208,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 |-------|----------------|--------|-----------|
 | 1. Foundation Repair | 3/3 | Complete | 2026-03-13 |
 | 2. Infrastructure Refactor | 3/3 | Complete | 2026-03-14 |
-| 3. Track Management | 3/4 | In progress (gap closure) | - |
-| 4. Mixing Controls | 0/4 | Not started | - |
+| 3. Track Management | 4/4 | Complete | 2026-03-14 |
+| 4. Mixing Controls | 0/2 | Not started | - |
 | 5. Clip Management | 0/4 | Not started | - |
 | 6. MIDI Editing | 0/4 | Not started | - |
 | 7. Device & Browser | 0/6 | Not started | - |
