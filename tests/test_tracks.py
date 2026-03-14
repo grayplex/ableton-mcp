@@ -203,6 +203,58 @@ async def test_get_track_info_with_type(mcp_server, mock_connection):
     )
 
 
+async def test_get_track_info_master_no_mute_solo(mcp_server, mock_connection):
+    """get_track_info for master track returns volume/panning but no mute/solo."""
+    mock_connection.send_command.return_value = {
+        "name": "Master",
+        "type": "master",
+        "volume": 0.85,
+        "panning": 0.0,
+        "color": "charcoal",
+        "devices": [],
+    }
+    result = await mcp_server.call_tool(
+        "get_track_info", {"track_index": 0, "track_type": "master"}
+    )
+    text = result[0].text
+    data = json.loads(text)
+    assert data["name"] == "Master"
+    assert data["type"] == "master"
+    assert "volume" in data
+    assert "panning" in data
+    assert "mute" not in data
+    assert "solo" not in data
+    mock_connection.send_command.assert_called_once_with(
+        "get_track_info", {"track_index": 0, "track_type": "master"}
+    )
+
+
+async def test_get_track_info_regular_track_has_mute_solo(mcp_server, mock_connection):
+    """get_track_info for regular track includes mute and solo fields."""
+    mock_connection.send_command.return_value = {
+        "index": 0,
+        "name": "Bass",
+        "type": "midi",
+        "volume": 0.7,
+        "panning": 0.0,
+        "mute": False,
+        "solo": False,
+        "color": "blue",
+        "devices": [],
+        "clip_slots": [],
+    }
+    result = await mcp_server.call_tool(
+        "get_track_info", {"track_index": 0, "track_type": "track"}
+    )
+    text = result[0].text
+    data = json.loads(text)
+    assert data["mute"] is False
+    assert data["solo"] is False
+    mock_connection.send_command.assert_called_once_with(
+        "get_track_info", {"track_index": 0, "track_type": "track"}
+    )
+
+
 async def test_set_track_name_with_type(mcp_server, mock_connection):
     """set_track_name passes track_type parameter."""
     mock_connection.send_command.return_value = {"name": "FX Send", "type": "return"}
