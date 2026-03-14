@@ -34,14 +34,14 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Mixing
 
-- [ ] **MIX-01**: User can set track volume (0.0–1.0 normalized)
-- [ ] **MIX-02**: User can set track pan (-1.0 to 1.0)
-- [ ] **MIX-03**: User can mute/unmute any track
-- [ ] **MIX-04**: User can solo/unsolo any track
-- [ ] **MIX-05**: User can arm/disarm any track for recording
-- [ ] **MIX-06**: User can set send levels for any track to any return
-- [ ] **MIX-07**: User can set master track volume
-- [ ] **MIX-08**: User can set return track volume and pan
+- [x] **MIX-01**: User can set track volume (0.0–1.0 normalized)
+- [x] **MIX-02**: User can set track pan (-1.0 to 1.0)
+- [x] **MIX-03**: User can mute/unmute any track
+- [x] **MIX-04**: User can solo/unsolo any track
+- [x] **MIX-05**: User can arm/disarm any track for recording
+- [x] **MIX-06**: User can set send levels for any track to any return
+- [x] **MIX-07**: User can set master track volume
+- [x] **MIX-08**: User can set return track volume and pan
 
 ### Clip Management
 
@@ -173,14 +173,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRCK-07 | Phase 3 | Complete |
 | TRCK-08 | Phase 3 | Complete |
 | TRCK-09 | Phase 3 | Complete |
-| MIX-01 | Phase 4 | Pending |
-| MIX-02 | Phase 4 | Pending |
-| MIX-03 | Phase 4 | Pending |
-| MIX-04 | Phase 4 | Pending |
-| MIX-05 | Phase 4 | Pending |
-| MIX-06 | Phase 4 | Pending |
-| MIX-07 | Phase 4 | Pending |
-| MIX-08 | Phase 4 | Pending |
+| MIX-01 | Phase 4 | Complete |
+| MIX-02 | Phase 4 | Complete |
+| MIX-03 | Phase 4 | Complete |
+| MIX-04 | Phase 4 | Complete |
+| MIX-05 | Phase 4 | Complete |
+| MIX-06 | Phase 4 | Complete |
+| MIX-07 | Phase 4 | Complete |
+| MIX-08 | Phase 4 | Complete |
 | CLIP-01 | Phase 5 | Pending |
 | CLIP-02 | Phase 5 | Pending |
 | CLIP-03 | Phase 5 | Pending |
