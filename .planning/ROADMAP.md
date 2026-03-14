@@ -68,12 +68,13 @@ Plans:
   3. User can duplicate a track and the copy appears with its contents intact
   4. User can rename any track and set its color — changes reflect in Ableton's UI
   5. User can get full track info (name, type, devices, clips, routing) for any track in the session
-**Plans:** 3 plans
+**Plans:** 4 plans
 
 Plans:
 - [ ] 03-01-PLAN.md — Remote Script track handlers: all track CRUD (create audio/return/group, delete, duplicate), color palette mapping, group fold control, enhanced get_track_info for all track types, get_all_tracks
 - [ ] 03-02-PLAN.md — MCP tools and smoke tests: all track tool definitions in tools/tracks.py with parameter validation, comprehensive smoke tests for all 11 track tools
 - [ ] 03-03-PLAN.md — Gap closure: fix _set_track_name handler to use _resolve_track for return/master track rename support (TRCK-07)
+- [ ] 03-04-PLAN.md — Gap closure: fix _get_track_info to guard mute/solo access with hasattr so master track does not crash (TRCK-05)
 
 ### Phase 4: Mixing Controls
 **Goal**: Users can control the complete mixer surface — levels, panning, routing enables, and master/return channels
@@ -209,7 +210,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 |-------|----------------|--------|-----------|
 | 1. Foundation Repair | 3/3 | Complete | 2026-03-13 |
 | 2. Infrastructure Refactor | 3/3 | Complete | 2026-03-14 |
-| 3. Track Management | 3/3 | Complete | 2026-03-14 |
+| 3. Track Management | 3/4 | In progress (gap closure) | - |
 | 4. Mixing Controls | 0/4 | Not started | - |
 | 5. Clip Management | 0/4 | Not started | - |
 | 6. MIDI Editing | 0/4 | Not started | - |
