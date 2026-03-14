@@ -1,6 +1,6 @@
-"""Ableton Live integration through the Model Context Protocol."""
+"""AbletonMCP server package."""
 
 __version__ = "0.1.0"
 
 # Expose key classes and functions for easier imports
-from .server import AbletonConnection, get_ableton_connection
+from MCP_Server.connection import AbletonConnection, get_ableton_connection

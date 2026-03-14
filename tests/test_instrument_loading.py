@@ -26,6 +26,11 @@ def server_source():
     return (ROOT / "MCP_Server" / "server.py").read_text()
 
 
+@pytest.fixture
+def session_tools_source():
+    return (ROOT / "MCP_Server" / "tools" / "session.py").read_text()
+
+
 class TestSameCallbackPattern:
     """Verify instrument loading uses same-callback pattern."""
 
@@ -195,10 +200,10 @@ class TestPingAbletonVersion:
 class TestHealthCheckVersion:
     """Verify get_connection_status includes Ableton version."""
 
-    def test_get_connection_status_includes_ableton_version(self, server_source):
+    def test_get_connection_status_includes_ableton_version(self, session_tools_source):
         """get_connection_status function body contains ableton_version."""
         # Extract get_connection_status function body
-        lines = server_source.splitlines()
+        lines = session_tools_source.splitlines()
         in_func = False
         func_body_lines = []
         indent_level = None

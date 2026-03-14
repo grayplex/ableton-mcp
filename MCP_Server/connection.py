@@ -142,6 +142,15 @@ _ableton_connection = None
 _connection_lock = threading.Lock()
 
 
+def shutdown_connection():
+    """Disconnect and clear the global Ableton connection. Called on server shutdown."""
+    global _ableton_connection
+    with _connection_lock:
+        if _ableton_connection:
+            _ableton_connection.disconnect()
+            _ableton_connection = None
+
+
 def get_ableton_connection():
     """Get or create a persistent Ableton connection.
 

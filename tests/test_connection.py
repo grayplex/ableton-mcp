@@ -1,11 +1,11 @@
 """Tests verifying thread-safe connection access and protocol adoption in source files.
 
 These tests grep the actual source files to confirm:
-- _connection_lock exists and is a threading.Lock in server.py
+- _connection_lock exists and is a threading.Lock in connection.py
 - send_command does not contain time.sleep calls
-- server.py does not contain sendall(b'') pattern
+- connection.py does not contain sendall(b'') pattern
 - "ping" command handler exists in the Remote Script
-- Both files use struct.pack for length-prefix framing
+- Both server-side protocol and Remote Script use struct.pack for length-prefix framing
 """
 
 import re
@@ -14,21 +14,21 @@ import re
 class TestConnectionLock:
     """Verify threading.Lock protects connection access."""
 
-    def test_lock_serializes_access(self, server_source):
-        """Verify _connection_lock exists and is a threading.Lock in server.py source."""
+    def test_lock_serializes_access(self, connection_source):
+        """Verify _connection_lock exists and is a threading.Lock in connection.py source."""
         # _connection_lock variable must exist
-        assert "_connection_lock" in server_source, (
-            "_connection_lock variable not found in server.py"
+        assert "_connection_lock" in connection_source, (
+            "_connection_lock variable not found in connection.py"
         )
 
         # Must be assigned as threading.Lock()
-        assert "threading.Lock()" in server_source, (
-            "threading.Lock() not found in server.py -- _connection_lock must use threading.Lock"
+        assert "threading.Lock()" in connection_source, (
+            "threading.Lock() not found in connection.py -- _connection_lock must use threading.Lock"
         )
 
         # Must be used with 'with' statement in get_ableton_connection
-        assert "with _connection_lock" in server_source, (
-            "'with _connection_lock' not found in server.py -- "
+        assert "with _connection_lock" in connection_source, (
+            "'with _connection_lock' not found in connection.py -- "
             "get_ableton_connection must use the lock as a context manager"
         )
 
@@ -36,11 +36,11 @@ class TestConnectionLock:
 class TestNoArtificialDelays:
     """Verify no time.sleep in send/receive path."""
 
-    def test_no_time_sleep_in_send_command(self, server_source):
+    def test_no_time_sleep_in_send_command(self, connection_source):
         """Verify send_command method does not contain time.sleep calls."""
         # Extract the send_command method body
         # Find "def send_command" and go until the next unindented "def "
-        lines = server_source.splitlines()
+        lines = connection_source.splitlines()
         in_send_command = False
         send_command_body = []
         indent_level = None
@@ -73,14 +73,14 @@ class TestNoArtificialDelays:
 class TestNoSendallEmpty:
     """Verify sendall(b'') liveness test is removed."""
 
-    def test_no_sendall_empty_bytes(self, server_source):
-        """Verify server.py does not contain sendall(b'') or sendall(b\"\") pattern."""
-        assert "sendall(b'')" not in server_source, (
-            "Found sendall(b'') in server.py -- "
+    def test_no_sendall_empty_bytes(self, connection_source):
+        """Verify connection.py does not contain sendall(b'') or sendall(b\"\") pattern."""
+        assert "sendall(b'')" not in connection_source, (
+            "Found sendall(b'') in connection.py -- "
             "empty-bytes liveness test must be replaced with real ping command"
         )
-        assert 'sendall(b"")' not in server_source, (
-            'Found sendall(b"") in server.py -- '
+        assert 'sendall(b"")' not in connection_source, (
+            'Found sendall(b"") in connection.py -- '
             "empty-bytes liveness test must be replaced with real ping command"
         )
 
@@ -110,12 +110,12 @@ class TestStructPackAdoption:
             "'import struct' not found in Remote Script"
         )
 
-    def test_server_uses_struct_pack(self, server_source):
-        """Verify MCP server uses struct.pack for framing."""
-        assert "struct.pack" in server_source, (
-            "struct.pack not found in server.py -- "
+    def test_server_uses_struct_pack(self, protocol_source):
+        """Verify MCP server protocol module uses struct.pack for framing."""
+        assert "struct.pack" in protocol_source, (
+            "struct.pack not found in protocol.py -- "
             "length-prefix framing must use struct.pack('>I', ...)"
         )
-        assert "import struct" in server_source, (
-            "'import struct' not found in server.py"
+        assert "import struct" in protocol_source, (
+            "'import struct' not found in protocol.py"
         )

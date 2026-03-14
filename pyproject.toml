@@ -25,7 +25,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["MCP_Server"]
+packages = ["MCP_Server", "MCP_Server.tools"]
 
 [dependency-groups]
 dev = [
