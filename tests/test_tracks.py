@@ -27,7 +27,7 @@ async def test_create_midi_track_calls_send_command(mcp_server, mock_connection)
     """create_midi_track invokes send_command and returns JSON."""
     mock_connection.send_command.return_value = {"name": "MIDI Track", "index": 0, "type": "midi"}
     result = await mcp_server.call_tool("create_midi_track", {"index": -1})
-    text = result[0].text
+    text = result[0][0].text
     data = json.loads(text)
     assert data["name"] == "MIDI Track"
     mock_connection.send_command.assert_called_once_with(
@@ -43,7 +43,7 @@ async def test_get_track_info_returns_data(mcp_server, mock_connection):
         "type": "midi",
     }
     result = await mcp_server.call_tool("get_track_info", {"track_index": 0})
-    text = result[0].text
+    text = result[0][0].text
     data = json.loads(text)
     assert data["name"] == "Bass"
     assert data["index"] == 0
@@ -53,7 +53,7 @@ async def test_create_audio_track(mcp_server, mock_connection):
     """create_audio_track sends correct wire command."""
     mock_connection.send_command.return_value = {"index": 1, "name": "Audio", "type": "audio"}
     result = await mcp_server.call_tool("create_audio_track", {"index": -1})
-    text = result[0].text
+    text = result[0][0].text
     data = json.loads(text)
     assert data["type"] == "audio"
     mock_connection.send_command.assert_called_once_with("create_audio_track", {"index": -1})
@@ -63,7 +63,7 @@ async def test_create_return_track(mcp_server, mock_connection):
     """create_return_track sends correct wire command."""
     mock_connection.send_command.return_value = {"index": 0, "name": "A-Return", "type": "return"}
     result = await mcp_server.call_tool("create_return_track", {})
-    text = result[0].text
+    text = result[0][0].text
     data = json.loads(text)
     assert data["type"] == "return"
     mock_connection.send_command.assert_called_once_with("create_return_track", {})
@@ -73,7 +73,7 @@ async def test_create_group_track(mcp_server, mock_connection):
     """create_group_track sends correct wire command."""
     mock_connection.send_command.return_value = {"index": 0, "name": "Group", "type": "group"}
     result = await mcp_server.call_tool("create_group_track", {"index": -1})
-    text = result[0].text
+    text = result[0][0].text
     data = json.loads(text)
     assert data["type"] == "group"
     mock_connection.send_command.assert_called_once_with(
@@ -87,7 +87,7 @@ async def test_create_group_track_with_indices(mcp_server, mock_connection):
     result = await mcp_server.call_tool(
         "create_group_track", {"index": 0, "track_indices": "1,2,3"}
     )
-    text = result[0].text
+    text = result[0][0].text
     data = json.loads(text)
     assert data["type"] == "group"
     mock_connection.send_command.assert_called_once_with(
@@ -103,7 +103,7 @@ async def test_delete_track(mcp_server, mock_connection):
     result = await mcp_server.call_tool(
         "delete_track", {"track_index": 1, "track_type": "track"}
     )
-    text = result[0].text
+    text = result[0][0].text
     data = json.loads(text)
     assert data["deleted"]["name"] == "Bass"
     mock_connection.send_command.assert_called_once_with(
@@ -119,7 +119,7 @@ async def test_duplicate_track(mcp_server, mock_connection):
     result = await mcp_server.call_tool(
         "duplicate_track", {"track_index": 1, "new_name": "Lead Copy"}
     )
-    text = result[0].text
+    text = result[0][0].text
     data = json.loads(text)
     assert data["name"] == "Lead Copy"
     assert data["index"] == 2
@@ -134,7 +134,7 @@ async def test_duplicate_track_without_name(mcp_server, mock_connection):
         "index": 2, "name": "Bass Copy", "type": "midi"
     }
     result = await mcp_server.call_tool("duplicate_track", {"track_index": 1})
-    text = result[0].text
+    text = result[0][0].text
     data = json.loads(text)
     assert data["name"] == "Bass Copy"
     mock_connection.send_command.assert_called_once_with(
@@ -150,7 +150,7 @@ async def test_set_track_color(mcp_server, mock_connection):
     result = await mcp_server.call_tool(
         "set_track_color", {"track_index": 0, "color": "blue"}
     )
-    text = result[0].text
+    text = result[0][0].text
     data = json.loads(text)
     assert data["color"] == "blue"
     mock_connection.send_command.assert_called_once_with(
@@ -166,7 +166,7 @@ async def test_set_group_fold(mcp_server, mock_connection):
     result = await mcp_server.call_tool(
         "set_group_fold", {"track_index": 0, "folded": True}
     )
-    text = result[0].text
+    text = result[0][0].text
     data = json.loads(text)
     assert data["folded"] is True
     mock_connection.send_command.assert_called_once_with(
@@ -182,7 +182,7 @@ async def test_get_all_tracks(mcp_server, mock_connection):
         "master_track": {"name": "Master", "type": "master", "color": "gray"},
     }
     result = await mcp_server.call_tool("get_all_tracks", {})
-    text = result[0].text
+    text = result[0][0].text
     data = json.loads(text)
     assert len(data["tracks"]) == 1
     assert data["master_track"]["type"] == "master"
@@ -195,7 +195,7 @@ async def test_get_track_info_with_type(mcp_server, mock_connection):
     result = await mcp_server.call_tool(
         "get_track_info", {"track_index": 0, "track_type": "master"}
     )
-    text = result[0].text
+    text = result[0][0].text
     data = json.loads(text)
     assert data["type"] == "master"
     mock_connection.send_command.assert_called_once_with(
@@ -216,7 +216,7 @@ async def test_get_track_info_master_no_mute_solo(mcp_server, mock_connection):
     result = await mcp_server.call_tool(
         "get_track_info", {"track_index": 0, "track_type": "master"}
     )
-    text = result[0].text
+    text = result[0][0].text
     data = json.loads(text)
     assert data["name"] == "Master"
     assert data["type"] == "master"
@@ -246,7 +246,7 @@ async def test_get_track_info_regular_track_has_mute_solo(mcp_server, mock_conne
     result = await mcp_server.call_tool(
         "get_track_info", {"track_index": 0, "track_type": "track"}
     )
-    text = result[0].text
+    text = result[0][0].text
     data = json.loads(text)
     assert data["mute"] is False
     assert data["solo"] is False
@@ -261,7 +261,7 @@ async def test_set_track_name_with_type(mcp_server, mock_connection):
     result = await mcp_server.call_tool(
         "set_track_name", {"track_index": 0, "name": "FX Send", "track_type": "return"}
     )
-    text = result[0].text
+    text = result[0][0].text
     assert "FX Send" in text
     mock_connection.send_command.assert_called_once_with(
         "set_track_name", {"track_index": 0, "name": "FX Send", "track_type": "return"}
@@ -274,7 +274,7 @@ async def test_set_track_name_returns_type(mcp_server, mock_connection):
     result = await mcp_server.call_tool(
         "set_track_name", {"track_index": 0, "name": "My Return", "track_type": "return"}
     )
-    text = result[0].text
+    text = result[0][0].text
     assert "My Return" in text
     # Verify the wire command receives track_type
     mock_connection.send_command.assert_called_once_with(
@@ -288,7 +288,7 @@ async def test_set_track_name_master(mcp_server, mock_connection):
     result = await mcp_server.call_tool(
         "set_track_name", {"track_index": 0, "name": "MASTER", "track_type": "master"}
     )
-    text = result[0].text
+    text = result[0][0].text
     assert "MASTER" in text
     mock_connection.send_command.assert_called_once_with(
         "set_track_name", {"track_index": 0, "name": "MASTER", "track_type": "master"}

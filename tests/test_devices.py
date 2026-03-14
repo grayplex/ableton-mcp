@@ -20,6 +20,6 @@ async def test_load_instrument_calls_send_command(mcp_server, mock_connection):
         "load_instrument_or_effect",
         {"track_index": 0, "uri": "query:Synths#Analog"},
     )
-    text = result[0].text
+    text = result[0][0].text
     assert "Analog" in text
     assert "Loaded" in text

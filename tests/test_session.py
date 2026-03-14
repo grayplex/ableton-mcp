@@ -19,7 +19,7 @@ async def test_get_session_info_returns_data(mcp_server, mock_connection):
         "tracks": ["Bass", "Drums", "Keys", "Lead"],
     }
     result = await mcp_server.call_tool("get_session_info", {})
-    text = result[0].text
+    text = result[0][0].text
     data = json.loads(text)
     assert data["tempo"] == 120.0
     assert data["track_count"] == 4
@@ -32,7 +32,7 @@ async def test_get_connection_status_returns_status(mcp_server, mock_connection)
         {"tempo": 120.0, "track_count": 4, "return_track_count": 2},  # session info
     ]
     result = await mcp_server.call_tool("get_connection_status", {})
-    text = result[0].text
+    text = result[0][0].text
     data = json.loads(text)
     assert data["connected"] is True
     assert data["ableton_version"] == "12.1"

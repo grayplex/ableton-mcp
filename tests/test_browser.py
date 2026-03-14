@@ -21,6 +21,6 @@ async def test_get_browser_tree_returns_data(mcp_server, mock_connection):
         ],
     }
     result = await mcp_server.call_tool("get_browser_tree", {"category_type": "all"})
-    text = result[0].text
+    text = result[0][0].text
     assert "Instruments" in text
     assert "Drums" in text
