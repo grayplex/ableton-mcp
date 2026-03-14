@@ -1,11 +1,22 @@
-"""Shared test fixtures for the ableton-mcp test suite."""
+"""Shared test fixtures for ableton-mcp test suite."""
 
 import os
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-# Project root directory (one level up from tests/)
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# All modules that import get_ableton_connection via `from ... import`
+_GAC_PATCH_TARGETS = [
+    "MCP_Server.connection.get_ableton_connection",
+    "MCP_Server.tools.session.get_ableton_connection",
+    "MCP_Server.tools.tracks.get_ableton_connection",
+    "MCP_Server.tools.clips.get_ableton_connection",
+    "MCP_Server.tools.transport.get_ableton_connection",
+    "MCP_Server.tools.devices.get_ableton_connection",
+    "MCP_Server.tools.browser.get_ableton_connection",
+]
 
 
 @pytest.fixture
@@ -15,64 +26,32 @@ def root_dir():
 
 
 @pytest.fixture
-def remote_script_source():
-    """Read and return all Remote Script source code.
+def mock_connection():
+    """Mock AbletonConnection with configurable canned responses.
 
-    Concatenates __init__.py, registry.py, and all handler modules
-    so grep-based tests can find patterns across the entire package.
+    Patches get_ableton_connection in every module that imports it,
+    so all tool functions receive the mock connection directly.
+
+    Usage in tests:
+        def test_something(mcp_server, mock_connection):
+            mock_connection.send_command.return_value = {"key": "value"}
+            result = await mcp_server.call_tool("tool_name", {"param": 1})
     """
-    base_dir = os.path.join(ROOT_DIR, "AbletonMCP_Remote_Script")
-    sources = []
-
-    # Main module
-    init_path = os.path.join(base_dir, "__init__.py")
-    with open(init_path, encoding="utf-8") as f:
-        sources.append(f.read())
-
-    # Registry
-    registry_path = os.path.join(base_dir, "registry.py")
-    if os.path.exists(registry_path):
-        with open(registry_path, encoding="utf-8") as f:
-            sources.append(f.read())
-
-    # Handler modules
-    handlers_dir = os.path.join(base_dir, "handlers")
-    if os.path.isdir(handlers_dir):
-        for filename in sorted(os.listdir(handlers_dir)):
-            if filename.endswith(".py"):
-                with open(os.path.join(handlers_dir, filename), encoding="utf-8") as f:
-                    sources.append(f.read())
-
-    return "\n".join(sources)
+    mock = MagicMock()
+    mock.send_command.return_value = {}
+    patches = [patch(target, return_value=mock) for target in _GAC_PATCH_TARGETS]
+    for p in patches:
+        p.start()
+    try:
+        yield mock
+    finally:
+        for p in patches:
+            p.stop()
 
 
 @pytest.fixture
-def server_source():
-    """Read and return the MCP server source code."""
-    path = os.path.join(ROOT_DIR, "MCP_Server", "server.py")
-    with open(path, encoding="utf-8") as f:
-        return f.read()
+def mcp_server():
+    """Return the live FastMCP server instance for in-memory testing."""
+    from MCP_Server.server import mcp
 
-
-@pytest.fixture
-def connection_source():
-    """Read and return the connection module source code."""
-    path = os.path.join(ROOT_DIR, "MCP_Server", "connection.py")
-    with open(path, encoding="utf-8") as f:
-        return f.read()
-
-
-@pytest.fixture
-def protocol_source():
-    """Read and return the protocol module source code."""
-    path = os.path.join(ROOT_DIR, "MCP_Server", "protocol.py")
-    with open(path, encoding="utf-8") as f:
-        return f.read()
-
-
-@pytest.fixture
-def session_tools_source():
-    """Read and return the session tools module source code."""
-    path = os.path.join(ROOT_DIR, "MCP_Server", "tools", "session.py")
-    with open(path, encoding="utf-8") as f:
-        return f.read()
+    return mcp
