@@ -5,8 +5,6 @@ mixer.py (imports _resolve_track from tracks.py) and tracks.py
 (imports _to_db/_pan_label for get_track_info enrichment).
 """
 
-import math
-
 
 def _to_db(value):
     """Convert normalized 0.0-1.0 volume to dB approximation string.
