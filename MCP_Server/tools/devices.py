@@ -1,7 +1,9 @@
 """Device tools: instrument and effect loading."""
+
 from mcp.server.fastmcp import Context
+
+from MCP_Server.connection import format_error, get_ableton_connection
 from MCP_Server.server import mcp
-from MCP_Server.connection import get_ableton_connection, format_error
 
 
 @mcp.tool()
@@ -14,10 +16,9 @@ def load_instrument_or_effect(ctx: Context, track_index: int, uri: str) -> str:
     """
     try:
         ableton = get_ableton_connection()
-        result = ableton.send_command("load_browser_item", {
-            "track_index": track_index,
-            "item_uri": uri
-        })
+        result = ableton.send_command(
+            "load_browser_item", {"track_index": track_index, "item_uri": uri}
+        )
 
         # Check if the instrument was loaded successfully
         if result.get("loaded", False):
@@ -36,11 +37,11 @@ def load_instrument_or_effect(ctx: Context, track_index: int, uri: str) -> str:
             return format_error(
                 f"Failed to load instrument with URI '{uri}'",
                 detail=error_msg,
-                suggestion="Verify the URI using get_browser_items_at_path first"
+                suggestion="Verify the URI using get_browser_items_at_path first",
             )
     except Exception as e:
         return format_error(
             "Failed to load instrument",
             detail=str(e),
-            suggestion="Verify the URI using get_browser_items_at_path first"
+            suggestion="Verify the URI using get_browser_items_at_path first",
         )

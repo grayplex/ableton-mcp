@@ -1,4 +1,5 @@
 """Length-prefix framing protocol for Ableton socket communication."""
+
 import json
 import socket
 import struct

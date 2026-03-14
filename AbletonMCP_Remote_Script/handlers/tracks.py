@@ -64,21 +64,25 @@ class TrackHandlers:
                         "is_recording": clip.is_recording,
                     }
 
-                clip_slots.append({
-                    "index": slot_index,
-                    "has_clip": slot.has_clip,
-                    "clip": clip_info,
-                })
+                clip_slots.append(
+                    {
+                        "index": slot_index,
+                        "has_clip": slot.has_clip,
+                        "clip": clip_info,
+                    }
+                )
 
             # Get devices
             devices = []
             for device_index, device in enumerate(track.devices):
-                devices.append({
-                    "index": device_index,
-                    "name": device.name,
-                    "class_name": device.class_name,
-                    "type": self._get_device_type(device),
-                })
+                devices.append(
+                    {
+                        "index": device_index,
+                        "name": device.name,
+                        "class_name": device.class_name,
+                        "type": self._get_device_type(device),
+                    }
+                )
 
             result = {
                 "index": track_index,

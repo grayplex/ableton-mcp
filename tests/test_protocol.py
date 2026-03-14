@@ -20,8 +20,8 @@ import threading
 
 import pytest
 
-
 # --- Reference protocol implementation (identical to what both source files must use) ---
+
 
 def _recv_exact(sock: socket.socket, n: int):
     """Read exactly n bytes from socket."""
@@ -57,6 +57,7 @@ def recv_message(sock: socket.socket, timeout: float = 15.0) -> dict:
 
 
 # --- Tests ---
+
 
 class TestProtocolRoundtrip:
     """Test length-prefix framing protocol logic."""
@@ -113,7 +114,7 @@ class TestProtocolRoundtrip:
                 "name": "Analoge Synthese",
                 "category": "Instrumente",
                 "notes": "C# D\u266d E\u266f",
-                "emoji_test": "\U0001f3b5\U0001f3b6"
+                "emoji_test": "\U0001f3b5\U0001f3b6",
             }
             send_message(a, original)
             result = recv_message(b)

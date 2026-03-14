@@ -38,9 +38,11 @@ class CommandRegistry:
             write: If True, dispatched on Ableton's main thread
             self_scheduling: If True, handler manages its own schedule_message calls
         """
+
         def decorator(func):
             cls._entries.append((name, func.__name__, write, self_scheduling))
             return func
+
         return decorator
 
     @classmethod

@@ -44,10 +44,10 @@ class BrowserHandlers:
             if not app:
                 raise RuntimeError("Could not access Live application")
 
-            if not hasattr(app, 'browser') or app.browser is None:
+            if not hasattr(app, "browser") or app.browser is None:
                 raise RuntimeError("Browser is not available in the Live application")
 
-            browser_attrs = [attr for attr in dir(app.browser) if not attr.startswith('_')]
+            browser_attrs = [attr for attr in dir(app.browser) if not attr.startswith("_")]
             self.log_message(f"Available browser attributes: {browser_attrs}")
 
             result = {
@@ -60,15 +60,17 @@ class BrowserHandlers:
                 if not item:
                     return None
                 return {
-                    "name": item.name if hasattr(item, 'name') else "Unknown",
-                    "is_folder": hasattr(item, 'children') and bool(item.children),
-                    "is_device": hasattr(item, 'is_device') and item.is_device,
-                    "is_loadable": hasattr(item, 'is_loadable') and item.is_loadable,
-                    "uri": item.uri if hasattr(item, 'uri') else None,
+                    "name": item.name if hasattr(item, "name") else "Unknown",
+                    "is_folder": hasattr(item, "children") and bool(item.children),
+                    "is_device": hasattr(item, "is_device") and item.is_device,
+                    "is_loadable": hasattr(item, "is_loadable") and item.is_loadable,
+                    "uri": item.uri if hasattr(item, "uri") else None,
                     "children": [],
                 }
 
-            if (category_type == "all" or category_type == "instruments") and hasattr(app.browser, 'instruments'):
+            if (category_type == "all" or category_type == "instruments") and hasattr(
+                app.browser, "instruments"
+            ):
                 try:
                     instruments = process_item(app.browser.instruments)
                     if instruments:
@@ -77,7 +79,9 @@ class BrowserHandlers:
                 except Exception as e:
                     self.log_message(f"Error processing instruments: {e}")
 
-            if (category_type == "all" or category_type == "sounds") and hasattr(app.browser, 'sounds'):
+            if (category_type == "all" or category_type == "sounds") and hasattr(
+                app.browser, "sounds"
+            ):
                 try:
                     sounds = process_item(app.browser.sounds)
                     if sounds:
@@ -86,7 +90,9 @@ class BrowserHandlers:
                 except Exception as e:
                     self.log_message(f"Error processing sounds: {e}")
 
-            if (category_type == "all" or category_type == "drums") and hasattr(app.browser, 'drums'):
+            if (category_type == "all" or category_type == "drums") and hasattr(
+                app.browser, "drums"
+            ):
                 try:
                     drums = process_item(app.browser.drums)
                     if drums:
@@ -95,7 +101,9 @@ class BrowserHandlers:
                 except Exception as e:
                     self.log_message(f"Error processing drums: {e}")
 
-            if (category_type == "all" or category_type == "audio_effects") and hasattr(app.browser, 'audio_effects'):
+            if (category_type == "all" or category_type == "audio_effects") and hasattr(
+                app.browser, "audio_effects"
+            ):
                 try:
                     audio_effects = process_item(app.browser.audio_effects)
                     if audio_effects:
@@ -104,7 +112,9 @@ class BrowserHandlers:
                 except Exception as e:
                     self.log_message(f"Error processing audio_effects: {e}")
 
-            if (category_type == "all" or category_type == "midi_effects") and hasattr(app.browser, 'midi_effects'):
+            if (category_type == "all" or category_type == "midi_effects") and hasattr(
+                app.browser, "midi_effects"
+            ):
                 try:
                     midi_effects = process_item(app.browser.midi_effects)
                     if midi_effects:
@@ -114,11 +124,16 @@ class BrowserHandlers:
                     self.log_message(f"Error processing midi_effects: {e}")
 
             for attr in browser_attrs:
-                if attr not in ['instruments', 'sounds', 'drums', 'audio_effects', 'midi_effects'] and \
-                   (category_type == "all" or category_type == attr):
+                if attr not in [
+                    "instruments",
+                    "sounds",
+                    "drums",
+                    "audio_effects",
+                    "midi_effects",
+                ] and (category_type == "all" or category_type == attr):
                     try:
                         item = getattr(app.browser, attr)
-                        if hasattr(item, 'children') or hasattr(item, 'name'):
+                        if hasattr(item, "children") or hasattr(item, "name"):
                             category = process_item(item)
                             if category:
                                 category["name"] = attr.capitalize()
@@ -157,10 +172,10 @@ class BrowserHandlers:
             if not app:
                 raise RuntimeError("Could not access Live application")
 
-            if not hasattr(app, 'browser') or app.browser is None:
+            if not hasattr(app, "browser") or app.browser is None:
                 raise RuntimeError("Browser is not available in the Live application")
 
-            browser_attrs = [attr for attr in dir(app.browser) if not attr.startswith('_')]
+            browser_attrs = [attr for attr in dir(app.browser) if not attr.startswith("_")]
             self.log_message(f"Available browser attributes: {browser_attrs}")
 
             path_parts = path.split("/")
@@ -195,7 +210,7 @@ class BrowserHandlers:
                 if not part:
                     continue
 
-                if not hasattr(current_item, 'children'):
+                if not hasattr(current_item, "children"):
                     return {
                         "path": path,
                         "error": f"Item at '{'/'.join(path_parts[:i])}' has no children",
@@ -204,7 +219,7 @@ class BrowserHandlers:
 
                 found = False
                 for child in current_item.children:
-                    if hasattr(child, 'name') and child.name.lower() == part.lower():
+                    if hasattr(child, "name") and child.name.lower() == part.lower():
                         current_item = child
                         found = True
                         break
@@ -217,24 +232,24 @@ class BrowserHandlers:
                     }
 
             items = []
-            if hasattr(current_item, 'children'):
+            if hasattr(current_item, "children"):
                 for child in current_item.children:
                     item_info = {
-                        "name": child.name if hasattr(child, 'name') else "Unknown",
-                        "is_folder": hasattr(child, 'children') and bool(child.children),
-                        "is_device": hasattr(child, 'is_device') and child.is_device,
-                        "is_loadable": hasattr(child, 'is_loadable') and child.is_loadable,
-                        "uri": child.uri if hasattr(child, 'uri') else None,
+                        "name": child.name if hasattr(child, "name") else "Unknown",
+                        "is_folder": hasattr(child, "children") and bool(child.children),
+                        "is_device": hasattr(child, "is_device") and child.is_device,
+                        "is_loadable": hasattr(child, "is_loadable") and child.is_loadable,
+                        "uri": child.uri if hasattr(child, "uri") else None,
                     }
                     items.append(item_info)
 
             result = {
                 "path": path,
-                "name": current_item.name if hasattr(current_item, 'name') else "Unknown",
-                "uri": current_item.uri if hasattr(current_item, 'uri') else None,
-                "is_folder": hasattr(current_item, 'children') and bool(current_item.children),
-                "is_device": hasattr(current_item, 'is_device') and current_item.is_device,
-                "is_loadable": hasattr(current_item, 'is_loadable') and current_item.is_loadable,
+                "name": current_item.name if hasattr(current_item, "name") else "Unknown",
+                "uri": current_item.uri if hasattr(current_item, "uri") else None,
+                "is_folder": hasattr(current_item, "children") and bool(current_item.children),
+                "is_device": hasattr(current_item, "is_device") and current_item.is_device,
+                "is_loadable": hasattr(current_item, "is_loadable") and current_item.is_loadable,
                 "items": items,
             }
 
@@ -388,8 +403,12 @@ class BrowserHandlers:
                 self.schedule_message(
                     1,
                     lambda: self._verify_load(
-                        track, devices_before, item_uri, item.name,
-                        response_queue, retries_remaining
+                        track,
+                        devices_before,
+                        item_uri,
+                        item.name,
+                        response_queue,
+                        retries_remaining,
                     ),
                 )
             except Exception as e:
@@ -410,24 +429,27 @@ class BrowserHandlers:
         except queue.Empty:
             return {"loaded": False, "error": "Timeout waiting for instrument load"}
 
-    def _verify_load(self, track, devices_before, item_uri, item_name,
-                     response_queue, retries_remaining):
+    def _verify_load(
+        self, track, devices_before, item_uri, item_name, response_queue, retries_remaining
+    ):
         """Verify device count increased after load, retry once if not."""
         try:
             devices_after_count = len(track.devices)
             if devices_after_count > devices_before:
                 device_chain = [d.name for d in track.devices]
-                response_queue.put({
-                    "status": "success",
-                    "result": {
-                        "loaded": True,
-                        "item_name": item_name,
-                        "track_name": track.name,
-                        "uri": item_uri,
-                        "devices": device_chain,
-                        "device_count": devices_after_count,
-                    },
-                })
+                response_queue.put(
+                    {
+                        "status": "success",
+                        "result": {
+                            "loaded": True,
+                            "item_name": item_name,
+                            "track_name": track.name,
+                            "uri": item_uri,
+                            "devices": device_chain,
+                            "device_count": devices_after_count,
+                        },
+                    }
+                )
             elif retries_remaining > 0:
                 self.log_message(
                     f"[WARN] Load verify failed for {item_uri}, retrying "
@@ -439,6 +461,7 @@ class BrowserHandlers:
                     item = self._find_browser_item_by_uri(app.browser, item_uri)
 
                 if item:
+
                     def retry_load():
                         try:
                             self._song.view.selected_track = track
@@ -446,8 +469,12 @@ class BrowserHandlers:
                             self.schedule_message(
                                 1,
                                 lambda: self._verify_load(
-                                    track, devices_before, item_uri, item_name,
-                                    response_queue, retries_remaining - 1
+                                    track,
+                                    devices_before,
+                                    item_uri,
+                                    item_name,
+                                    response_queue,
+                                    retries_remaining - 1,
                                 ),
                             )
                         except Exception as e:
@@ -455,20 +482,24 @@ class BrowserHandlers:
 
                     self.schedule_message(0, retry_load)
                 else:
-                    response_queue.put({
-                        "status": "error",
-                        "message": f"Browser item '{item_uri}' not found on retry",
-                    })
+                    response_queue.put(
+                        {
+                            "status": "error",
+                            "message": f"Browser item '{item_uri}' not found on retry",
+                        }
+                    )
             else:
                 device_chain = [d.name for d in track.devices]
-                response_queue.put({
-                    "status": "error",
-                    "message": (
-                        f"Load verification failed for '{item_name}' on track "
-                        f"'{track.name}'. Device count unchanged "
-                        f"({devices_after_count}). Devices: {device_chain}"
-                    ),
-                })
+                response_queue.put(
+                    {
+                        "status": "error",
+                        "message": (
+                            f"Load verification failed for '{item_name}' on track "
+                            f"'{track.name}'. Device count unchanged "
+                            f"({devices_after_count}). Devices: {device_chain}"
+                        ),
+                    }
+                )
         except Exception as e:
             self.log_message(f"[ERROR] _verify_load: {e}")
             self.log_message(traceback.format_exc())
@@ -484,13 +515,13 @@ class BrowserHandlers:
     def _find_browser_item_by_uri(self, browser_or_item, uri, max_depth=10, current_depth=0):
         """Find a browser item by its URI."""
         try:
-            if hasattr(browser_or_item, 'uri') and browser_or_item.uri == uri:
+            if hasattr(browser_or_item, "uri") and browser_or_item.uri == uri:
                 return browser_or_item
 
             if current_depth >= max_depth:
                 return None
 
-            if hasattr(browser_or_item, 'instruments'):
+            if hasattr(browser_or_item, "instruments"):
                 categories = [
                     browser_or_item.instruments,
                     browser_or_item.sounds,
@@ -500,13 +531,15 @@ class BrowserHandlers:
                 ]
 
                 for category in categories:
-                    item = self._find_browser_item_by_uri(category, uri, max_depth, current_depth + 1)
+                    item = self._find_browser_item_by_uri(
+                        category, uri, max_depth, current_depth + 1
+                    )
                     if item:
                         return item
 
                 return None
 
-            if hasattr(browser_or_item, 'children') and browser_or_item.children:
+            if hasattr(browser_or_item, "children") and browser_or_item.children:
                 for child in browser_or_item.children:
                     item = self._find_browser_item_by_uri(child, uri, max_depth, current_depth + 1)
                     if item:

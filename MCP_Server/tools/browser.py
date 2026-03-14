@@ -1,8 +1,11 @@
 """Browser tools: tree navigation, path browsing, drum kit loading."""
+
 import json
+
 from mcp.server.fastmcp import Context
+
+from MCP_Server.connection import format_error, get_ableton_connection
 from MCP_Server.server import mcp
-from MCP_Server.connection import get_ableton_connection, format_error
 
 
 @mcp.tool()
@@ -14,19 +17,21 @@ def get_browser_tree(ctx: Context, category_type: str = "all") -> str:
     """
     try:
         ableton = get_ableton_connection()
-        result = ableton.send_command("get_browser_tree", {
-            "category_type": category_type
-        })
+        result = ableton.send_command("get_browser_tree", {"category_type": category_type})
 
         # Check if we got any categories
         if "available_categories" in result and len(result.get("categories", [])) == 0:
             available_cats = result.get("available_categories", [])
-            return (f"No categories found for '{category_type}'. "
-                   f"Available browser categories: {', '.join(available_cats)}")
+            return (
+                f"No categories found for '{category_type}'. "
+                f"Available browser categories: {', '.join(available_cats)}"
+            )
 
         # Format the tree in a more readable way
         total_folders = result.get("total_folders", 0)
-        formatted_output = f"Browser tree for '{category_type}' (showing {total_folders} folders):\n\n"
+        formatted_output = (
+            f"Browser tree for '{category_type}' (showing {total_folders} folders):\n\n"
+        )
 
         def format_tree(item, indent=0):
             output = ""
@@ -61,19 +66,19 @@ def get_browser_tree(ctx: Context, category_type: str = "all") -> str:
             return format_error(
                 "Ableton browser is not available",
                 detail=error_msg,
-                suggestion="Make sure Ableton Live is fully loaded and try again"
+                suggestion="Make sure Ableton Live is fully loaded and try again",
             )
         elif "Could not access Live application" in error_msg:
             return format_error(
                 "Could not access Ableton Live application",
                 detail=error_msg,
-                suggestion="Make sure Ableton Live is running and Remote Script is loaded"
+                suggestion="Make sure Ableton Live is running and Remote Script is loaded",
             )
         else:
             return format_error(
                 "Failed to get browser tree",
                 detail=error_msg,
-                suggestion="Verify connection with get_connection_status"
+                suggestion="Verify connection with get_connection_status",
             )
 
 
@@ -86,16 +91,13 @@ def get_browser_items_at_path(ctx: Context, path: str) -> str:
     """
     try:
         ableton = get_ableton_connection()
-        result = ableton.send_command("get_browser_items_at_path", {
-            "path": path
-        })
+        result = ableton.send_command("get_browser_items_at_path", {"path": path})
 
         # Check if there was an error with available categories
         if "error" in result and "available_categories" in result:
             error = result.get("error", "")
             available_cats = result.get("available_categories", [])
-            return (f"Error: {error}\n"
-                   f"Available browser categories: {', '.join(available_cats)}")
+            return f"Error: {error}\nAvailable browser categories: {', '.join(available_cats)}"
 
         return json.dumps(result, indent=2)
     except Exception as e:
@@ -104,31 +106,31 @@ def get_browser_items_at_path(ctx: Context, path: str) -> str:
             return format_error(
                 "Ableton browser is not available",
                 detail=error_msg,
-                suggestion="Make sure Ableton Live is fully loaded and try again"
+                suggestion="Make sure Ableton Live is fully loaded and try again",
             )
         elif "Could not access Live application" in error_msg:
             return format_error(
                 "Could not access Ableton Live application",
                 detail=error_msg,
-                suggestion="Make sure Ableton Live is running and Remote Script is loaded"
+                suggestion="Make sure Ableton Live is running and Remote Script is loaded",
             )
         elif "Unknown or unavailable category" in error_msg:
             return format_error(
                 "Invalid browser category",
                 detail=error_msg,
-                suggestion="Check available categories using get_browser_tree"
+                suggestion="Check available categories using get_browser_tree",
             )
         elif "Path part" in error_msg and "not found" in error_msg:
             return format_error(
                 "Browser path not found",
                 detail=error_msg,
-                suggestion="Check the path and try again"
+                suggestion="Check the path and try again",
             )
         else:
             return format_error(
                 "Failed to get browser items at path",
                 detail=error_msg,
-                suggestion="Verify connection with get_connection_status"
+                suggestion="Verify connection with get_connection_status",
             )
 
 
@@ -145,18 +147,15 @@ def load_drum_kit(ctx: Context, track_index: int, rack_uri: str, kit_path: str) 
         ableton = get_ableton_connection()
 
         # Step 1: Load the drum rack
-        result = ableton.send_command("load_browser_item", {
-            "track_index": track_index,
-            "item_uri": rack_uri
-        })
+        result = ableton.send_command(
+            "load_browser_item", {"track_index": track_index, "item_uri": rack_uri}
+        )
 
         if not result.get("loaded", False):
             return f"Failed to load drum rack with URI '{rack_uri}'"
 
         # Step 2: Get the drum kit items at the specified path
-        kit_result = ableton.send_command("get_browser_items_at_path", {
-            "path": kit_path
-        })
+        kit_result = ableton.send_command("get_browser_items_at_path", {"path": kit_path})
 
         if "error" in kit_result:
             return f"Loaded drum rack but failed to find drum kit: {kit_result.get('error')}"
@@ -170,15 +169,12 @@ def load_drum_kit(ctx: Context, track_index: int, rack_uri: str, kit_path: str) 
 
         # Step 4: Load the first loadable kit
         kit_uri = loadable_kits[0].get("uri")
-        load_result = ableton.send_command("load_browser_item", {
-            "track_index": track_index,
-            "item_uri": kit_uri
-        })
+        ableton.send_command("load_browser_item", {"track_index": track_index, "item_uri": kit_uri})
 
         return f"Loaded drum rack and kit '{loadable_kits[0].get('name')}' on track {track_index}"
     except Exception as e:
         return format_error(
             "Failed to load drum kit",
             detail=str(e),
-            suggestion="Verify the rack_uri and kit_path using get_browser_items_at_path first"
+            suggestion="Verify the rack_uri and kit_path using get_browser_items_at_path first",
         )

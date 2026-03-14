@@ -65,8 +65,8 @@ class TestNoArtificialDelays:
 
         send_command_text = "\n".join(send_command_body)
         assert "time.sleep" not in send_command_text, (
-            f"Found time.sleep in send_command method body -- "
-            f"artificial delays must be removed from send/receive path"
+            "Found time.sleep in send_command method body -- "
+            "artificial delays must be removed from send/receive path"
         )
 
 
@@ -106,9 +106,7 @@ class TestStructPackAdoption:
             "struct.pack not found in Remote Script -- "
             "length-prefix framing must use struct.pack('>I', ...)"
         )
-        assert "import struct" in remote_script_source, (
-            "'import struct' not found in Remote Script"
-        )
+        assert "import struct" in remote_script_source, "'import struct' not found in Remote Script"
 
     def test_server_uses_struct_pack(self, protocol_source):
         """Verify MCP server protocol module uses struct.pack for framing."""
@@ -116,6 +114,4 @@ class TestStructPackAdoption:
             "struct.pack not found in protocol.py -- "
             "length-prefix framing must use struct.pack('>I', ...)"
         )
-        assert "import struct" in protocol_source, (
-            "'import struct' not found in protocol.py"
-        )
+        assert "import struct" in protocol_source, "'import struct' not found in protocol.py"

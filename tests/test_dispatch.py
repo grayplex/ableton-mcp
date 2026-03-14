@@ -8,16 +8,15 @@ These tests verify:
 - Self-scheduling commands are correctly flagged
 """
 
-import re
 import sys
 
 
 def _stub_framework():
     """Stub Ableton _Framework module for import outside Ableton runtime."""
-    if '_Framework' not in sys.modules:
-        sys.modules['_Framework'] = type(sys)('_Framework')
-        sys.modules['_Framework.ControlSurface'] = type(sys)('_Framework.ControlSurface')
-        sys.modules['_Framework.ControlSurface'].ControlSurface = type('ControlSurface', (), {})
+    if "_Framework" not in sys.modules:
+        sys.modules["_Framework"] = type(sys)("_Framework")
+        sys.modules["_Framework.ControlSurface"] = type(sys)("_Framework.ControlSurface")
+        sys.modules["_Framework.ControlSurface"].ControlSurface = type("ControlSurface", (), {})
 
 
 class TestRegistryDispatchExists:
@@ -43,6 +42,7 @@ class TestRegistryDispatchExists:
         """CommandRegistry.build_tables returns (read, write, self_scheduling)."""
         _stub_framework()
         from AbletonMCP_Remote_Script.registry import CommandRegistry
+
         # Reset entries for isolated test
         original = CommandRegistry._entries[:]
         try:
@@ -53,9 +53,14 @@ class TestRegistryDispatchExists:
             ]
 
             class FakeInstance:
-                def method_r(self): pass
-                def method_w(self): pass
-                def method_s(self): pass
+                def method_r(self):
+                    pass
+
+                def method_w(self):
+                    pass
+
+                def method_s(self):
+                    pass
 
             read_cmds, write_cmds, self_sched = CommandRegistry.build_tables(FakeInstance())
             assert "test_read" in read_cmds
@@ -162,18 +167,18 @@ class TestPingRegistered:
     def test_ping_in_registry(self):
         """'ping' is registered in CommandRegistry._entries."""
         _stub_framework()
-        from AbletonMCP_Remote_Script.registry import CommandRegistry
         import AbletonMCP_Remote_Script.handlers  # noqa: F401 -- triggers registration
+        from AbletonMCP_Remote_Script.registry import CommandRegistry
+
         names = [e[0] for e in CommandRegistry._entries]
-        assert "ping" in names, (
-            "'ping' not registered via @command decorator"
-        )
+        assert "ping" in names, "'ping' not registered via @command decorator"
 
     def test_ping_is_read_command(self):
         """'ping' is registered as a read command (write=False)."""
         _stub_framework()
-        from AbletonMCP_Remote_Script.registry import CommandRegistry
         import AbletonMCP_Remote_Script.handlers  # noqa: F401
+        from AbletonMCP_Remote_Script.registry import CommandRegistry
+
         ping_entries = [e for e in CommandRegistry._entries if e[0] == "ping"]
         assert len(ping_entries) == 1, f"Expected 1 ping entry, got {len(ping_entries)}"
         assert ping_entries[0][2] is False, "ping should be a read command (write=False)"
@@ -209,8 +214,9 @@ class TestAllExistingCommandsRegistered:
     def test_all_existing_commands_registered(self):
         """All 21 command type strings are registered in CommandRegistry."""
         _stub_framework()
-        from AbletonMCP_Remote_Script.registry import CommandRegistry
         import AbletonMCP_Remote_Script.handlers  # noqa: F401
+        from AbletonMCP_Remote_Script.registry import CommandRegistry
+
         registered = {e[0] for e in CommandRegistry._entries}
         missing = [cmd for cmd in self.EXPECTED_COMMANDS if cmd not in registered]
         assert not missing, f"Commands not registered: {missing}"
@@ -219,8 +225,9 @@ class TestAllExistingCommandsRegistered:
     def test_self_scheduling_commands_flagged(self):
         """load_browser_item and load_instrument_or_effect are self-scheduling."""
         _stub_framework()
-        from AbletonMCP_Remote_Script.registry import CommandRegistry
         import AbletonMCP_Remote_Script.handlers  # noqa: F401
+        from AbletonMCP_Remote_Script.registry import CommandRegistry
+
         self_sched = {e[0] for e in CommandRegistry._entries if e[3]}
         assert self_sched == {"load_browser_item", "load_instrument_or_effect"}, (
             f"Self-scheduling commands wrong: {self_sched}"

@@ -26,13 +26,13 @@ def remote_script_source():
 
     # Main module
     init_path = os.path.join(base_dir, "__init__.py")
-    with open(init_path, "r", encoding="utf-8") as f:
+    with open(init_path, encoding="utf-8") as f:
         sources.append(f.read())
 
     # Registry
     registry_path = os.path.join(base_dir, "registry.py")
     if os.path.exists(registry_path):
-        with open(registry_path, "r", encoding="utf-8") as f:
+        with open(registry_path, encoding="utf-8") as f:
             sources.append(f.read())
 
     # Handler modules
@@ -40,7 +40,7 @@ def remote_script_source():
     if os.path.isdir(handlers_dir):
         for filename in sorted(os.listdir(handlers_dir)):
             if filename.endswith(".py"):
-                with open(os.path.join(handlers_dir, filename), "r", encoding="utf-8") as f:
+                with open(os.path.join(handlers_dir, filename), encoding="utf-8") as f:
                     sources.append(f.read())
 
     return "\n".join(sources)
@@ -50,7 +50,7 @@ def remote_script_source():
 def server_source():
     """Read and return the MCP server source code."""
     path = os.path.join(ROOT_DIR, "MCP_Server", "server.py")
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return f.read()
 
 
@@ -58,7 +58,7 @@ def server_source():
 def connection_source():
     """Read and return the connection module source code."""
     path = os.path.join(ROOT_DIR, "MCP_Server", "connection.py")
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return f.read()
 
 
@@ -66,7 +66,7 @@ def connection_source():
 def protocol_source():
     """Read and return the protocol module source code."""
     path = os.path.join(ROOT_DIR, "MCP_Server", "protocol.py")
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return f.read()
 
 
@@ -74,5 +74,5 @@ def protocol_source():
 def session_tools_source():
     """Read and return the session tools module source code."""
     path = os.path.join(ROOT_DIR, "MCP_Server", "tools", "session.py")
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return f.read()

@@ -1,8 +1,11 @@
 """Track tools: track info, creation, and naming."""
+
 import json
+
 from mcp.server.fastmcp import Context
+
+from MCP_Server.connection import format_error, get_ableton_connection
 from MCP_Server.server import mcp
-from MCP_Server.connection import get_ableton_connection, format_error
 
 
 @mcp.tool()
@@ -20,7 +23,7 @@ def get_track_info(ctx: Context, track_index: int) -> str:
         return format_error(
             "Failed to get track info",
             detail=str(e),
-            suggestion="Verify track_index is valid with get_session_info"
+            suggestion="Verify track_index is valid with get_session_info",
         )
 
 
@@ -39,7 +42,7 @@ def create_midi_track(ctx: Context, index: int = -1) -> str:
         return format_error(
             "Failed to create MIDI track",
             detail=str(e),
-            suggestion="Check track count with get_session_info"
+            suggestion="Check track count with get_session_info",
         )
 
 
@@ -59,5 +62,5 @@ def set_track_name(ctx: Context, track_index: int, name: str) -> str:
         return format_error(
             "Failed to set track name",
             detail=str(e),
-            suggestion="Verify track_index is valid with get_session_info"
+            suggestion="Verify track_index is valid with get_session_info",
         )

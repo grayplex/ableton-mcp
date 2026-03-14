@@ -1,13 +1,14 @@
 """Ableton connection management: socket lifecycle, timeouts, error formatting."""
+
 import json
 import logging
 import socket
 import threading
 import time
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 
-from MCP_Server.protocol import send_message, recv_message
+from MCP_Server.protocol import recv_message, send_message
 
 logger = logging.getLogger("AbletonMCPServer")
 
@@ -18,22 +19,39 @@ TIMEOUT_BROWSER = 30.0
 TIMEOUT_PING = 5.0
 
 # Commands that require longer timeouts (browser/load operations)
-_BROWSER_COMMANDS = frozenset([
-    "get_browser_tree", "get_browser_items_at_path", "get_browser_item",
-    "get_browser_categories", "get_browser_items",
-    "load_browser_item", "load_instrument_or_effect",
-])
+_BROWSER_COMMANDS = frozenset(
+    [
+        "get_browser_tree",
+        "get_browser_items_at_path",
+        "get_browser_item",
+        "get_browser_categories",
+        "get_browser_items",
+        "load_browser_item",
+        "load_instrument_or_effect",
+    ]
+)
 
 # Commands that modify state (write operations)
-_WRITE_COMMANDS = frozenset([
-    "create_midi_track", "create_audio_track", "set_track_name",
-    "create_clip", "add_notes_to_clip", "set_clip_name",
-    "set_tempo", "fire_clip", "stop_clip", "set_device_parameter",
-    "start_playback", "stop_playback",
-])
+_WRITE_COMMANDS = frozenset(
+    [
+        "create_midi_track",
+        "create_audio_track",
+        "set_track_name",
+        "create_clip",
+        "add_notes_to_clip",
+        "set_clip_name",
+        "set_tempo",
+        "fire_clip",
+        "stop_clip",
+        "set_device_parameter",
+        "start_playback",
+        "stop_playback",
+    ]
+)
 
 
 # --- AI-friendly error formatting ---
+
 
 def format_error(message: str, detail: str = "", suggestion: str = "") -> str:
     """Format error for AI consumption. Clean message first, technical detail below."""
@@ -87,7 +105,7 @@ class AbletonConnection:
             finally:
                 self.sock = None
 
-    def send_command(self, command_type: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
+    def send_command(self, command_type: str, params: dict[str, Any] = None) -> dict[str, Any]:
         """Send a command to Ableton and return the response.
 
         Uses length-prefix framing for reliable message boundaries.
@@ -96,10 +114,7 @@ class AbletonConnection:
         if not self.sock and not self.connect():
             raise ConnectionError("Not connected to Ableton")
 
-        command = {
-            "type": command_type,
-            "params": params or {}
-        }
+        command = {"type": command_type, "params": params or {}}
 
         timeout = _timeout_for(command_type)
 
@@ -119,22 +134,22 @@ class AbletonConnection:
                 raise Exception(response.get("message", "Unknown error from Ableton"))
 
             return response.get("result", {})
-        except socket.timeout:
+        except TimeoutError as e:
             logger.error("Socket timeout while waiting for response from Ableton")
             self.sock = None
-            raise Exception("Timeout waiting for Ableton response")
+            raise Exception("Timeout waiting for Ableton response") from e
         except (ConnectionError, BrokenPipeError, ConnectionResetError) as e:
             logger.error(f"Socket connection error: {str(e)}")
             self.sock = None
-            raise Exception(f"Connection to Ableton lost: {str(e)}")
+            raise Exception(f"Connection to Ableton lost: {str(e)}") from e
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON response from Ableton: {str(e)}")
             self.sock = None
-            raise Exception(f"Invalid response from Ableton: {str(e)}")
+            raise Exception(f"Invalid response from Ableton: {str(e)}") from e
         except Exception as e:
             logger.error(f"Error communicating with Ableton: {str(e)}")
             self.sock = None
-            raise Exception(f"Communication error with Ableton: {str(e)}")
+            raise Exception(f"Communication error with Ableton: {str(e)}") from e
 
 
 # Global connection for resources -- protected by _connection_lock

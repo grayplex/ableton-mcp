@@ -3,8 +3,6 @@
 # Slim orchestrator: server, client handling, and registry integration.
 # All command handlers live in the handlers/ package as mixin classes.
 
-from _Framework.ControlSurface import ControlSurface
-
 import json
 import queue
 import socket
@@ -13,22 +11,24 @@ import threading
 import time
 import traceback
 
-from .registry import CommandRegistry
-from .handlers.base import BaseHandlers
-from .handlers.transport import TransportHandlers
-from .handlers.tracks import TrackHandlers
-from .handlers.clips import ClipHandlers
-from .handlers.notes import NoteHandlers
-from .handlers.devices import DeviceHandlers
-from .handlers.mixer import MixerHandlers
-from .handlers.scenes import SceneHandlers
-from .handlers.browser import BrowserHandlers
+from _Framework.ControlSurface import ControlSurface
 
 # Importing handlers triggers @command decorator registration
 import AbletonMCP_Remote_Script.handlers  # noqa: F401
 
+from .handlers.base import BaseHandlers
+from .handlers.browser import BrowserHandlers
+from .handlers.clips import ClipHandlers
+from .handlers.devices import DeviceHandlers
+from .handlers.mixer import MixerHandlers
+from .handlers.notes import NoteHandlers
+from .handlers.scenes import SceneHandlers
+from .handlers.tracks import TrackHandlers
+from .handlers.transport import TransportHandlers
+from .registry import CommandRegistry
 
 # --- Length-prefix framing protocol ---
+
 
 def _recv_exact(sock, n):
     """Read exactly n bytes from socket."""
@@ -186,7 +186,7 @@ class AbletonMCP(
                     self.client_threads.append(client_thread)
                     self.client_threads = [t for t in self.client_threads if t.is_alive()]
 
-                except socket.timeout:
+                except TimeoutError:
                     continue
                 except Exception as e:
                     if self.running:

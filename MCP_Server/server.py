@@ -1,25 +1,29 @@
 """AbletonMCP server -- MCP bridge to Ableton Live."""
+
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, Dict, Any
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
+
 from MCP_Server.connection import get_ableton_connection, shutdown_connection
 
 # Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger("AbletonMCPServer")
 
 
 @asynccontextmanager
-async def server_lifespan(server: FastMCP) -> AsyncIterator[Dict[str, Any]]:
+async def server_lifespan(server: FastMCP) -> AsyncIterator[dict[str, Any]]:
     """Manage Ableton connection lifecycle."""
     try:
         logger.info("AbletonMCP server starting up")
 
         try:
-            ableton = get_ableton_connection()
+            get_ableton_connection()
             logger.info("Successfully connected to Ableton on startup")
         except Exception as e:
             logger.warning(f"Could not connect to Ableton on startup: {str(e)}")
