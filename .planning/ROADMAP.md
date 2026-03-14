@@ -118,13 +118,11 @@ Plans:
   3. User can remove notes from a clip by specifying a time/pitch range — targeted notes disappear
   4. User can quantize notes in a clip to a specified grid size with adjustable strength
   5. User can transpose all notes in a clip by semitones — pitches shift correctly
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 06-01: Implement NotesHandler in Remote Script — add_notes, get_notes with proper Live API note access
-- [ ] 06-02: Implement remove_notes with time/pitch range filtering in NotesHandler
-- [ ] 06-03: Implement quantize_clip_notes and transpose_clip_notes in NotesHandler
-- [ ] 06-04: Add corresponding MCP tools in tools/notes.py
+- [ ] 06-01-PLAN.md — Remote Script note handlers: rewrite NoteHandlers with 5 Live 11+ commands (add_notes_to_clip, get_notes, remove_notes, quantize_notes, transpose_notes), _WRITE_COMMANDS update
+- [ ] 06-02-PLAN.md — MCP note tools and smoke tests: 4 new tools in tools/notes.py, update add_notes_to_clip to return JSON, conftest/init wiring, 9 smoke tests
 
 ### Phase 7: Device & Browser
 **Goal**: Users can load instruments and effects onto tracks reliably and control device parameters
@@ -209,7 +207,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 3. Track Management | 4/4 | Complete | 2026-03-14 |
 | 4. Mixing Controls | 2/2 | Complete | 2026-03-14 |
 | 5. Clip Management | 2/2 | Complete   | 2026-03-14 |
-| 6. MIDI Editing | 0/4 | Not started | - |
+| 6. MIDI Editing | 0/2 | Not started | - |
 | 7. Device & Browser | 0/6 | Not started | - |
 | 8. Scene & Transport | 0/5 | Not started | - |
 | 9. Automation | 0/2 | Not started | - |
