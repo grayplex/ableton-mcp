@@ -11,11 +11,11 @@ import math
 def _to_db(value):
     """Convert normalized 0.0-1.0 volume to dB approximation string.
 
-    Ableton's volume curve: 0.85 = 0 dB (unity), 1.0 = +6 dB.
+    Ableton's volume is linear in dB: 0.85 = 0 dB, 1.0 = +6 dB.
     """
     if value <= 0:
         return "-inf dB"
-    return f"{85 * math.log10(value / 0.85):.1f} dB"
+    return f"{40 * value - 34:.1f} dB"
 
 
 def _pan_label(value):
