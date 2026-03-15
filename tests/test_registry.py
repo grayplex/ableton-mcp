@@ -99,7 +99,7 @@ class TestFullRegistry:
         from AbletonMCP_Remote_Script.registry import CommandRegistry
 
         registered = {e[0] for e in CommandRegistry._entries}
-        assert len(registered) == 48, f"Expected 48 commands, got {len(registered)}: {registered}"
+        assert len(registered) == 60, f"Expected 60 commands, got {len(registered)}: {registered}"
 
         expected = {
             "get_session_info",
@@ -154,6 +154,20 @@ class TestFullRegistry:
             "delete_device",
             "get_rack_chains",
             "get_session_state",
+            # Phase 8: Scene Management
+            "create_scene",
+            "set_scene_name",
+            "fire_scene",
+            "delete_scene",
+            # Phase 8: Transport Extensions
+            "continue_playback",
+            "stop_all_clips",
+            "set_time_signature",
+            "set_loop_region",
+            "get_playback_position",
+            "get_transport_state",
+            "undo",
+            "redo",
         }
         missing = expected - registered
         assert not missing, f"Commands not registered: {missing}"
