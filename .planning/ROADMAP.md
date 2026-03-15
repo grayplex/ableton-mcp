@@ -135,15 +135,12 @@ Plans:
   4. User can set any device parameter by name or index and hear the effect on the sound
   5. User can browse the Ableton browser tree by category and navigate to specific paths including Instrument Racks, Drum Racks, and Effect Racks
   6. User can get a bulk session state dump covering all tracks, clips, and devices in a single call
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 07-01: Implement DeviceHandler in Remote Script — load_instrument, load_effect with race-condition-free loading verified by device count check
-- [ ] 07-02: Implement get_device_parameters and set_device_parameter in DeviceHandler
-- [ ] 07-03: Implement BrowserHandler — browse_browser_tree, navigate_browser_path with dict-based category dispatch (fixes instruments typo)
-- [ ] 07-04: Implement rack navigation — navigate into Instrument Rack, Drum Rack, Effect Rack chains
-- [ ] 07-05: Implement get_session_state bulk dump covering all tracks/clips/devices in DeviceHandler or a SessionHandler
-- [ ] 07-06: Add corresponding MCP tools in tools/devices.py and tools/browser.py
+- [ ] 07-01-PLAN.md — Remote Script device handlers: get_device_parameters, enhanced set_device_parameter (name/index/clamping/track_type/chain), delete_device, get_rack_chains (Instrument/Effect/Drum Rack)
+- [ ] 07-02-PLAN.md — Remote Script browser enhancements + session state: max_depth in get_browser_tree, path-based loading in load_instrument_or_effect, parameter list in load response, get_session_state bulk dump
+- [ ] 07-03-PLAN.md — MCP tools + smoke tests: 5 device tools, updated browser tools (remove load_drum_kit), get_session_state tool, connection.py updates, 20+ smoke tests
 
 ### Phase 8: Scene & Transport
 **Goal**: Users have complete control over Session View scenes and all transport/playback functions
@@ -208,7 +205,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 4. Mixing Controls | 2/2 | Complete | 2026-03-14 |
 | 5. Clip Management | 2/2 | Complete   | 2026-03-14 |
 | 6. MIDI Editing | 0/2 | Not started | - |
-| 7. Device & Browser | 0/6 | Not started | - |
+| 7. Device & Browser | 0/3 | Not started | - |
 | 8. Scene & Transport | 0/5 | Not started | - |
 | 9. Automation | 0/2 | Not started | - |
 | 10. Routing & Audio Clips | 0/3 | Not started | - |
