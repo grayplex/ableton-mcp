@@ -28,6 +28,8 @@ _BROWSER_COMMANDS = frozenset(
         "get_browser_items",
         "load_browser_item",
         "load_instrument_or_effect",
+        # Phase 7: Session State (iterates all tracks/devices)
+        "get_session_state",
     ]
 )
 
@@ -68,6 +70,8 @@ _WRITE_COMMANDS = frozenset(
         "remove_notes",
         "quantize_notes",
         "transpose_notes",
+        # Phase 7: Device & Browser
+        "delete_device",
     ]
 )
 

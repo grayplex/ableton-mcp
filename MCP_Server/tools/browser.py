@@ -1,4 +1,4 @@
-"""Browser tools: tree navigation, path browsing, drum kit loading."""
+"""Browser tools: tree navigation and path browsing."""
 
 import json
 
@@ -9,15 +9,24 @@ from MCP_Server.server import mcp
 
 
 @mcp.tool()
-def get_browser_tree(ctx: Context, category_type: str = "all") -> str:
+def get_browser_tree(
+    ctx: Context, category_type: str = "all", max_depth: int = 1
+) -> str:
     """Get a hierarchical tree of browser categories from Ableton.
+
+    Controls how deep to traverse children in the browser tree. Default is 1
+    (top-level items only). Maximum depth is 5 to prevent performance issues.
 
     Parameters:
     - category_type: Type of categories ('all', 'instruments', 'sounds', 'drums', 'audio_effects', 'midi_effects')
+    - max_depth: Depth of child traversal (default 1 = top level only, max 5)
     """
     try:
         ableton = get_ableton_connection()
-        result = ableton.send_command("get_browser_tree", {"category_type": category_type})
+        result = ableton.send_command(
+            "get_browser_tree",
+            {"category_type": category_type, "max_depth": max_depth},
+        )
 
         # Check if we got any categories
         if "available_categories" in result and len(result.get("categories", [])) == 0:
@@ -132,49 +141,3 @@ def get_browser_items_at_path(ctx: Context, path: str) -> str:
                 detail=error_msg,
                 suggestion="Verify connection with get_connection_status",
             )
-
-
-@mcp.tool()
-def load_drum_kit(ctx: Context, track_index: int, rack_uri: str, kit_path: str) -> str:
-    """Load a drum rack and then load a specific drum kit into it.
-
-    Parameters:
-    - track_index: The index of the track to load on
-    - rack_uri: The URI of the drum rack to load (e.g., 'Drums/Drum Rack')
-    - kit_path: Path to the drum kit in the browser (e.g., 'drums/acoustic/kit1')
-    """
-    try:
-        ableton = get_ableton_connection()
-
-        # Step 1: Load the drum rack
-        result = ableton.send_command(
-            "load_browser_item", {"track_index": track_index, "item_uri": rack_uri}
-        )
-
-        if not result.get("loaded", False):
-            return f"Failed to load drum rack with URI '{rack_uri}'"
-
-        # Step 2: Get the drum kit items at the specified path
-        kit_result = ableton.send_command("get_browser_items_at_path", {"path": kit_path})
-
-        if "error" in kit_result:
-            return f"Loaded drum rack but failed to find drum kit: {kit_result.get('error')}"
-
-        # Step 3: Find a loadable drum kit
-        kit_items = kit_result.get("items", [])
-        loadable_kits = [item for item in kit_items if item.get("is_loadable", False)]
-
-        if not loadable_kits:
-            return f"Loaded drum rack but no loadable drum kits found at '{kit_path}'"
-
-        # Step 4: Load the first loadable kit
-        kit_uri = loadable_kits[0].get("uri")
-        ableton.send_command("load_browser_item", {"track_index": track_index, "item_uri": kit_uri})
-
-        return f"Loaded drum rack and kit '{loadable_kits[0].get('name')}' on track {track_index}"
-    except Exception as e:
-        return format_error(
-            "Failed to load drum kit",
-            detail=str(e),
-            suggestion="Verify the rack_uri and kit_path using get_browser_items_at_path first",
-        )

@@ -1,4 +1,4 @@
-"""Session tools: connection health and session information."""
+"""Session tools: connection health, session information, and session state."""
 
 import json
 
@@ -50,6 +50,31 @@ def get_session_info(ctx: Context) -> str:
     except Exception as e:
         return format_error(
             "Failed to get session info",
+            detail=str(e),
+            suggestion="Verify connection with get_connection_status first",
+        )
+
+
+@mcp.tool()
+def get_session_state(ctx: Context, detailed: bool = False) -> str:
+    """Get a bulk session state dump covering all tracks, clips, and devices.
+
+    Lightweight by default (track names, device names, occupied clip slots,
+    mixer state, transport). Set detailed=True to include all device parameter
+    values (may be large for complex sessions).
+
+    Parameters:
+    - detailed: If True, include full device parameter values for all devices
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "get_session_state", {"detailed": detailed}
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to get session state",
             detail=str(e),
             suggestion="Verify connection with get_connection_status first",
         )
