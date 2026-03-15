@@ -72,6 +72,17 @@ _WRITE_COMMANDS = frozenset(
         "transpose_notes",
         # Phase 7: Device & Browser
         "delete_device",
+        # Phase 8: Scene and Transport
+        "create_scene",
+        "set_scene_name",
+        "fire_scene",
+        "delete_scene",
+        "continue_playback",
+        "stop_all_clips",
+        "set_time_signature",
+        "set_loop_region",
+        "undo",
+        "redo",
     ]
 )
 
