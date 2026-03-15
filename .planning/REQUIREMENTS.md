@@ -65,14 +65,14 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Device & Browser
 
-- [ ] **DEV-01**: User can load instruments onto tracks via browser (working — currently broken)
-- [ ] **DEV-02**: User can load effects onto tracks via browser
+- [x] **DEV-01**: User can load instruments onto tracks via browser (working — currently broken)
+- [x] **DEV-02**: User can load effects onto tracks via browser
 - [x] **DEV-03**: User can get all parameters of any device (name, value, min, max)
 - [x] **DEV-04**: User can set any device parameter by name or index
-- [ ] **DEV-05**: User can browse the Ableton browser tree by category
-- [ ] **DEV-06**: User can navigate browser items at a specific path
+- [x] **DEV-05**: User can browse the Ableton browser tree by category
+- [x] **DEV-06**: User can navigate browser items at a specific path
 - [x] **DEV-07**: User can navigate into Instrument Racks, Drum Racks, and Effect Racks
-- [ ] **DEV-08**: User can get a bulk session state dump (all tracks, clips, devices in one call)
+- [x] **DEV-08**: User can get a bulk session state dump (all tracks, clips, devices in one call)
 
 ### Scene & Transport
 
@@ -195,14 +195,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MIDI-03 | Phase 6 | Complete |
 | MIDI-04 | Phase 6 | Complete |
 | MIDI-05 | Phase 6 | Complete |
-| DEV-01 | Phase 7 | Pending |
-| DEV-02 | Phase 7 | Pending |
+| DEV-01 | Phase 7 | Complete |
+| DEV-02 | Phase 7 | Complete |
 | DEV-03 | Phase 7 | Complete |
 | DEV-04 | Phase 7 | Complete |
-| DEV-05 | Phase 7 | Pending |
-| DEV-06 | Phase 7 | Pending |
+| DEV-05 | Phase 7 | Complete |
+| DEV-06 | Phase 7 | Complete |
 | DEV-07 | Phase 7 | Complete |
-| DEV-08 | Phase 7 | Pending |
+| DEV-08 | Phase 7 | Complete |
 | SCNE-01 | Phase 8 | Pending |
 | SCNE-02 | Phase 8 | Pending |
 | SCNE-03 | Phase 8 | Pending |
