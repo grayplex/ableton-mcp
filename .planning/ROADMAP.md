@@ -12,14 +12,14 @@ This roadmap transforms an existing but broken MCP server into a production-qual
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation Repair** - Fix the broken correctness issues that make the current server unreliable
-- [ ] **Phase 2: Infrastructure Refactor** - Build extensible architecture before feature expansion
-- [ ] **Phase 3: Track Management** - Full track type coverage (MIDI, audio, return, group)
-- [x] **Phase 4: Mixing Controls** - Complete mixer surface (volume, pan, mute, solo, sends)
+- [x] **Phase 1: Foundation Repair** - Fix the broken correctness issues that make the current server unreliable (completed 2026-03-13)
+- [x] **Phase 2: Infrastructure Refactor** - Build extensible architecture before feature expansion (completed 2026-03-14)
+- [x] **Phase 3: Track Management** - Full track type coverage (MIDI, audio, return, group) (completed 2026-03-14)
+- [x] **Phase 4: Mixing Controls** - Complete mixer surface (volume, pan, mute, solo, sends) (completed 2026-03-14)
 - [x] **Phase 5: Clip Management** - Full clip lifecycle (create, edit, loop, launch, delete) (completed 2026-03-14)
-- [ ] **Phase 6: MIDI Editing** - Complete MIDI note editing (add, read, remove, quantize, transpose)
-- [ ] **Phase 7: Device & Browser** - Working instrument loading plus full device parameter control
-- [ ] **Phase 8: Scene & Transport** - Scene management plus complete transport and session control
+- [x] **Phase 6: MIDI Editing** - Complete MIDI note editing (add, read, remove, quantize, transpose) (completed 2026-03-14)
+- [x] **Phase 7: Device & Browser** - Working instrument loading plus full device parameter control (completed 2026-03-14)
+- [x] **Phase 8: Scene & Transport** - Scene management plus complete transport and session control (completed 2026-03-15)
 - [ ] **Phase 9: Automation** - Clip automation envelopes for parameter movement
 - [ ] **Phase 10: Routing & Audio Clips** - Track routing control and audio clip properties
 
@@ -38,9 +38,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Python 3 cleanup: strip Py2 code, upgrade to Py3.11 idioms, replace bare excepts, set up test infrastructure
-- [ ] 01-02-PLAN.md — Protocol and concurrency: length-prefix framing on both sides, threading.Lock, remove time.sleep delays, ping command
-- [ ] 01-03-PLAN.md — Dispatch and reliability: dict-based command router, fix instrument loading, browser typo fix, health-check tool
+- [x] 01-01-PLAN.md — Python 3 cleanup: strip Py2 code, upgrade to Py3.11 idioms, replace bare excepts, set up test infrastructure
+- [x] 01-02-PLAN.md — Protocol and concurrency: length-prefix framing on both sides, threading.Lock, remove time.sleep delays, ping command
+- [x] 01-03-PLAN.md — Dispatch and reliability: dict-based command router, fix instrument loading, browser typo fix, health-check tool
 
 ### Phase 2: Infrastructure Refactor
 **Goal**: The codebase is organized into domain modules with a scalable dispatch architecture ready to accept 50+ commands
@@ -54,9 +54,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Extract Remote Script handlers into domain package with @command decorator registry (base, transport, tracks, clips, notes, devices, mixer, scenes, browser)
-- [ ] 02-02-PLAN.md — Split MCP_Server/server.py into connection.py, protocol.py, and tools/ domain modules with standardized tool names and docstrings
-- [ ] 02-03-PLAN.md — Configure ruff linting and build pytest + FastMCP in-memory smoke test infrastructure across all domains
+- [x] 02-01-PLAN.md — Extract Remote Script handlers into domain package with @command decorator registry (base, transport, tracks, clips, notes, devices, mixer, scenes, browser)
+- [x] 02-02-PLAN.md — Split MCP_Server/server.py into connection.py, protocol.py, and tools/ domain modules with standardized tool names and docstrings
+- [x] 02-03-PLAN.md — Configure ruff linting and build pytest + FastMCP in-memory smoke test infrastructure across all domains
 
 ### Phase 3: Track Management
 **Goal**: Users can create, configure, and inspect every track type that Ableton supports
@@ -71,10 +71,10 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Remote Script track handlers: all track CRUD (create audio/return/group, delete, duplicate), color palette mapping, group fold control, enhanced get_track_info for all track types, get_all_tracks
-- [ ] 03-02-PLAN.md — MCP tools and smoke tests: all track tool definitions in tools/tracks.py with parameter validation, comprehensive smoke tests for all 11 track tools
-- [ ] 03-03-PLAN.md — Gap closure: fix _set_track_name handler to use _resolve_track for return/master track rename support (TRCK-07)
-- [ ] 03-04-PLAN.md — Gap closure: fix _get_track_info to guard mute/solo access with hasattr so master track does not crash (TRCK-05)
+- [x] 03-01-PLAN.md — Remote Script track handlers: all track CRUD (create audio/return/group, delete, duplicate), color palette mapping, group fold control, enhanced get_track_info for all track types, get_all_tracks
+- [x] 03-02-PLAN.md — MCP tools and smoke tests: all track tool definitions in tools/tracks.py with parameter validation, comprehensive smoke tests for all 11 track tools
+- [x] 03-03-PLAN.md — Gap closure: fix _set_track_name handler to use _resolve_track for return/master track rename support (TRCK-07)
+- [x] 03-04-PLAN.md — Gap closure: fix _get_track_info to guard mute/solo access with hasattr so master track does not crash (TRCK-05)
 
 ### Phase 4: Mixing Controls
 **Goal**: Users can control the complete mixer surface — levels, panning, mute/solo/arm, sends, and master/return channels
@@ -89,8 +89,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Remote Script mixer handlers: all 6 command handlers (set_track_volume, set_track_pan, set_track_mute, set_track_solo, set_track_arm, set_send_level) with dB helper, plus _WRITE_COMMANDS update
-- [ ] 04-02-PLAN.md — MCP mixer tools, smoke tests, and get_track_info enhancement: 6 tool definitions in tools/mixer.py, conftest/init wiring, dB+sends in get_track_info, 14+ smoke tests
+- [x] 04-01-PLAN.md — Remote Script mixer handlers: all 6 command handlers (set_track_volume, set_track_pan, set_track_mute, set_track_solo, set_track_arm, set_send_level) with dB helper, plus _WRITE_COMMANDS update
+- [x] 04-02-PLAN.md — MCP mixer tools, smoke tests, and get_track_info enhancement: 6 tool definitions in tools/mixer.py, conftest/init wiring, dB+sends in get_track_info, 14+ smoke tests
 
 ### Phase 5: Clip Management
 **Goal**: Users can create, edit, launch, and delete clips with full control over loop and playback regions
@@ -102,11 +102,11 @@ Plans:
   3. User can duplicate a clip to another slot and the copy is independent
   4. User can set clip loop enabled/disabled and adjust loop start/end and clip start/end markers
   5. User can fire (launch) a clip and stop it — playback responds immediately
-**Plans:** 2/2 plans complete
+**Plans:** 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Remote Script clip handlers: _resolve_clip_slot helper, _clip_info_dict helper, 5 new handlers (delete_clip, duplicate_clip, get_clip_info, set_clip_color, set_clip_loop), enhanced fire_clip/stop_clip responses, _WRITE_COMMANDS update
-- [ ] 05-02-PLAN.md — MCP clip tools and smoke tests: 5 new tool functions (get_clip_info, delete_clip, duplicate_clip, set_clip_color, set_clip_loop), enhanced create_clip/fire_clip/stop_clip to return JSON, 12 smoke tests
+- [x] 05-01-PLAN.md — Remote Script clip handlers: _resolve_clip_slot helper, _clip_info_dict helper, 5 new handlers (delete_clip, duplicate_clip, get_clip_info, set_clip_color, set_clip_loop), enhanced fire_clip/stop_clip responses, _WRITE_COMMANDS update
+- [x] 05-02-PLAN.md — MCP clip tools and smoke tests: 5 new tool functions (get_clip_info, delete_clip, duplicate_clip, set_clip_color, set_clip_loop), enhanced create_clip/fire_clip/stop_clip to return JSON, 12 smoke tests
 
 ### Phase 6: MIDI Editing
 **Goal**: Users can read and write MIDI note data with full editing capabilities including quantize and transpose
@@ -121,8 +121,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Remote Script note handlers: rewrite NoteHandlers with 5 Live 11+ commands (add_notes_to_clip, get_notes, remove_notes, quantize_notes, transpose_notes), _WRITE_COMMANDS update
-- [ ] 06-02-PLAN.md — MCP note tools and smoke tests: 4 new tools in tools/notes.py, update add_notes_to_clip to return JSON, conftest/init wiring, 9 smoke tests
+- [x] 06-01-PLAN.md — Remote Script note handlers: rewrite NoteHandlers with 5 Live 11+ commands (add_notes_to_clip, get_notes, remove_notes, quantize_notes, transpose_notes), _WRITE_COMMANDS update
+- [x] 06-02-PLAN.md — MCP note tools and smoke tests: 4 new tools in tools/notes.py, update add_notes_to_clip to return JSON, conftest/init wiring, 9 smoke tests
 
 ### Phase 7: Device & Browser
 **Goal**: Users can load instruments and effects onto tracks reliably and control device parameters
@@ -138,9 +138,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — Remote Script device handlers: get_device_parameters, enhanced set_device_parameter (name/index/clamping/track_type/chain), delete_device, get_rack_chains (Instrument/Effect/Drum Rack)
-- [ ] 07-02-PLAN.md — Remote Script browser enhancements + session state: max_depth in get_browser_tree, path-based loading in load_instrument_or_effect, parameter list in load response, get_session_state bulk dump
-- [ ] 07-03-PLAN.md — MCP tools + smoke tests: 5 device tools, updated browser tools (remove load_drum_kit), get_session_state tool, connection.py updates, 20+ smoke tests
+- [x] 07-01-PLAN.md — Remote Script device handlers: get_device_parameters, enhanced set_device_parameter (name/index/clamping/track_type/chain), delete_device, get_rack_chains (Instrument/Effect/Drum Rack)
+- [x] 07-02-PLAN.md — Remote Script browser enhancements + session state: max_depth in get_browser_tree, path-based loading in load_instrument_or_effect, parameter list in load response, get_session_state bulk dump
+- [x] 07-03-PLAN.md — MCP tools + smoke tests: 5 device tools, updated browser tools (remove load_drum_kit), get_session_state tool, connection.py updates, 20+ smoke tests
 
 ### Phase 8: Scene & Transport
 **Goal**: Users have complete control over Session View scenes and all transport/playback functions
@@ -156,9 +156,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 08-01-PLAN.md — Remote Script scene handlers: SceneHandlers mixin with create_scene, set_scene_name, fire_scene, delete_scene, registry test update
-- [ ] 08-02-PLAN.md — Remote Script transport handlers: 8 new TransportHandlers commands (continue_playback, stop_all_clips, set_time_signature, set_loop_region, get_playback_position, get_transport_state, undo, redo), set_tempo validation, _WRITE_COMMANDS update
-- [ ] 08-03-PLAN.md — MCP tools and smoke tests: 4 scene tools, 11 transport tools (3 upgraded to JSON + 8 new), consecutive undo warning, conftest/init wiring, 20+ smoke tests
+- [x] 08-01-PLAN.md — Remote Script scene handlers: SceneHandlers mixin with create_scene, set_scene_name, fire_scene, delete_scene, registry test update
+- [x] 08-02-PLAN.md — Remote Script transport handlers: 8 new TransportHandlers commands (continue_playback, stop_all_clips, set_time_signature, set_loop_region, get_playback_position, get_transport_state, undo, redo), set_tempo validation, _WRITE_COMMANDS update
+- [x] 08-03-PLAN.md — MCP tools and smoke tests: 4 scene tools, 11 transport tools (3 upgraded to JSON + 8 new), consecutive undo warning, conftest/init wiring, 20+ smoke tests
 
 ### Phase 9: Automation
 **Goal**: Users can read, write, and clear clip automation envelopes for device parameter movement over time
@@ -201,9 +201,9 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 2. Infrastructure Refactor | 3/3 | Complete | 2026-03-14 |
 | 3. Track Management | 4/4 | Complete | 2026-03-14 |
 | 4. Mixing Controls | 2/2 | Complete | 2026-03-14 |
-| 5. Clip Management | 2/2 | Complete   | 2026-03-14 |
-| 6. MIDI Editing | 0/2 | Not started | - |
-| 7. Device & Browser | 0/3 | Not started | - |
-| 8. Scene & Transport | 0/3 | Not started | - |
+| 5. Clip Management | 2/2 | Complete | 2026-03-14 |
+| 6. MIDI Editing | 2/2 | Complete | 2026-03-14 |
+| 7. Device & Browser | 3/3 | Complete | 2026-03-14 |
+| 8. Scene & Transport | 3/3 | Complete | 2026-03-15 |
 | 9. Automation | 0/2 | Not started | - |
 | 10. Routing & Audio Clips | 0/3 | Not started | - |
