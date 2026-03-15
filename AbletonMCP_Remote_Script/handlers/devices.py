@@ -1,6 +1,11 @@
-"""Device handlers: parameter control, rack chain navigation, device deletion."""
+"""Device handlers: parameter control, rack chain navigation, device deletion, session state."""
 
-from AbletonMCP_Remote_Script.handlers.tracks import _resolve_track
+from AbletonMCP_Remote_Script.handlers.mixer_helpers import _to_db, _pan_label
+from AbletonMCP_Remote_Script.handlers.tracks import (
+    _get_color_name,
+    _get_track_type_str,
+    _resolve_track,
+)
 from AbletonMCP_Remote_Script.registry import command
 
 
@@ -369,3 +374,128 @@ class DeviceHandlers:
         except Exception as e:
             self.log_message(f"[ERROR] Could not determine device type: {e}")
             return "unknown"
+
+    @command("get_session_state")
+    def _get_session_state(self, params=None):
+        """Get a bulk session state dump.
+
+        Params:
+            detailed: bool (default False). If True, includes all device
+                parameter values for every device.
+
+        Returns:
+            Dictionary with transport, tracks, return_tracks, and master_track.
+            Lightweight mode: track names, device names, occupied clips, mixer.
+            Detailed mode: adds all device parameter values.
+        """
+        detailed = (params or {}).get("detailed", False)
+
+        try:
+            result = {
+                "transport": {
+                    "tempo": self._song.tempo,
+                    "signature_numerator": self._song.signature_numerator,
+                    "signature_denominator": self._song.signature_denominator,
+                    "is_playing": self._song.is_playing,
+                    "loop_enabled": self._song.loop,
+                    "loop_start": self._song.loop_start,
+                    "loop_length": self._song.loop_length,
+                },
+                "tracks": [],
+                "return_tracks": [],
+                "master_track": {},
+            }
+
+            def build_track_state(track, track_type_hint=None):
+                """Build state dict for a single track."""
+                type_str = _get_track_type_str(track, track_type_hint=track_type_hint)
+                color = _get_color_name(track)
+
+                state = {
+                    "name": track.name,
+                    "type": type_str,
+                    "color": color,
+                    "volume": track.mixer_device.volume.value,
+                    "volume_db": _to_db(track.mixer_device.volume.value),
+                    "pan": track.mixer_device.panning.value,
+                    "pan_label": _pan_label(track.mixer_device.panning.value),
+                }
+
+                # Mute/solo (not on master)
+                if hasattr(track, "mute"):
+                    state["mute"] = track.mute
+                if hasattr(track, "solo"):
+                    state["solo"] = track.solo
+
+                # Arm (only for armable tracks)
+                if hasattr(track, "can_be_armed") and track.can_be_armed:
+                    state["arm"] = track.arm
+
+                # Devices
+                devices = []
+                for di, d in enumerate(track.devices):
+                    dev_info = {
+                        "index": di,
+                        "name": d.name,
+                        "type": self._get_device_type(d),
+                    }
+                    if detailed:
+                        dev_info["parameters"] = [
+                            {
+                                "name": p.name,
+                                "value": p.value,
+                                "min": p.min,
+                                "max": p.max,
+                            }
+                            for p in d.parameters
+                        ]
+                    devices.append(dev_info)
+                state["devices"] = devices
+
+                # Clips -- only occupied slots
+                if hasattr(track, "clip_slots"):
+                    clips = []
+                    for si, slot in enumerate(track.clip_slots):
+                        if slot.has_clip:
+                            clip = slot.clip
+                            clips.append({
+                                "scene_index": si,
+                                "name": clip.name,
+                                "color": clip.color_index,
+                                "is_playing": clip.is_playing,
+                            })
+                    if clips:
+                        state["clips"] = clips
+
+                # Sends (not on master)
+                if track_type_hint != "master" and hasattr(track.mixer_device, "sends"):
+                    sends = [
+                        {"return_index": i, "level": s.value}
+                        for i, s in enumerate(track.mixer_device.sends)
+                    ]
+                    if sends:
+                        state["sends"] = sends
+
+                return state
+
+            # Regular tracks
+            for i, track in enumerate(self._song.tracks):
+                track_state = build_track_state(track)
+                track_state["index"] = i
+                result["tracks"].append(track_state)
+
+            # Return tracks
+            for i, track in enumerate(self._song.return_tracks):
+                track_state = build_track_state(track, "return")
+                track_state["index"] = i
+                result["return_tracks"].append(track_state)
+
+            # Master track
+            result["master_track"] = build_track_state(
+                self._song.master_track, "master"
+            )
+
+            return result
+        except Exception as e:
+            self.log_message(f"Error getting session state: {e}")
+            raise
