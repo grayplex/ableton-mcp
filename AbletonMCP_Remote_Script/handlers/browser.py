@@ -413,9 +413,10 @@ class BrowserHandlers:
                 is_instrument_category = True
         elif item_uri:
             # Check if URI belongs to instruments or drums category
-            # by inspecting the path cache or URI structure
+            # by inspecting the path cache or URI structure.
+            # Ableton URIs use "Synths", "DrumHits" etc. for instrument categories.
             uri_lower = item_uri.lower()
-            if "instrument" in uri_lower or "drum" in uri_lower:
+            if any(kw in uri_lower for kw in ("instrument", "drum", "synth")):
                 is_instrument_category = True
 
         if is_instrument_category:

@@ -421,15 +421,23 @@ class DeviceHandlers:
                     "pan_label": _pan_label(track.mixer_device.panning.value),
                 }
 
-                # Mute/solo (not on master)
-                if hasattr(track, "mute"):
+                # Mute/solo (not on master — LOM raises non-AttributeError,
+                # so hasattr() doesn't work; use try/except instead)
+                try:
                     state["mute"] = track.mute
-                if hasattr(track, "solo"):
+                except Exception:
+                    pass
+                try:
                     state["solo"] = track.solo
+                except Exception:
+                    pass
 
                 # Arm (only for armable tracks)
-                if hasattr(track, "can_be_armed") and track.can_be_armed:
-                    state["arm"] = track.arm
+                try:
+                    if track.can_be_armed:
+                        state["arm"] = track.arm
+                except Exception:
+                    pass
 
                 # Devices
                 devices = []
