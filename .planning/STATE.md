@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Phase 8 context gathered
-last_updated: "2026-03-15T03:32:42.144Z"
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-03-15T03:55:07.816Z"
 last_activity: 2026-03-14 — Completed Plan 05-02 Clip MCP Tools
 progress:
   total_phases: 10
   completed_phases: 7
-  total_plans: 19
-  completed_plans: 19
+  total_plans: 22
+  completed_plans: 21
 ---
 
 ---
@@ -155,6 +155,8 @@ Progress: [██████████] 100%
 | Phase 07 P01 | 2min | 2 tasks | 1 files |
 | Phase 07 P02 | 2min | 2 tasks | 2 files |
 | Phase 07 P03 | 3min | 2 tasks | 8 files |
+| Phase 08 P02 | 2min | 2 tasks | 2 files |
+| Phase 08 P01 | 2min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -218,6 +220,13 @@ Recent decisions affecting current work:
 - [Phase 07]: get_session_state: lightweight by default (track/device names, occupied clips, mixer), detailed adds device params; only occupied clip slots reported
 - [Phase 07]: load_instrument_or_effect returns json.dumps(result) on success instead of f-string for richer AI consumption
 - [Phase 07]: get_session_state in _BROWSER_COMMANDS (30s timeout) for large session iteration; delete_device in _WRITE_COMMANDS (15s)
+- [Phase 08]: continue_playback uses continue_playing (resumes from current position, not start marker)
+- [Phase 08]: get_playback_position returns position only (lightweight), get_transport_state returns full composite state with 7 fields
+- [Phase 08]: undo/redo guard with can_undo/can_redo -- returns informative message instead of raising error when nothing to undo/redo
+- [Phase 08]: fire_scene fires immediately without quantization parameter (simplicity wins)
+- [Phase 08]: No panic tool -- users call stop_all_clips + stop_playback separately; stop_all_clips stops clips only, transport keeps playing (native Ableton behavior)
+- [Phase 08]: delete_scene checks len(scenes) > 1, raises ValueError for last scene
+- [Phase 08]: Registry test updated to 60 commands (4 scene + 8 transport already present)
 
 ### Pending Todos
 
@@ -231,6 +240,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T03:32:42.141Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-scene-transport/08-CONTEXT.md
+Last session: 2026-03-15T03:55:07.814Z
+Stopped at: Completed 08-01-PLAN.md
+Resume file: None

@@ -76,20 +76,20 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Scene & Transport
 
-- [ ] **SCNE-01**: User can create scenes
-- [ ] **SCNE-02**: User can name scenes
-- [ ] **SCNE-03**: User can fire (launch) scenes
-- [ ] **SCNE-04**: User can delete scenes
-- [ ] **TRNS-01**: User can start playback
-- [ ] **TRNS-02**: User can stop playback
-- [ ] **TRNS-03**: User can continue playback from current position
-- [ ] **TRNS-04**: User can stop all clips
-- [ ] **TRNS-05**: User can set tempo
-- [ ] **TRNS-06**: User can set time signature (numerator and denominator)
-- [ ] **TRNS-07**: User can set loop region (enabled, start, length)
-- [ ] **TRNS-08**: User can get current playback position
-- [ ] **TRNS-09**: User can undo last action
-- [ ] **TRNS-10**: User can redo last undone action
+- [x] **SCNE-01**: User can create scenes
+- [x] **SCNE-02**: User can name scenes
+- [x] **SCNE-03**: User can fire (launch) scenes
+- [x] **SCNE-04**: User can delete scenes
+- [x] **TRNS-01**: User can start playback
+- [x] **TRNS-02**: User can stop playback
+- [x] **TRNS-03**: User can continue playback from current position
+- [x] **TRNS-04**: User can stop all clips
+- [x] **TRNS-05**: User can set tempo
+- [x] **TRNS-06**: User can set time signature (numerator and denominator)
+- [x] **TRNS-07**: User can set loop region (enabled, start, length)
+- [x] **TRNS-08**: User can get current playback position
+- [x] **TRNS-09**: User can undo last action
+- [x] **TRNS-10**: User can redo last undone action
 
 ### Automation
 
@@ -203,20 +203,20 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEV-06 | Phase 7 | Complete |
 | DEV-07 | Phase 7 | Complete |
 | DEV-08 | Phase 7 | Complete |
-| SCNE-01 | Phase 8 | Pending |
-| SCNE-02 | Phase 8 | Pending |
-| SCNE-03 | Phase 8 | Pending |
-| SCNE-04 | Phase 8 | Pending |
-| TRNS-01 | Phase 8 | Pending |
-| TRNS-02 | Phase 8 | Pending |
-| TRNS-03 | Phase 8 | Pending |
-| TRNS-04 | Phase 8 | Pending |
-| TRNS-05 | Phase 8 | Pending |
-| TRNS-06 | Phase 8 | Pending |
-| TRNS-07 | Phase 8 | Pending |
-| TRNS-08 | Phase 8 | Pending |
-| TRNS-09 | Phase 8 | Pending |
-| TRNS-10 | Phase 8 | Pending |
+| SCNE-01 | Phase 8 | Complete |
+| SCNE-02 | Phase 8 | Complete |
+| SCNE-03 | Phase 8 | Complete |
+| SCNE-04 | Phase 8 | Complete |
+| TRNS-01 | Phase 8 | Complete |
+| TRNS-02 | Phase 8 | Complete |
+| TRNS-03 | Phase 8 | Complete |
+| TRNS-04 | Phase 8 | Complete |
+| TRNS-05 | Phase 8 | Complete |
+| TRNS-06 | Phase 8 | Complete |
+| TRNS-07 | Phase 8 | Complete |
+| TRNS-08 | Phase 8 | Complete |
+| TRNS-09 | Phase 8 | Complete |
+| TRNS-10 | Phase 8 | Complete |
 | AUTO-01 | Phase 9 | Pending |
 | AUTO-02 | Phase 9 | Pending |
 | AUTO-03 | Phase 9 | Pending |
