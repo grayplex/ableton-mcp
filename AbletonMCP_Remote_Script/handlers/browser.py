@@ -28,17 +28,24 @@ class BrowserHandlers:
         """Get a simplified tree of browser categories.
 
         Args:
-            params: dict with optional 'category_type' key (default 'all')
+            params: dict with optional keys:
+                - category_type: str (default 'all')
+                - max_depth: int (default 1, capped at 5) -- how deep to
+                  recurse into children
 
         Returns:
             Dictionary with the browser tree structure
         """
         category_type = "all"
+        max_depth = 1
         if params:
             if isinstance(params, dict):
                 category_type = params.get("category_type", "all")
+                max_depth = params.get("max_depth", 1)
             elif isinstance(params, str):
                 category_type = params
+        # Cap max_depth to prevent performance issues
+        max_depth = min(max_depth, 5)
         try:
             app = self.application()
             if not app:
@@ -52,14 +59,15 @@ class BrowserHandlers:
 
             result = {
                 "type": category_type,
+                "max_depth": max_depth,
                 "categories": [],
                 "available_categories": browser_attrs,
             }
 
-            def process_item(item, depth=0):
+            def process_item(item, depth=0, max_d=1):
                 if not item:
                     return None
-                return {
+                info = {
                     "name": item.name if hasattr(item, "name") else "Unknown",
                     "is_folder": hasattr(item, "children") and bool(item.children),
                     "is_device": hasattr(item, "is_device") and item.is_device,
@@ -67,12 +75,18 @@ class BrowserHandlers:
                     "uri": item.uri if hasattr(item, "uri") else None,
                     "children": [],
                 }
+                if depth < max_d and hasattr(item, "children") and item.children:
+                    for child in item.children:
+                        child_info = process_item(child, depth + 1, max_d)
+                        if child_info:
+                            info["children"].append(child_info)
+                return info
 
             if (category_type == "all" or category_type == "instruments") and hasattr(
                 app.browser, "instruments"
             ):
                 try:
-                    instruments = process_item(app.browser.instruments)
+                    instruments = process_item(app.browser.instruments, 0, max_depth)
                     if instruments:
                         instruments["name"] = "Instruments"
                         result["categories"].append(instruments)
@@ -83,7 +97,7 @@ class BrowserHandlers:
                 app.browser, "sounds"
             ):
                 try:
-                    sounds = process_item(app.browser.sounds)
+                    sounds = process_item(app.browser.sounds, 0, max_depth)
                     if sounds:
                         sounds["name"] = "Sounds"
                         result["categories"].append(sounds)
@@ -94,7 +108,7 @@ class BrowserHandlers:
                 app.browser, "drums"
             ):
                 try:
-                    drums = process_item(app.browser.drums)
+                    drums = process_item(app.browser.drums, 0, max_depth)
                     if drums:
                         drums["name"] = "Drums"
                         result["categories"].append(drums)
@@ -105,7 +119,7 @@ class BrowserHandlers:
                 app.browser, "audio_effects"
             ):
                 try:
-                    audio_effects = process_item(app.browser.audio_effects)
+                    audio_effects = process_item(app.browser.audio_effects, 0, max_depth)
                     if audio_effects:
                         audio_effects["name"] = "Audio Effects"
                         result["categories"].append(audio_effects)
@@ -116,7 +130,7 @@ class BrowserHandlers:
                 app.browser, "midi_effects"
             ):
                 try:
-                    midi_effects = process_item(app.browser.midi_effects)
+                    midi_effects = process_item(app.browser.midi_effects, 0, max_depth)
                     if midi_effects:
                         midi_effects["name"] = "MIDI Effects"
                         result["categories"].append(midi_effects)
@@ -134,7 +148,7 @@ class BrowserHandlers:
                     try:
                         item = getattr(app.browser, attr)
                         if hasattr(item, "children") or hasattr(item, "name"):
-                            category = process_item(item)
+                            category = process_item(item, 0, max_depth)
                             if category:
                                 category["name"] = attr.capitalize()
                                 result["categories"].append(category)
@@ -143,7 +157,8 @@ class BrowserHandlers:
 
             self.log_message(
                 f"Browser tree generated for {category_type} "
-                f"with {len(result['categories'])} root categories"
+                f"with {len(result['categories'])} root categories "
+                f"(max_depth={max_depth})"
             )
             return result
 
@@ -354,16 +369,23 @@ class BrowserHandlers:
 
     @command("load_browser_item", write=True, self_scheduling=True)
     def _load_browser_item(self, params):
-        """Load a browser item onto a track by its URI.
+        """Load a browser item onto a track by URI or path.
 
         Uses same-callback pattern: selected_track assignment and load_item
         call happen in the same schedule_message callback to prevent the
         race condition where instruments load on the wrong track.
 
         Includes device count verification and one automatic retry.
+
+        Params:
+            track_index: Index of the track to load onto (default 0).
+            item_uri: URI of the browser item.
+            path: Browser path (e.g. "instruments/Analog"). Used if item_uri
+                  is empty/None. Resolved via category map + child navigation.
         """
         track_index = params.get("track_index", 0)
         item_uri = params.get("item_uri", "")
+        path = params.get("path", None)
 
         if track_index < 0 or track_index >= len(self._song.tracks):
             raise IndexError("Track index out of range")
@@ -372,20 +394,56 @@ class BrowserHandlers:
 
         app = self.application()
 
-        # Find the browser item by URI (check cache first)
+        # --- Path-based resolution (Change 3) ---
         item = None
-        if item_uri in self._browser_path_cache:
-            try:
-                cached = self._browser_path_cache[item_uri]
-                _ = cached.name
-                item = cached
-            except (AttributeError, KeyError, RuntimeError):
-                del self._browser_path_cache[item_uri]
-
-        if item is None:
-            item = self._find_browser_item_by_uri(app.browser, item_uri)
+        if not item_uri and path:
+            item = self._resolve_browser_path(app.browser, path)
             if item:
+                item_uri = item.uri if hasattr(item, "uri") else ""
                 self._browser_path_cache[item_uri] = item
+        elif not item_uri and not path:
+            raise ValueError("Provide item_uri or path")
+
+        # --- Track-type guard (Change 2) ---
+        # Detect if this is an instrument load on an audio track
+        is_instrument_category = False
+        if path:
+            root_part = path.split("/")[0].lower()
+            if root_part in ("instruments", "drums"):
+                is_instrument_category = True
+        elif item_uri:
+            # Check if URI belongs to instruments or drums category
+            # by inspecting the path cache or URI structure
+            uri_lower = item_uri.lower()
+            if "instrument" in uri_lower or "drum" in uri_lower:
+                is_instrument_category = True
+
+        if is_instrument_category:
+            is_audio_track = (
+                hasattr(track, "has_audio_input")
+                and track.has_audio_input
+                and not track.has_midi_input
+            )
+            if is_audio_track:
+                raise ValueError(
+                    "Cannot load instrument on audio track. "
+                    "Use a MIDI track instead."
+                )
+
+        # Find the browser item by URI (check cache first)
+        if item is None and item_uri:
+            if item_uri in self._browser_path_cache:
+                try:
+                    cached = self._browser_path_cache[item_uri]
+                    _ = cached.name
+                    item = cached
+                except (AttributeError, KeyError, RuntimeError):
+                    del self._browser_path_cache[item_uri]
+
+            if item is None:
+                item = self._find_browser_item_by_uri(app.browser, item_uri)
+                if item:
+                    self._browser_path_cache[item_uri] = item
 
         if not item:
             raise ValueError(f"Browser item with URI '{item_uri}' not found")
@@ -437,17 +495,40 @@ class BrowserHandlers:
             devices_after_count = len(track.devices)
             if devices_after_count > devices_before:
                 device_chain = [d.name for d in track.devices]
+
+                # Build parameter list for the newly loaded device (Change 4)
+                new_device = track.devices[devices_after_count - 1]
+                parameters = []
+                try:
+                    for i, p in enumerate(new_device.parameters):
+                        parameters.append({
+                            "index": i,
+                            "name": p.name,
+                            "value": p.value,
+                            "min": p.min,
+                            "max": p.max,
+                            "is_quantized": p.is_quantized,
+                        })
+                except Exception as param_err:
+                    self.log_message(
+                        f"[WARN] Could not read parameters of loaded device: {param_err}"
+                    )
+
+                result_dict = {
+                    "loaded": True,
+                    "item_name": item_name,
+                    "track_name": track.name,
+                    "uri": item_uri,
+                    "devices": device_chain,
+                    "device_count": devices_after_count,
+                }
+                if parameters:
+                    result_dict["parameters"] = parameters
+
                 response_queue.put(
                     {
                         "status": "success",
-                        "result": {
-                            "loaded": True,
-                            "item_name": item_name,
-                            "track_name": track.name,
-                            "uri": item_uri,
-                            "devices": device_chain,
-                            "device_count": devices_after_count,
-                        },
+                        "result": result_dict,
                     }
                 )
             elif retries_remaining > 0:
@@ -511,6 +592,58 @@ class BrowserHandlers:
         if "item_uri" not in params and "uri" in params:
             params["item_uri"] = params["uri"]
         return self._load_browser_item(params)
+
+    def _resolve_browser_path(self, browser, path):
+        """Resolve a browser path string to a browser item.
+
+        Splits path on "/", maps root to a browser category via _CATEGORY_MAP,
+        then navigates children case-insensitively.
+
+        Args:
+            browser: The Live browser object.
+            path: Path string, e.g. "instruments/Analog".
+
+        Returns:
+            The resolved browser item, or None if not found.
+        """
+        path_parts = path.split("/")
+        if not path_parts:
+            return None
+
+        root_category = path_parts[0].lower()
+        browser_attr = _CATEGORY_MAP.get(root_category, "")
+        current_item = getattr(browser, browser_attr, None) if browser_attr else None
+
+        if current_item is None:
+            # Try direct attribute lookup
+            browser_attrs = [attr for attr in dir(browser) if not attr.startswith("_")]
+            for attr in browser_attrs:
+                if attr.lower() == root_category:
+                    try:
+                        current_item = getattr(browser, attr)
+                        break
+                    except Exception:
+                        pass
+            if current_item is None:
+                return None
+
+        # Navigate remaining path parts
+        for i in range(1, len(path_parts)):
+            part = path_parts[i]
+            if not part:
+                continue
+            if not hasattr(current_item, "children") or not current_item.children:
+                return None
+            found = False
+            for child in current_item.children:
+                if hasattr(child, "name") and child.name.lower() == part.lower():
+                    current_item = child
+                    found = True
+                    break
+            if not found:
+                return None
+
+        return current_item
 
     def _find_browser_item_by_uri(self, browser_or_item, uri, max_depth=10, current_depth=0):
         """Find a browser item by its URI."""
