@@ -177,6 +177,180 @@ class DeviceHandlers:
             self.log_message(f"Error setting device parameter: {e}")
             raise
 
+    @command("delete_device", write=True)
+    def _delete_device(self, params):
+        """Delete a device from a track or chain device list.
+
+        Params:
+            track_index: Index of the track (default 0).
+            device_index: Index of the device on the track (default 0).
+            track_type: "track", "return", or "master" (default "track").
+            chain_index: Optional chain index for rack chain deletion.
+            chain_device_index: Optional device index within a chain to delete.
+
+        Returns:
+            deleted_device_name, track_name, track_type, updated_devices list.
+        """
+        track_index = params.get("track_index", 0)
+        device_index = params.get("device_index", 0)
+        track_type = params.get("track_type", "track")
+        chain_index = params.get("chain_index", None)
+        chain_device_index = params.get("chain_device_index", None)
+
+        try:
+            track = _resolve_track(self._song, track_type, track_index)
+
+            if device_index < 0 or device_index >= len(track.devices):
+                raise IndexError(
+                    f"Device index {device_index} out of range "
+                    f"(0-{len(track.devices) - 1})"
+                )
+
+            if chain_index is not None:
+                # Deleting a device from within a rack chain
+                device = track.devices[device_index]
+                if not device.can_have_chains:
+                    raise ValueError(
+                        f"Device '{device.name}' is not a rack and does not "
+                        f"have chains"
+                    )
+                if chain_index < 0 or chain_index >= len(device.chains):
+                    raise IndexError(
+                        f"Chain index {chain_index} out of range "
+                        f"(0-{len(device.chains) - 1})"
+                    )
+                chain = device.chains[chain_index]
+
+                if chain_device_index is None:
+                    raise ValueError(
+                        "chain_device_index is required when deleting from a chain"
+                    )
+                if chain_device_index < 0 or chain_device_index >= len(chain.devices):
+                    raise IndexError(
+                        f"Chain device index {chain_device_index} out of range "
+                        f"(0-{len(chain.devices) - 1})"
+                    )
+
+                deleted_name = chain.devices[chain_device_index].name
+                chain.delete_device(chain_device_index)
+
+                # Build updated chain device list
+                updated_devices = [
+                    {
+                        "index": i,
+                        "name": d.name,
+                        "type": self._get_device_type(d),
+                    }
+                    for i, d in enumerate(chain.devices)
+                ]
+            else:
+                # Deleting a top-level device from the track
+                deleted_name = track.devices[device_index].name
+                track.delete_device(device_index)
+
+                # Build updated track device list
+                updated_devices = [
+                    {
+                        "index": i,
+                        "name": d.name,
+                        "type": self._get_device_type(d),
+                    }
+                    for i, d in enumerate(track.devices)
+                ]
+
+            return {
+                "deleted_device_name": deleted_name,
+                "track_name": track.name,
+                "track_type": track_type,
+                "updated_devices": updated_devices,
+            }
+        except Exception as e:
+            self.log_message(f"Error deleting device: {e}")
+            raise
+
+    @command("get_rack_chains")
+    def _get_rack_chains(self, params):
+        """Get chain information for a rack device.
+
+        For Instrument/Effect Racks: returns chain names, indices, and devices.
+        For Drum Racks: returns pad details (note, name) with chain devices,
+        filtering out empty pads.
+
+        Params:
+            track_index: Index of the track (default 0).
+            device_index: Index of the rack device on the track (default 0).
+            track_type: "track", "return", or "master" (default "track").
+            chain_index: Optional chain index for navigating to a nested rack.
+            chain_device_index: Optional device index within a chain (nested rack).
+
+        Returns:
+            device_name, device_type, and either chains list or pads list.
+        """
+        try:
+            device, _track = self._resolve_device(params)
+
+            if not device.can_have_chains:
+                raise ValueError(
+                    f"Device '{device.name}' is not a rack and does not have chains"
+                )
+
+            if device.can_have_drum_pads:
+                # Drum Rack -- expose pads with content only
+                pads = []
+                for pad in device.drum_pads:
+                    if pad.chains and len(pad.chains) > 0:
+                        pad_chains = []
+                        for chain in pad.chains:
+                            chain_devices = []
+                            for di, d in enumerate(chain.devices):
+                                chain_devices.append({
+                                    "index": di,
+                                    "name": d.name,
+                                    "type": self._get_device_type(d),
+                                    "can_have_chains": d.can_have_chains,
+                                })
+                            pad_chains.append({
+                                "name": chain.name,
+                                "devices": chain_devices,
+                            })
+                        pads.append({
+                            "note": pad.note,
+                            "name": pad.name,
+                            "chains": pad_chains,
+                        })
+
+                return {
+                    "device_name": device.name,
+                    "device_type": self._get_device_type(device),
+                    "pads": pads,
+                }
+            else:
+                # Instrument/Effect Rack -- expose chains
+                chains = []
+                for ci, chain in enumerate(device.chains):
+                    chain_devices = []
+                    for di, d in enumerate(chain.devices):
+                        chain_devices.append({
+                            "index": di,
+                            "name": d.name,
+                            "type": self._get_device_type(d),
+                            "can_have_chains": d.can_have_chains,
+                        })
+                    chains.append({
+                        "index": ci,
+                        "name": chain.name,
+                        "devices": chain_devices,
+                    })
+
+                return {
+                    "device_name": device.name,
+                    "device_type": self._get_device_type(device),
+                    "chains": chains,
+                }
+        except Exception as e:
+            self.log_message(f"Error getting rack chains: {e}")
+            raise
+
     def _get_device_type(self, device):
         """Get the type of a device."""
         try:
