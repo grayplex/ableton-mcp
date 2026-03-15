@@ -153,14 +153,12 @@ Plans:
   4. User can set tempo and time signature — changes take effect during or before playback
   5. User can set the loop region (enabled, start, length) and query the current playback position
   6. User can undo and redo the last action — Live's undo history is accessible
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 08-01: Implement SceneHandler in Remote Script — create_scene, set_scene_name, fire_scene, delete_scene
-- [ ] 08-02: Implement TransportHandler in Remote Script — start_playback, stop_playback, continue_playback, stop_all_clips
-- [ ] 08-03: Implement tempo, time signature, loop region, and playback position in TransportHandler
-- [ ] 08-04: Implement undo and redo in TransportHandler
-- [ ] 08-05: Add corresponding MCP tools in tools/scenes.py and tools/transport.py
+- [ ] 08-01-PLAN.md — Remote Script scene handlers: SceneHandlers mixin with create_scene, set_scene_name, fire_scene, delete_scene, registry test update
+- [ ] 08-02-PLAN.md — Remote Script transport handlers: 8 new TransportHandlers commands (continue_playback, stop_all_clips, set_time_signature, set_loop_region, get_playback_position, get_transport_state, undo, redo), set_tempo validation, _WRITE_COMMANDS update
+- [ ] 08-03-PLAN.md — MCP tools and smoke tests: 4 scene tools, 11 transport tools (3 upgraded to JSON + 8 new), consecutive undo warning, conftest/init wiring, 20+ smoke tests
 
 ### Phase 9: Automation
 **Goal**: Users can read, write, and clear clip automation envelopes for device parameter movement over time
@@ -206,6 +204,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 5. Clip Management | 2/2 | Complete   | 2026-03-14 |
 | 6. MIDI Editing | 0/2 | Not started | - |
 | 7. Device & Browser | 0/3 | Not started | - |
-| 8. Scene & Transport | 0/5 | Not started | - |
+| 8. Scene & Transport | 0/3 | Not started | - |
 | 9. Automation | 0/2 | Not started | - |
 | 10. Routing & Audio Clips | 0/3 | Not started | - |
