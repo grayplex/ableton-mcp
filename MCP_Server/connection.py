@@ -83,6 +83,9 @@ _WRITE_COMMANDS = frozenset(
         "set_loop_region",
         "undo",
         "redo",
+        # Phase 9: Automation
+        "insert_envelope_breakpoints",
+        "clear_clip_envelopes",
     ]
 )
 
