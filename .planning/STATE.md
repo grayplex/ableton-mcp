@@ -3,29 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-03-16T23:18:28.918Z"
-last_activity: 2026-03-15 — Completed Phase 08 Scene & Transport
+stopped_at: Completed 09-02-PLAN.md
+last_updated: "2026-03-16T23:22:19Z"
+last_activity: 2026-03-16 -- Completed Phase 09 Automation (all plans)
 progress:
   total_phases: 10
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 24
-  completed_plans: 23
----
-
----
-gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: in_progress
-stopped_at: Phase 8 complete, Phase 9 next
-last_updated: "2026-03-15"
-last_activity: 2026-03-15 — Completed Phase 08 Scene & Transport
-progress:
-  total_phases: 10
-  completed_phases: 8
-  total_plans: 22
-  completed_plans: 22
+  completed_plans: 24
+  percent: 100
 ---
 
 # Project State
@@ -35,21 +21,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-10)
 
 **Core value:** An AI assistant can produce actual music in Ableton — instruments load, notes play, effects shape sound, and the mix comes together.
-**Current focus:** Phase 9 (Automation) in progress -- Plan 01 (Remote Script handlers) complete, Plan 02 (MCP tools + tests) next.
+**Current focus:** Phase 9 (Automation) complete. Phase 10 (Routing/IO) is the final phase remaining.
 
 ## Current Position
 
-Phase: 9 of 10 (Automation) -- Plan 01 complete
-Current Plan: 2 of 2
-Status: In Progress
-Last activity: 2026-03-16 -- Completed 09-01-PLAN.md (Remote Script automation handlers)
+Phase: 9 of 10 (Automation) -- Complete
+Current Plan: 2 of 2 (complete)
+Status: Phase 9 Complete
+Last activity: 2026-03-16 -- Completed 09-02-PLAN.md (MCP automation tools + smoke tests)
 
-Progress: [██████████] 96%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 23
+- Total plans completed: 24
 - Average duration: ~3min
 - Total execution time: ~1.2 hours
 
@@ -65,6 +51,7 @@ Progress: [██████████] 96%
 | 06-midi-editing | 2/2 | 3min |
 | 07-device-browser | 3/3 | 2min |
 | 08-scene-transport | 3/3 | 2min |
+| 09-automation | 2/2 | 2min |
 
 **Plan Log:**
 
@@ -93,6 +80,7 @@ Progress: [██████████] 96%
 | Phase 08 P02 | 2min | 2 tasks | 2 files |
 | Phase 08 P03 | 3min | 2 tasks | 6 files |
 | Phase 09 P01 | 3min | 2 tasks | 4 files |
+| Phase 09 P02 | 2min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -168,6 +156,9 @@ Recent decisions affecting current work:
 - [Phase 09]: _resolve_parameter helper extracted as reusable method on AutomationHandlers for case-insensitive parameter name/index lookup
 - [Phase 09]: Default envelope sample_interval 0.25 beats (1/16th note), configurable per call
 - [Phase 09]: AutomationHandlers placed after SceneHandlers and before BrowserHandlers in MRO
+- [09-02]: get_clip_envelope is read-only (TIMEOUT_READ=10s), not in _WRITE_COMMANDS
+- [09-02]: insert_envelope_breakpoints and clear_clip_envelopes routed through TIMEOUT_WRITE=15s
+- [09-02]: Conditional param building: sample_interval only sent if !=0.25, step_length only sent if !=0.0
 
 ### Pending Todos
 
@@ -176,11 +167,11 @@ None yet.
 ### Blockers/Concerns
 
 - [Phase 1]: RESOLVED -- Instrument loading race condition fixed with same-callback pattern + device count verification + one retry
-- [Phase 9]: Automation envelopes require understanding Session vs Arrangement envelope distinction — may need research spike during Phase 9 planning
+- [Phase 9]: RESOLVED -- Automation envelopes use Session view clip envelopes via value_at_time sampling
 - [Phase 10]: Input/output routing APIs vary by track type and hardware — needs testing against actual Ableton instance before implementation
 
 ## Session Continuity
 
-Last session: 2026-03-16T23:18:28.915Z
-Stopped at: Completed 09-01-PLAN.md
+Last session: 2026-03-16T23:22:19Z
+Stopped at: Completed 09-02-PLAN.md
 Resume file: None

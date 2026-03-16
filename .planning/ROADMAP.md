@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: MIDI Editing** - Complete MIDI note editing (add, read, remove, quantize, transpose) (completed 2026-03-14)
 - [x] **Phase 7: Device & Browser** - Working instrument loading plus full device parameter control (completed 2026-03-14)
 - [x] **Phase 8: Scene & Transport** - Scene management plus complete transport and session control (completed 2026-03-15)
-- [ ] **Phase 9: Automation** - Clip automation envelopes for parameter movement
+- [x] **Phase 9: Automation** - Clip automation envelopes for parameter movement (completed 2026-03-16)
 - [ ] **Phase 10: Routing & Audio Clips** - Track routing control and audio clip properties
 
 ## Phase Details
@@ -168,7 +168,7 @@ Plans:
   1. User can get the automation envelope for a specific device parameter in a clip — returns breakpoint data
   2. User can insert automation breakpoints at specified positions and values — parameter moves in playback
   3. User can clear all automation from a clip's envelopes — parameters return to static values
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 09-01-PLAN.md — Remote Script AutomationHandlers mixin: 3 command handlers (get_clip_envelope, insert_envelope_breakpoints, clear_clip_envelopes) with dual-mode list/detail, wired into AbletonMCP MRO, registry test updated to 63
@@ -205,5 +205,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 6. MIDI Editing | 2/2 | Complete | 2026-03-14 |
 | 7. Device & Browser | 3/3 | Complete | 2026-03-14 |
 | 8. Scene & Transport | 3/3 | Complete | 2026-03-15 |
-| 9. Automation | 0/2 | Not started | - |
+| 9. Automation | 2/2 | Complete   | 2026-03-16 |
 | 10. Routing & Audio Clips | 0/3 | Not started | - |
