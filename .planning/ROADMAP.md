@@ -168,11 +168,11 @@ Plans:
   1. User can get the automation envelope for a specific device parameter in a clip — returns breakpoint data
   2. User can insert automation breakpoints at specified positions and values — parameter moves in playback
   3. User can clear all automation from a clip's envelopes — parameters return to static values
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 09-01: Implement AutomationHandler in Remote Script — get_clip_envelope, insert_envelope_breakpoints, clear_clip_envelopes
-- [ ] 09-02: Add corresponding MCP tools in tools/automation.py with parameter targeting by device and parameter name
+- [ ] 09-01-PLAN.md — Remote Script AutomationHandlers mixin: 3 command handlers (get_clip_envelope, insert_envelope_breakpoints, clear_clip_envelopes) with dual-mode list/detail, wired into AbletonMCP MRO, registry test updated to 63
+- [ ] 09-02-PLAN.md — MCP automation tools, connection wiring, and smoke tests: 3 tool functions in tools/automation.py, _WRITE_COMMANDS update, conftest patch target, 7 smoke tests
 
 ### Phase 10: Routing & Audio Clips
 **Goal**: Users can inspect and set track signal routing and control audio clip properties
