@@ -93,9 +93,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Automation
 
-- [ ] **AUTO-01**: User can get automation envelope for a device parameter in a clip
-- [ ] **AUTO-02**: User can insert automation breakpoints into a clip envelope
-- [ ] **AUTO-03**: User can clear automation envelopes from a clip
+- [x] **AUTO-01**: User can get automation envelope for a device parameter in a clip
+- [x] **AUTO-02**: User can insert automation breakpoints into a clip envelope
+- [x] **AUTO-03**: User can clear automation envelopes from a clip
 
 ### Routing
 
@@ -217,9 +217,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRNS-08 | Phase 8 | Complete |
 | TRNS-09 | Phase 8 | Complete |
 | TRNS-10 | Phase 8 | Complete |
-| AUTO-01 | Phase 9 | Pending |
-| AUTO-02 | Phase 9 | Pending |
-| AUTO-03 | Phase 9 | Pending |
+| AUTO-01 | Phase 9 | Complete |
+| AUTO-02 | Phase 9 | Complete |
+| AUTO-03 | Phase 9 | Complete |
 | ROUT-01 | Phase 10 | Pending |
 | ROUT-02 | Phase 10 | Pending |
 | ROUT-03 | Phase 10 | Pending |

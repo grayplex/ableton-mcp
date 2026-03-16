@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Phase 9 context gathered
-last_updated: "2026-03-16T22:53:00.580Z"
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-03-16T23:18:28.918Z"
 last_activity: 2026-03-15 — Completed Phase 08 Scene & Transport
 progress:
   total_phases: 10
   completed_phases: 8
-  total_plans: 22
-  completed_plans: 22
+  total_plans: 24
+  completed_plans: 23
 ---
 
 ---
@@ -35,23 +35,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-10)
 
 **Core value:** An AI assistant can produce actual music in Ableton — instruments load, notes play, effects shape sound, and the mix comes together.
-**Current focus:** Phase 8 complete -- scene management and transport control fully implemented. Phase 9 (Automation) is next.
+**Current focus:** Phase 9 (Automation) in progress -- Plan 01 (Remote Script handlers) complete, Plan 02 (MCP tools + tests) next.
 
 ## Current Position
 
-Phase: 8 of 10 (Scene & Transport) -- COMPLETE
-Next: Phase 9 of 10 (Automation)
+Phase: 9 of 10 (Automation) -- Plan 01 complete
+Current Plan: 2 of 2
 Status: In Progress
-Last activity: 2026-03-15 — Completed Phase 08 Scene & Transport
+Last activity: 2026-03-16 -- Completed 09-01-PLAN.md (Remote Script automation handlers)
 
-Progress: [████████░░] 80%
+Progress: [██████████] 96%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 22
+- Total plans completed: 23
 - Average duration: ~3min
-- Total execution time: ~1.1 hours
+- Total execution time: ~1.2 hours
 
 **By Phase:**
 
@@ -92,6 +92,7 @@ Progress: [████████░░] 80%
 | Phase 08 P01 | 2min | 2 tasks | 2 files |
 | Phase 08 P02 | 2min | 2 tasks | 2 files |
 | Phase 08 P03 | 3min | 2 tasks | 6 files |
+| Phase 09 P01 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -164,6 +165,9 @@ Recent decisions affecting current work:
 - [Phase 08]: Registry test updated to 60 commands (4 scene + 8 transport already present)
 - [Phase 08]: All 15 scene+transport MCP tools use json.dumps(result, indent=2) for consistent AI consumption
 - [Phase 08]: Consecutive undo counter uses module-level global, only redo resets it
+- [Phase 09]: _resolve_parameter helper extracted as reusable method on AutomationHandlers for case-insensitive parameter name/index lookup
+- [Phase 09]: Default envelope sample_interval 0.25 beats (1/16th note), configurable per call
+- [Phase 09]: AutomationHandlers placed after SceneHandlers and before BrowserHandlers in MRO
 
 ### Pending Todos
 
@@ -177,6 +181,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T22:53:00.570Z
-Stopped at: Phase 9 context gathered
-Resume file: .planning/phases/09-automation/09-CONTEXT.md
+Last session: 2026-03-16T23:18:28.915Z
+Stopped at: Completed 09-01-PLAN.md
+Resume file: None
