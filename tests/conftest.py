@@ -10,6 +10,7 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # All modules that import get_ableton_connection via `from ... import`
 _GAC_PATCH_TARGETS = [
     "MCP_Server.connection.get_ableton_connection",
+    "MCP_Server.tools.automation.get_ableton_connection",
     "MCP_Server.tools.session.get_ableton_connection",
     "MCP_Server.tools.tracks.get_ableton_connection",
     "MCP_Server.tools.clips.get_ableton_connection",
