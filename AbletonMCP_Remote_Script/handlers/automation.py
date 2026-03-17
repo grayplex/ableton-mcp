@@ -141,12 +141,15 @@ class AutomationHandlers:
             envelope = clip.automation_envelope(param)
 
             if envelope is None:
-                raise ValueError(
-                    f"Cannot create automation envelope for '{param.name}' "
-                    f"on this clip. Try clearing the clip envelopes first "
-                    f"and retry, or verify the parameter belongs to a device "
-                    f"on the same track as the clip."
-                )
+                try:
+                    envelope = clip.create_automation_envelope(param)
+                except Exception:
+                    raise ValueError(
+                        f"Cannot create automation envelope for '{param.name}' "
+                        f"on this clip. Verify the clip is a Session View clip "
+                        f"and the parameter belongs to a device on the same "
+                        f"track."
+                    )
 
             # Clamp breakpoint values to param.min/param.max
             clamped = False
