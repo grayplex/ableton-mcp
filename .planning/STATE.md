@@ -2,32 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_plan: 2 of 2 (complete)
+current_plan: 1 of 2 (complete)
 status: in_progress
-stopped_at: Phase 10 context gathered
-last_updated: "2026-03-17T00:31:26.312Z"
-last_activity: 2026-03-16 -- Completed 09-02-PLAN.md (MCP automation tools + smoke tests)
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-03-17T00:58:52.790Z"
+last_activity: 2026-03-17 -- Completed 10-01-PLAN.md (Remote Script routing + audio clip handlers)
 progress:
   total_phases: 10
   completed_phases: 9
-  total_plans: 24
-  completed_plans: 24
----
-
----
-gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: in_progress
-stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-03-16T23:22:19Z"
-last_activity: 2026-03-16 -- Completed Phase 09 Automation (all plans)
-progress:
-  total_phases: 10
-  completed_phases: 9
-  total_plans: 24
-  completed_plans: 24
-  percent: 100
+  total_plans: 26
+  completed_plans: 25
+  percent: 96
 ---
 
 # Project State
@@ -37,21 +22,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-10)
 
 **Core value:** An AI assistant can produce actual music in Ableton — instruments load, notes play, effects shape sound, and the mix comes together.
-**Current focus:** Phase 9 (Automation) complete. Phase 10 (Routing/IO) is the final phase remaining.
+**Current focus:** Phase 10 (Routing & Audio Clips) -- Plan 01 complete, Plan 02 remaining.
 
 ## Current Position
 
-Phase: 9 of 10 (Automation) -- Complete
-Current Plan: 2 of 2 (complete)
-Status: Phase 9 Complete
-Last activity: 2026-03-16 -- Completed 09-02-PLAN.md (MCP automation tools + smoke tests)
+Phase: 10 of 10 (Routing & Audio Clips)
+Current Plan: 1 of 2 (complete)
+Status: In Progress
+Last activity: 2026-03-17 -- Completed 10-01-PLAN.md (Remote Script routing + audio clip handlers)
 
-Progress: [██████████] 100%
+Progress: [██████████] 96%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 24
+- Total plans completed: 25
 - Average duration: ~3min
 - Total execution time: ~1.2 hours
 
@@ -97,6 +82,7 @@ Progress: [██████████] 100%
 | Phase 08 P03 | 3min | 2 tasks | 6 files |
 | Phase 09 P01 | 3min | 2 tasks | 4 files |
 | Phase 09 P02 | 2min | 2 tasks | 5 files |
+| Phase 10 P01 | 2min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -175,6 +161,9 @@ Recent decisions affecting current work:
 - [09-02]: get_clip_envelope is read-only (TIMEOUT_READ=10s), not in _WRITE_COMMANDS
 - [09-02]: insert_envelope_breakpoints and clear_clip_envelopes routed through TIMEOUT_WRITE=15s
 - [09-02]: Conditional param building: sample_interval only sent if !=0.25, step_length only sent if !=0.0
+- [10-01]: Gain accepts normalized 0.0-1.0 values (matching actual API), with gain_display_string showing dB equivalent in responses
+- [10-01]: pitch_fine validated to -500 to 500 range (documented API range, not UI range of -50 to +50)
+- [10-01]: RoutingHandlers and AudioClipHandlers placed after AutomationHandlers, before BrowserHandlers in MRO
 
 ### Pending Todos
 
@@ -188,6 +177,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T00:31:26.309Z
-Stopped at: Phase 10 context gathered
-Resume file: .planning/phases/10-routing-audio-clips/10-CONTEXT.md
+Last session: 2026-03-17T00:58:52.788Z
+Stopped at: Completed 10-01-PLAN.md
+Resume file: None

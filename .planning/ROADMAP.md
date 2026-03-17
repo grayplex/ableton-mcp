@@ -183,7 +183,7 @@ Plans:
   2. User can set a track's input and output routing — signal flow changes as expected
   3. User can set audio clip pitch (coarse and fine) and hear the transposition
   4. User can set audio clip gain and toggle warping on/off
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 - [ ] 10-01-PLAN.md — Remote Script routing + audio clip handlers: RoutingHandlers (4 commands) and AudioClipHandlers (2 commands) mixin classes, wired into AbletonMCP MRO
@@ -205,4 +205,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 7. Device & Browser | 3/3 | Complete | 2026-03-14 |
 | 8. Scene & Transport | 3/3 | Complete | 2026-03-15 |
 | 9. Automation | 2/2 | Complete   | 2026-03-16 |
-| 10. Routing & Audio Clips | 0/2 | Not started | - |
+| 10. Routing & Audio Clips | 1/2 | In Progress|  |

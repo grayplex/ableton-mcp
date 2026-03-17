@@ -99,16 +99,16 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Routing
 
-- [ ] **ROUT-01**: User can get available input routing types for a track
-- [ ] **ROUT-02**: User can set track input routing
-- [ ] **ROUT-03**: User can get available output routing types for a track
-- [ ] **ROUT-04**: User can set track output routing
+- [x] **ROUT-01**: User can get available input routing types for a track
+- [x] **ROUT-02**: User can set track input routing
+- [x] **ROUT-03**: User can get available output routing types for a track
+- [x] **ROUT-04**: User can set track output routing
 
 ### Audio Clip Controls
 
-- [ ] **ACLP-01**: User can set audio clip pitch (coarse and fine)
-- [ ] **ACLP-02**: User can set audio clip gain
-- [ ] **ACLP-03**: User can toggle audio clip warping on/off
+- [x] **ACLP-01**: User can set audio clip pitch (coarse and fine)
+- [x] **ACLP-02**: User can set audio clip gain
+- [x] **ACLP-03**: User can toggle audio clip warping on/off
 
 ## v2 Requirements
 
@@ -220,13 +220,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTO-01 | Phase 9 | Complete |
 | AUTO-02 | Phase 9 | Complete |
 | AUTO-03 | Phase 9 | Complete |
-| ROUT-01 | Phase 10 | Pending |
-| ROUT-02 | Phase 10 | Pending |
-| ROUT-03 | Phase 10 | Pending |
-| ROUT-04 | Phase 10 | Pending |
-| ACLP-01 | Phase 10 | Pending |
-| ACLP-02 | Phase 10 | Pending |
-| ACLP-03 | Phase 10 | Pending |
+| ROUT-01 | Phase 10 | Complete |
+| ROUT-02 | Phase 10 | Complete |
+| ROUT-03 | Phase 10 | Complete |
+| ROUT-04 | Phase 10 | Complete |
+| ACLP-01 | Phase 10 | Complete |
+| ACLP-02 | Phase 10 | Complete |
+| ACLP-03 | Phase 10 | Complete |
 
 **Coverage:**
 - v1 requirements: 53 total
