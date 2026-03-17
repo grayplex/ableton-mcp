@@ -86,6 +86,10 @@ _WRITE_COMMANDS = frozenset(
         # Phase 9: Automation
         "insert_envelope_breakpoints",
         "clear_clip_envelopes",
+        # Phase 10: Routing & Audio Clips
+        "set_input_routing",
+        "set_output_routing",
+        "set_audio_clip_properties",
     ]
 )
 

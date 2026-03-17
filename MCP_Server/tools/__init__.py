@@ -1,3 +1,3 @@
 """Import all tool modules to trigger @mcp.tool() registration."""
 
-from . import automation, browser, clips, devices, mixer, notes, scenes, session, tracks, transport  # noqa: F401
+from . import audio_clips, automation, browser, clips, devices, mixer, notes, routing, scenes, session, tracks, transport  # noqa: F401
