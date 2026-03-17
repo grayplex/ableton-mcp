@@ -17,12 +17,14 @@ from _Framework.ControlSurface import ControlSurface
 import AbletonMCP_Remote_Script.handlers  # noqa: F401
 
 from .handlers.base import BaseHandlers
+from .handlers.audio_clips import AudioClipHandlers
 from .handlers.automation import AutomationHandlers
 from .handlers.browser import BrowserHandlers
 from .handlers.clips import ClipHandlers
 from .handlers.devices import DeviceHandlers
 from .handlers.mixer import MixerHandlers
 from .handlers.notes import NoteHandlers
+from .handlers.routing import RoutingHandlers
 from .handlers.scenes import SceneHandlers
 from .handlers.tracks import TrackHandlers
 from .handlers.transport import TransportHandlers
@@ -84,6 +86,8 @@ class AbletonMCP(
     MixerHandlers,
     SceneHandlers,
     AutomationHandlers,
+    RoutingHandlers,
+    AudioClipHandlers,
     BrowserHandlers,
     ControlSurface,
 ):
