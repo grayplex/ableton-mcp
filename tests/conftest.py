@@ -11,6 +11,7 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _GAC_PATCH_TARGETS = [
     "MCP_Server.connection.get_ableton_connection",
     "MCP_Server.tools.automation.get_ableton_connection",
+    "MCP_Server.tools.audio_clips.get_ableton_connection",
     "MCP_Server.tools.session.get_ableton_connection",
     "MCP_Server.tools.tracks.get_ableton_connection",
     "MCP_Server.tools.clips.get_ableton_connection",
@@ -19,6 +20,7 @@ _GAC_PATCH_TARGETS = [
     "MCP_Server.tools.browser.get_ableton_connection",
     "MCP_Server.tools.mixer.get_ableton_connection",
     "MCP_Server.tools.notes.get_ableton_connection",
+    "MCP_Server.tools.routing.get_ableton_connection",
     "MCP_Server.tools.scenes.get_ableton_connection",
 ]
 

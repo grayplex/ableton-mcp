@@ -99,7 +99,7 @@ class TestFullRegistry:
         from AbletonMCP_Remote_Script.registry import CommandRegistry
 
         registered = {e[0] for e in CommandRegistry._entries}
-        assert len(registered) == 63, f"Expected 63 commands, got {len(registered)}: {registered}"
+        assert len(registered) == 69, f"Expected 69 commands, got {len(registered)}: {registered}"
 
         expected = {
             "get_session_info",
@@ -172,6 +172,13 @@ class TestFullRegistry:
             "get_clip_envelope",
             "insert_envelope_breakpoints",
             "clear_clip_envelopes",
+            # Phase 10: Routing & Audio Clips
+            "get_input_routing_types",
+            "set_input_routing",
+            "get_output_routing_types",
+            "set_output_routing",
+            "get_audio_clip_properties",
+            "set_audio_clip_properties",
         }
         missing = expected - registered
         assert not missing, f"Commands not registered: {missing}"
