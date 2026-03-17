@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: MIDI Editing** - Complete MIDI note editing (add, read, remove, quantize, transpose) (completed 2026-03-14)
 - [x] **Phase 7: Device & Browser** - Working instrument loading plus full device parameter control (completed 2026-03-14)
 - [x] **Phase 8: Scene & Transport** - Scene management plus complete transport and session control (completed 2026-03-15)
-- [x] **Phase 9: Automation** - Clip automation envelopes for parameter movement (completed 2026-03-16)
+- [x] **Phase 9: Automation** - Clip automation envelopes for parameter movement (completed 2026-03-16)
 - [ ] **Phase 10: Routing & Audio Clips** - Track routing control and audio clip properties
 
 ## Phase Details
@@ -171,8 +171,8 @@ Plans:
 **Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 09-01-PLAN.md — Remote Script AutomationHandlers mixin: 3 command handlers (get_clip_envelope, insert_envelope_breakpoints, clear_clip_envelopes) with dual-mode list/detail, wired into AbletonMCP MRO, registry test updated to 63
-- [ ] 09-02-PLAN.md — MCP automation tools, connection wiring, and smoke tests: 3 tool functions in tools/automation.py, _WRITE_COMMANDS update, conftest patch target, 7 smoke tests
+- [x] 09-01-PLAN.md — Remote Script AutomationHandlers mixin: 3 command handlers (get_clip_envelope, insert_envelope_breakpoints, clear_clip_envelopes) with dual-mode list/detail, wired into AbletonMCP MRO, registry test updated to 63
+- [x] 09-02-PLAN.md — MCP automation tools, connection wiring, and smoke tests: 3 tool functions in tools/automation.py, _WRITE_COMMANDS update, conftest patch target, 7 smoke tests
 
 ### Phase 10: Routing & Audio Clips
 **Goal**: Users can inspect and set track signal routing and control audio clip properties
@@ -183,12 +183,11 @@ Plans:
   2. User can set a track's input and output routing — signal flow changes as expected
   3. User can set audio clip pitch (coarse and fine) and hear the transposition
   4. User can set audio clip gain and toggle warping on/off
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 10-01: Implement RoutingHandler in Remote Script — get_input_routing_types, set_input_routing, get_output_routing_types, set_output_routing
-- [ ] 10-02: Implement AudioClipHandler in Remote Script — set_clip_pitch_coarse, set_clip_pitch_fine, set_clip_gain, set_clip_warping
-- [ ] 10-03: Add corresponding MCP tools in tools/routing.py and tools/audio_clips.py
+- [ ] 10-01-PLAN.md — Remote Script routing + audio clip handlers: RoutingHandlers (4 commands) and AudioClipHandlers (2 commands) mixin classes, wired into AbletonMCP MRO
+- [ ] 10-02-PLAN.md — MCP tools, connection wiring, and smoke tests: 6 tool functions (4 routing + 2 audio clip), _WRITE_COMMANDS update, conftest/registry updates, 16 smoke tests
 
 ## Progress
 
@@ -206,4 +205,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 7. Device & Browser | 3/3 | Complete | 2026-03-14 |
 | 8. Scene & Transport | 3/3 | Complete | 2026-03-15 |
 | 9. Automation | 2/2 | Complete   | 2026-03-16 |
-| 10. Routing & Audio Clips | 0/3 | Not started | - |
+| 10. Routing & Audio Clips | 0/2 | Not started | - |
