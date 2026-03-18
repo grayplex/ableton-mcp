@@ -112,7 +112,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ## v2 Requirements
 
-Deferred to future release. Tracked but not in current roadmap.
+Deferred to future release. Tracked but not in current roadmap. Derived from Phase 11 LOM gap analysis (2026-03-18).
 
 ### Session
 
@@ -121,6 +121,93 @@ Deferred to future release. Tracked but not in current roadmap.
 - **SESS-03**: User can tap tempo
 - **SESS-04**: User can toggle metronome
 - **SESS-05**: User can set groove/swing amount
+- **SESS-06**: User can capture and insert scene (capture currently playing clips)
+- **SESS-07**: User can capture recently played MIDI input
+- **SESS-08**: User can get/set clip trigger quantization globally
+- **SESS-09**: User can control session recording mode
+- **SESS-10**: User can get/set root note, scale name, and scale mode (key awareness)
+
+### Arrangement
+
+- **ARR-01**: User can create arrangement MIDI clips (start_time, length on track)
+- **ARR-02**: User can create arrangement audio clips from file (file_path, position on track)
+- **ARR-03**: User can list arrangement clips on a track
+- **ARR-04**: User can duplicate session clip to arrangement (session-to-arrangement bridge)
+- **ARR-05**: User can play arrangement selection
+- **ARR-06**: User can jump by beats (relative position navigation)
+- **ARR-07**: User can get song length / last event time (arrangement bounds)
+
+### Scale & Key
+
+- **SCLE-01**: User can get/set song root note
+- **SCLE-02**: User can get/set song scale name
+- **SCLE-03**: User can get song scale intervals
+- **SCLE-04**: User can get/set song scale mode
+
+### Clip Launch
+
+- **CLNC-01**: User can get/set clip launch mode (trigger/gate/toggle/repeat)
+- **CLNC-02**: User can get/set clip launch quantization (per-clip)
+- **CLNC-03**: User can get/set clip legato mode
+- **CLNC-04**: User can get/set clip velocity amount (velocity sensitivity)
+- **CLNC-05**: User can get/set clip muted state (clip activator)
+
+### Note Expression
+
+- **NOTE-01**: User can set note probability (0.0-1.0) when adding notes
+- **NOTE-02**: User can set note velocity deviation (-127 to 127) when adding notes
+- **NOTE-03**: User can set note release velocity (0-127) when adding notes
+- **NOTE-04**: User can select/deselect specific notes in a clip by ID
+- **NOTE-05**: User can modify notes in-place via apply_note_modifications (Live 11+)
+- **NOTE-06**: User can remove/duplicate/get notes by ID
+- **NOTE-07**: User can use native quantize with swing support
+
+### Scene Extended
+
+- **SCNX-01**: User can get/set scene color
+- **SCNX-02**: User can get/set per-scene tempo
+- **SCNX-03**: User can get/set per-scene time signature
+- **SCNX-04**: User can fire scene as selected (fire + advance)
+- **SCNX-05**: User can capture and insert scene
+- **SCNX-06**: User can check if scene is empty
+
+### Device Extended
+
+- **DEVX-01**: User can insert device at specific index on track (Live 12.3+)
+- **DEVX-02**: User can move device between tracks/positions
+- **DEVX-03**: User can list and select plugin presets
+- **DEVX-04**: User can use A/B preset compare (Live 12.3+)
+
+### Simpler
+
+- **SMPL-01**: User can crop Simpler sample to active region
+- **SMPL-02**: User can reverse Simpler sample
+- **SMPL-03**: User can warp Simpler sample (warp_as, warp_double, warp_half)
+- **SMPL-04**: User can get/set Simpler playback mode (Classic/One-Shot/Slicing)
+- **SMPL-05**: User can manage Simpler slices (list, insert, move, remove, clear)
+
+### Audio Creation
+
+- **ACRT-01**: User can create audio clip in session view from file
+- **ACRT-02**: User can create audio clip in arrangement from file
+- **ACRT-03**: User can get/add/move/remove warp markers on audio clips
+
+### Groove
+
+- **GRVX-01**: User can list grooves in groove pool
+- **GRVX-02**: User can read/set groove parameters (timing, quantization, random, velocity amounts)
+- **GRVX-03**: User can associate groove with clip
+
+### Mixer Extended
+
+- **MIXX-01**: User can control crossfader
+- **MIXX-02**: User can get/set track crossfade assignment (A/B)
+- **MIXX-03**: User can get panning mode (stereo/split)
+
+### DrumPad Extended
+
+- **DRPD-01**: User can mute/solo individual drum pads
+- **DRPD-02**: User can clear all chains from a drum pad
 
 ### MIDI Advanced
 
@@ -132,6 +219,8 @@ Deferred to future release. Tracked but not in current roadmap.
 - **TRKA-01**: User can freeze/unfreeze tracks
 - **TRKA-02**: User can create arrangement clips (if API supports it)
 - **TRKA-03**: User can set scene tempo per scene
+- **TRKA-04**: User can stop all clips on a single track
+- **TRKA-05**: User can get available input/output routing channels (sub-routing)
 
 ## Out of Scope
 
@@ -229,10 +318,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ACLP-03 | Phase 10 | Complete |
 
 **Coverage:**
-- v1 requirements: 53 total
-- Mapped to phases: 53
-- Unmapped: 0
+- v1 requirements: 53 total, all complete
+- v2 requirements: 58 total (from LOM gap analysis)
+- Mapped to phases: 53 (v1)
+- Unmapped: 0 (v1)
 
 ---
 *Requirements defined: 2026-03-10*
-*Last updated: 2026-03-10 after roadmap creation — all 53 requirements mapped*
+*Last updated: 2026-03-18 after Phase 11 LOM gap analysis — 58 v2 requirements added across 13 categories*
