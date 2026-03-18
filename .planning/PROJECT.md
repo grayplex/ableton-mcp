@@ -12,25 +12,26 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] Full track management (MIDI, audio, return, group, master) — Validated in Phase 2
+- [x] Comprehensive MIDI editing (notes, quantize, transpose, velocity) — Validated in Phase 4
+- [x] Mixing controls (volume, pan, sends, EQ) — Validated in Phase 5
+- [x] Device chain management (add, remove, configure effects and instruments) — Validated in Phase 6
+- [x] Scene management (create, launch, organize) — Validated in Phase 7
+- [x] Transport and playback control — Validated in Phase 1
+- [x] Browser navigation and preset loading — Validated in Phase 3
+- [x] Instrument and effect loading — Validated in Phase 3
+- [x] Undo/redo support — Validated in Phase 8
+- [x] Automation (parameter envelopes) — Validated in Phase 9
+- [x] Clean, installable package for open-source distribution — Validated in Phase 10
+- [x] LOM gap analysis and v2 requirements — Validated in Phase 11
 
 ### Active
 
-- [ ] Instrument and effect loading that actually works (current implementation is broken)
-- [ ] Full track management (MIDI, audio, return, group, master)
 - [ ] Clip creation, editing, and arrangement (Session and Arrangement views)
-- [ ] Comprehensive MIDI editing (notes, quantize, transpose, velocity)
-- [ ] Mixing controls (volume, pan, sends, EQ)
-- [ ] Device chain management (add, remove, configure effects and instruments)
-- [ ] Scene management (create, launch, organize)
-- [ ] Transport and playback control
-- [ ] Browser navigation and preset loading
-- [ ] Automation (parameter envelopes)
 - [ ] Export/render capabilities
-- [ ] Undo/redo support
 - [ ] Python 3 only — no Python 2 compatibility code
 - [ ] Production-ready error handling and connection management
-- [ ] Clean, installable package for open-source distribution
+- [ ] v2 LOM coverage — 58 new requirements across 13 categories (Arrangement, Scale & Key, Clip Launch, Note Expression, Scene Extended, Device Extended, Simpler, Audio Creation, Groove, Mixer Extended, DrumPad Extended, Session, Track Advanced)
 
 ### Out of Scope
 
@@ -70,5 +71,9 @@ A codebase map exists at `.planning/codebase/` with architecture, stack, and con
 | Comprehensive API coverage (every Ableton action) | Users want full production capability, not a demo | — Pending |
 | Open-source quality | Polished enough for others to install and use | — Pending |
 
+## Current State
+
+Phase 11 complete — LOM gap analysis produced 78 gaps across 12 classes, note expression correctness fix shipped, 58 v2 requirements added to REQUIREMENTS.md. All 11 phases of v1.0 milestone complete. Ready for milestone completion or v2 planning.
+
 ---
-*Last updated: 2026-03-10 after initialization*
+*Last updated: 2026-03-18 after Phase 11 completion*
