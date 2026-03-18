@@ -47,14 +47,39 @@ class NoteHandlers:
                         f"Duration {duration} must be greater than 0"
                     )
 
+                # Build spec with optional expression fields
+                spec_kwargs = {
+                    "pitch": pitch,
+                    "start_time": start_time,
+                    "duration": duration,
+                    "velocity": velocity,
+                    "mute": mute,
+                }
+                # Live 11+ note expression fields (optional)
+                probability = note.get("probability")
+                if probability is not None:
+                    if probability < 0.0 or probability > 1.0:
+                        raise ValueError(
+                            f"Probability {probability} out of range (0.0-1.0)"
+                        )
+                    spec_kwargs["probability"] = probability
+                velocity_deviation = note.get("velocity_deviation")
+                if velocity_deviation is not None:
+                    if velocity_deviation < -127.0 or velocity_deviation > 127.0:
+                        raise ValueError(
+                            f"Velocity deviation {velocity_deviation} out of range (-127.0-127.0)"
+                        )
+                    spec_kwargs["velocity_deviation"] = velocity_deviation
+                release_velocity = note.get("release_velocity")
+                if release_velocity is not None:
+                    if release_velocity < 0.0 or release_velocity > 127.0:
+                        raise ValueError(
+                            f"Release velocity {release_velocity} out of range (0.0-127.0)"
+                        )
+                    spec_kwargs["release_velocity"] = release_velocity
+
                 note_specs.append(
-                    Live.Clip.MidiNoteSpecification(
-                        pitch=pitch,
-                        start_time=start_time,
-                        duration=duration,
-                        velocity=velocity,
-                        mute=mute,
-                    )
+                    Live.Clip.MidiNoteSpecification(**spec_kwargs)
                 )
 
             clip.add_new_notes(tuple(note_specs))
@@ -83,16 +108,25 @@ class NoteHandlers:
                 0, 128, 0.0, clip.length
             )
 
-            notes = [
-                {
+            notes = []
+            for note in raw_notes:
+                note_dict = {
                     "pitch": note.pitch,
                     "start_time": note.start_time,
                     "duration": note.duration,
                     "velocity": note.velocity,
                     "mute": bool(note.mute),
                 }
-                for note in raw_notes
-            ]
+                # Live 11+ expression fields
+                if hasattr(note, "note_id"):
+                    note_dict["note_id"] = note.note_id
+                if hasattr(note, "probability"):
+                    note_dict["probability"] = note.probability
+                if hasattr(note, "velocity_deviation"):
+                    note_dict["velocity_deviation"] = note.velocity_deviation
+                if hasattr(note, "release_velocity"):
+                    note_dict["release_velocity"] = note.release_velocity
+                notes.append(note_dict)
 
             # Sort by start_time ascending, ties broken by pitch ascending
             notes.sort(key=lambda n: (n["start_time"], n["pitch"]))

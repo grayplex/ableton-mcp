@@ -10,7 +10,7 @@ from MCP_Server.server import mcp
 
 @mcp.tool()
 def get_notes(ctx: Context, track_index: int, clip_index: int) -> str:
-    """Get all MIDI notes from a clip. Returns notes sorted by start_time then pitch, each with pitch, start_time, duration, velocity, and mute properties.
+    """Get all MIDI notes from a clip. Returns notes sorted by start_time then pitch, each with pitch, start_time, duration, velocity, mute, and Live 11+ expression fields (note_id, probability, velocity_deviation, release_velocity) when available.
 
     Parameters:
     - track_index: The index of the track containing the clip

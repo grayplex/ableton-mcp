@@ -40,7 +40,7 @@ def add_notes_to_clip(
     Parameters:
     - track_index: The index of the track containing the clip
     - clip_index: The index of the clip slot containing the clip
-    - notes: List of note dicts with pitch, start_time, duration, velocity, and mute
+    - notes: List of note dicts with required fields (pitch, start_time, duration, velocity, mute) and optional expression fields (probability 0.0-1.0, velocity_deviation -127.0 to 127.0, release_velocity 0.0-127.0)
     """
     try:
         ableton = get_ableton_connection()
