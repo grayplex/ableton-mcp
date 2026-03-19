@@ -134,3 +134,67 @@ class RoutingHandlers:
         except Exception as e:
             self.log_message(f"Error setting output routing: {e}")
             raise
+
+    @command("get_input_routing_channels")
+    def _get_input_routing_channels(self, params):
+        """Get available input sub-routing channels for a track.
+
+        Params:
+            track_index: Index of the track.
+            track_type: "track", "return", or "master" (default "track").
+
+        Returns:
+            track_name, current channel, available channels list.
+        """
+        track_type = params.get("track_type", "track")
+        track_index = params.get("track_index", 0)
+
+        try:
+            track = _resolve_track(self._song, track_type, track_index)
+
+            result = {
+                "track_name": track.name,
+                "current": track.input_routing_channel.display_name,
+                "available": [
+                    ch.display_name
+                    for ch in track.available_input_routing_channels
+                ],
+            }
+            if track_type != "master":
+                result["track_index"] = track_index
+            return result
+        except Exception as e:
+            self.log_message(f"Error getting input routing channels: {e}")
+            raise
+
+    @command("get_output_routing_channels")
+    def _get_output_routing_channels(self, params):
+        """Get available output sub-routing channels for a track.
+
+        Params:
+            track_index: Index of the track.
+            track_type: "track", "return", or "master" (default "track").
+
+        Returns:
+            track_name, current channel, available channels list.
+        """
+        track_type = params.get("track_type", "track")
+        track_index = params.get("track_index", 0)
+
+        try:
+            track = _resolve_track(self._song, track_type, track_index)
+
+            result = {
+                "track_name": track.name,
+                "current": track.output_routing_channel.display_name,
+                "available": [
+                    ch.display_name
+                    for ch in track.available_output_routing_channels
+                ],
+            }
+            if track_type != "master":
+                result["track_index"] = track_index
+            return result
+        except Exception as e:
+            self.log_message(f"Error getting output routing channels: {e}")
+            raise

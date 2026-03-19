@@ -583,6 +583,58 @@ class TrackHandlers:
             self.log_message(f"Error getting track info: {e}")
             raise
 
+    @command("stop_track_clips", write=True)
+    def _stop_track_clips(self, params):
+        """Stop all clips on a specific track.
+
+        Params:
+            track_index: Index of the track.
+            track_type: "track", "return", or "master" (default "track").
+
+        Returns:
+            stopped, track_name.
+        """
+        track_index = params.get("track_index", 0)
+        track_type = params.get("track_type", "track")
+
+        try:
+            track = _resolve_track(self._song, track_type, track_index)
+            track.stop_all_clips()
+
+            return {
+                "stopped": True,
+                "track_name": track.name,
+            }
+        except Exception as e:
+            self.log_message(f"Error stopping track clips: {e}")
+            raise
+
+    @command("get_track_freeze_state")
+    def _get_track_freeze_state(self, params):
+        """Get freeze state of a track (is_frozen, can_be_frozen).
+
+        Params:
+            track_index: Index of the track.
+            track_type: "track", "return", or "master" (default "track").
+
+        Returns:
+            track_name, is_frozen, can_be_frozen.
+        """
+        track_index = params.get("track_index", 0)
+        track_type = params.get("track_type", "track")
+
+        try:
+            track = _resolve_track(self._song, track_type, track_index)
+
+            return {
+                "track_name": track.name,
+                "is_frozen": track.is_frozen,
+                "can_be_frozen": track.can_be_frozen,
+            }
+        except Exception as e:
+            self.log_message(f"Error getting track freeze state: {e}")
+            raise
+
     @command("get_all_tracks")
     def _get_all_tracks(self, params=None):
         """Get a summary of all tracks in the session."""
