@@ -224,7 +224,7 @@ Plans:
 **Goal:** Implement the high-value "Add" tier gaps from the Phase 11 LOM gap report across Song, Track, and Clip classes -- scale/key awareness, arrangement view, cue points, capture workflows, clip launch settings, note expression operations, warp markers, and device insertion
 **Requirements**: SESS-01, SESS-03, SESS-04, SESS-05, SESS-06, SESS-07, SESS-08, SESS-09, SESS-10, SCLE-01, SCLE-02, SCLE-03, SCLE-04, ARR-01, ARR-02, ARR-03, ARR-04, ARR-05, ARR-06, ARR-07, CLNC-01, CLNC-02, CLNC-03, CLNC-04, CLNC-05, NOTE-01, NOTE-02, NOTE-03, NOTE-04, NOTE-05, NOTE-06, NOTE-07, DEVX-01, DEVX-02, TRKA-04, TRKA-05, ACRT-03
 **Depends on:** Phase 11
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] 12-01-PLAN.md — Song-level gaps: scale/key awareness, cue points, capture workflows, session controls, navigation, duplicate_scene (17 commands + 17 MCP tools + smoke tests)
