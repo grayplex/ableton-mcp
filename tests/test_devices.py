@@ -294,3 +294,65 @@ async def test_load_instrument_error(mcp_server, mock_connection):
     text = result[0][0].text
     assert "Error" in text
     assert "Connection lost" in text
+
+
+async def test_insert_device_tool_registered(mcp_server):
+    """insert_device and move_device tools are registered."""
+    tools = await mcp_server.list_tools()
+    names = {t.name for t in tools}
+    assert "insert_device" in names
+    assert "move_device" in names
+
+
+async def test_insert_device_calls_send_command(mcp_server, mock_connection):
+    """insert_device invokes send_command with correct params."""
+    mock_connection.send_command.return_value = {
+        "inserted": True,
+        "device_name": "Wavetable",
+        "position": 0,
+        "track_name": "1-MIDI",
+    }
+    result = await mcp_server.call_tool(
+        "insert_device",
+        {"track_index": 0, "device_name": "Wavetable", "position": 0},
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert data["inserted"] is True
+    mock_connection.send_command.assert_called_once_with(
+        "insert_device",
+        {"track_index": 0, "device_name": "Wavetable", "position": 0, "track_type": "track"},
+    )
+
+
+async def test_move_device_calls_send_command(mcp_server, mock_connection):
+    """move_device invokes send_command with source/target params."""
+    mock_connection.send_command.return_value = {
+        "moved": True,
+        "device_name": "Compressor",
+        "target_track": "2-Audio",
+        "position": 1,
+    }
+    result = await mcp_server.call_tool(
+        "move_device",
+        {
+            "source_track_index": 0,
+            "device_index": 0,
+            "target_track_index": 1,
+            "target_position": 1,
+        },
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert data["moved"] is True
+    mock_connection.send_command.assert_called_once_with(
+        "move_device",
+        {
+            "source_track_index": 0,
+            "device_index": 0,
+            "target_track_index": 1,
+            "target_position": 1,
+            "source_track_type": "track",
+            "target_track_type": "track",
+        },
+    )

@@ -177,3 +177,270 @@ class TransportHandlers:
         except Exception as e:
             self.log_message(f"Error performing redo: {e}")
             raise
+
+    # --- Scale & Key ---
+
+    @command("get_scale_info")
+    def _get_scale_info(self, params=None):
+        """Get the current scale/key settings of the song."""
+        try:
+            return {
+                "root_note": self._song.root_note,
+                "scale_name": self._song.scale_name,
+                "scale_intervals": list(self._song.scale_intervals),
+                "scale_mode": self._song.scale_mode,
+            }
+        except Exception as e:
+            self.log_message(f"Error getting scale info: {e}")
+            raise
+
+    @command("set_scale", write=True)
+    def _set_scale(self, params):
+        """Set scale/key properties (root_note, scale_name, scale_mode)."""
+        try:
+            if "root_note" in params:
+                root_note = params["root_note"]
+                if not (0 <= root_note <= 11):
+                    raise ValueError(
+                        f"root_note {root_note} out of range (0-11). "
+                        f"Current value: {self._song.root_note}"
+                    )
+                self._song.root_note = root_note
+            if "scale_name" in params:
+                self._song.scale_name = params["scale_name"]
+            if "scale_mode" in params:
+                self._song.scale_mode = params["scale_mode"]
+            return {
+                "root_note": self._song.root_note,
+                "scale_name": self._song.scale_name,
+                "scale_intervals": list(self._song.scale_intervals),
+                "scale_mode": self._song.scale_mode,
+            }
+        except Exception as e:
+            self.log_message(f"Error setting scale: {e}")
+            raise
+
+    # --- Cue Points ---
+
+    @command("get_cue_points")
+    def _get_cue_points(self, params=None):
+        """Get all cue points in the song."""
+        try:
+            return {
+                "cue_points": [
+                    {"name": cp.name, "time": cp.time}
+                    for cp in self._song.cue_points
+                ]
+            }
+        except Exception as e:
+            self.log_message(f"Error getting cue points: {e}")
+            raise
+
+    @command("set_or_delete_cue", write=True)
+    def _set_or_delete_cue(self, params=None):
+        """Toggle a cue point at the current playback position."""
+        try:
+            self._song.set_or_delete_cue()
+            return {
+                "toggled": True,
+                "position": self._song.current_song_time,
+            }
+        except Exception as e:
+            self.log_message(f"Error toggling cue point: {e}")
+            raise
+
+    @command("jump_to_cue", write=True)
+    def _jump_to_cue(self, params):
+        """Jump to next/prev cue point, or a specific cue by index."""
+        try:
+            index = params.get("index")
+            direction = params.get("direction", "next")
+            if index is not None:
+                cue_points = self._song.cue_points
+                if index < 0 or index >= len(cue_points):
+                    raise IndexError(
+                        f"Cue index {index} out of range "
+                        f"(0-{len(cue_points) - 1})"
+                    )
+                cue_points[index].jump()
+            elif direction == "next":
+                self._song.jump_to_next_cue()
+            elif direction == "prev":
+                self._song.jump_to_prev_cue()
+            else:
+                raise ValueError(
+                    f"Invalid direction '{direction}'. Use 'next' or 'prev'."
+                )
+            return {
+                "jumped": True,
+                "direction": direction,
+                "position": self._song.current_song_time,
+            }
+        except Exception as e:
+            self.log_message(f"Error jumping to cue: {e}")
+            raise
+
+    # --- Capture ---
+
+    @command("capture_scene", write=True)
+    def _capture_scene(self, params=None):
+        """Capture currently playing clips as a new scene."""
+        try:
+            self._song.capture_and_insert_scene()
+            return {
+                "captured": True,
+                "scene_count": len(self._song.scenes),
+            }
+        except Exception as e:
+            self.log_message(f"Error capturing scene: {e}")
+            raise
+
+    @command("capture_midi", write=True)
+    def _capture_midi(self, params=None):
+        """Capture recently played MIDI input."""
+        try:
+            self._song.capture_midi()
+            return {"captured": True}
+        except Exception as e:
+            self.log_message(f"Error capturing MIDI: {e}")
+            raise
+
+    # --- Session Controls ---
+
+    @command("tap_tempo", write=True)
+    def _tap_tempo(self, params=None):
+        """Tap tempo to set BPM by rhythm."""
+        try:
+            self._song.tap_tempo()
+            return {"tapped": True, "tempo": self._song.tempo}
+        except Exception as e:
+            self.log_message(f"Error tapping tempo: {e}")
+            raise
+
+    @command("set_metronome", write=True)
+    def _set_metronome(self, params):
+        """Enable or disable the metronome."""
+        try:
+            enabled = params.get("enabled")
+            if enabled is None:
+                raise ValueError("enabled parameter is required")
+            self._song.metronome = enabled
+            return {"metronome": self._song.metronome}
+        except Exception as e:
+            self.log_message(f"Error setting metronome: {e}")
+            raise
+
+    @command("set_groove_amount", write=True)
+    def _set_groove_amount(self, params):
+        """Set the global groove amount (0.0-1.0)."""
+        try:
+            amount = params.get("amount")
+            if amount is None:
+                raise ValueError("amount parameter is required")
+            if not (0.0 <= amount <= 1.0):
+                raise ValueError(
+                    f"Groove amount {amount} out of range (0.0-1.0). "
+                    f"Current value: {self._song.groove_amount}"
+                )
+            self._song.groove_amount = amount
+            return {"groove_amount": self._song.groove_amount}
+        except Exception as e:
+            self.log_message(f"Error setting groove amount: {e}")
+            raise
+
+    @command("set_swing_amount", write=True)
+    def _set_swing_amount(self, params):
+        """Set the global swing amount (0.0-1.0)."""
+        try:
+            amount = params.get("amount")
+            if amount is None:
+                raise ValueError("amount parameter is required")
+            if not (0.0 <= amount <= 1.0):
+                raise ValueError(
+                    f"Swing amount {amount} out of range (0.0-1.0). "
+                    f"Current value: {self._song.swing_amount}"
+                )
+            self._song.swing_amount = amount
+            return {"swing_amount": self._song.swing_amount}
+        except Exception as e:
+            self.log_message(f"Error setting swing amount: {e}")
+            raise
+
+    @command("set_clip_trigger_quantization", write=True)
+    def _set_clip_trigger_quantization(self, params):
+        """Set the clip trigger quantization (0-14)."""
+        try:
+            quantization = params.get("quantization")
+            if quantization is None:
+                raise ValueError("quantization parameter is required")
+            if not (0 <= quantization <= 14):
+                raise ValueError(
+                    f"Quantization {quantization} out of range (0-14). "
+                    f"Current value: {self._song.clip_trigger_quantization}"
+                )
+            self._song.clip_trigger_quantization = quantization
+            return {
+                "clip_trigger_quantization": self._song.clip_trigger_quantization
+            }
+        except Exception as e:
+            self.log_message(f"Error setting clip trigger quantization: {e}")
+            raise
+
+    @command("set_session_record", write=True)
+    def _set_session_record(self, params):
+        """Enable/disable session recording and optionally set record mode."""
+        try:
+            enabled = params.get("enabled")
+            if enabled is None:
+                raise ValueError("enabled parameter is required")
+            self._song.session_record = enabled
+            if "record_mode" in params:
+                self._song.record_mode = params["record_mode"]
+            return {
+                "session_record": self._song.session_record,
+                "record_mode": self._song.record_mode,
+            }
+        except Exception as e:
+            self.log_message(f"Error setting session record: {e}")
+            raise
+
+    # --- Navigation ---
+
+    @command("jump_by", write=True)
+    def _jump_by(self, params):
+        """Jump forward or backward by a number of beats."""
+        try:
+            beats = params.get("beats")
+            if beats is None:
+                raise ValueError("beats parameter is required")
+            self._song.jump_by(beats)
+            return {
+                "jumped": True,
+                "beats": beats,
+                "position": self._song.current_song_time,
+            }
+        except Exception as e:
+            self.log_message(f"Error jumping by beats: {e}")
+            raise
+
+    @command("play_selection", write=True)
+    def _play_selection(self, params=None):
+        """Play the current arrangement selection."""
+        try:
+            self._song.play_selection()
+            return {"playing_selection": True}
+        except Exception as e:
+            self.log_message(f"Error playing selection: {e}")
+            raise
+
+    @command("get_song_length")
+    def _get_song_length(self, params=None):
+        """Get the total song length and last event time."""
+        try:
+            return {
+                "song_length": self._song.song_length,
+                "last_event_time": self._song.last_event_time,
+            }
+        except Exception as e:
+            self.log_message(f"Error getting song length: {e}")
+            raise

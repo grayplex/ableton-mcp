@@ -214,6 +214,184 @@ def set_clip_color(ctx: Context, track_index: int, clip_index: int, color: str) 
 
 
 @mcp.tool()
+def get_clip_launch_settings(ctx: Context, track_index: int, clip_index: int) -> str:
+    """Get clip launch settings (mode, quantization, legato, velocity amount).
+
+    Parameters:
+    - track_index: The index of the track containing the clip
+    - clip_index: The index of the clip slot containing the clip
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "get_clip_launch_settings",
+            {"track_index": track_index, "clip_index": clip_index},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to get clip launch settings",
+            detail=str(e),
+            suggestion="Verify clip exists with get_clip_info",
+        )
+
+
+@mcp.tool()
+def set_clip_launch_settings(
+    ctx: Context,
+    track_index: int,
+    clip_index: int,
+    launch_mode: int | None = None,
+    launch_quantization: int | None = None,
+    legato: bool | None = None,
+    velocity_amount: float | None = None,
+) -> str:
+    """Set clip launch settings. All parameters optional -- only provided values are changed.
+
+    launch_mode: 0=Trigger, 1=Gate, 2=Toggle, 3=Repeat
+    launch_quantization: 0-14
+    legato: bool
+    velocity_amount: 0.0-1.0
+
+    Parameters:
+    - track_index: The index of the track containing the clip
+    - clip_index: The index of the clip slot containing the clip
+    - launch_mode: Launch mode (0=Trigger, 1=Gate, 2=Toggle, 3=Repeat)
+    - launch_quantization: Launch quantization (0-14)
+    - legato: Enable legato mode
+    - velocity_amount: Velocity amount (0.0-1.0)
+    """
+    try:
+        ableton = get_ableton_connection()
+        params: dict = {"track_index": track_index, "clip_index": clip_index}
+        if launch_mode is not None:
+            params["launch_mode"] = launch_mode
+        if launch_quantization is not None:
+            params["launch_quantization"] = launch_quantization
+        if legato is not None:
+            params["legato"] = legato
+        if velocity_amount is not None:
+            params["velocity_amount"] = velocity_amount
+        result = ableton.send_command("set_clip_launch_settings", params)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to set clip launch settings",
+            detail=str(e),
+            suggestion="Verify clip exists with get_clip_info. launch_mode 0-3, launch_quantization 0-14, velocity_amount 0.0-1.0.",
+        )
+
+
+@mcp.tool()
+def set_clip_muted(ctx: Context, track_index: int, clip_index: int, muted: bool) -> str:
+    """Set clip muted/active state (clip activator). Different from track mute.
+
+    Parameters:
+    - track_index: The index of the track containing the clip
+    - clip_index: The index of the clip slot containing the clip
+    - muted: True to mute, False to activate
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "set_clip_muted",
+            {"track_index": track_index, "clip_index": clip_index, "muted": muted},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to set clip muted state",
+            detail=str(e),
+            suggestion="Verify clip exists with get_clip_info",
+        )
+
+
+@mcp.tool()
+def crop_clip(ctx: Context, track_index: int, clip_index: int) -> str:
+    """Crop clip to its loop/markers, removing content outside the loop.
+
+    Parameters:
+    - track_index: The index of the track containing the clip
+    - clip_index: The index of the clip slot containing the clip
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "crop_clip",
+            {"track_index": track_index, "clip_index": clip_index},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to crop clip",
+            detail=str(e),
+            suggestion="Verify clip exists with get_clip_info",
+        )
+
+
+@mcp.tool()
+def duplicate_clip_loop(ctx: Context, track_index: int, clip_index: int) -> str:
+    """Double the loop length and duplicate the content.
+
+    Parameters:
+    - track_index: The index of the track containing the clip
+    - clip_index: The index of the clip slot containing the clip
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "duplicate_clip_loop",
+            {"track_index": track_index, "clip_index": clip_index},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to duplicate clip loop",
+            detail=str(e),
+            suggestion="Verify clip exists with get_clip_info",
+        )
+
+
+@mcp.tool()
+def duplicate_clip_region(
+    ctx: Context,
+    track_index: int,
+    clip_index: int,
+    region_start: float,
+    region_end: float,
+    destination_time: float,
+) -> str:
+    """Duplicate a region within a clip to a destination time.
+
+    Parameters:
+    - track_index: The index of the track containing the clip
+    - clip_index: The index of the clip slot containing the clip
+    - region_start: Start of the region to duplicate (in beats)
+    - region_end: End of the region to duplicate (in beats)
+    - destination_time: Time to paste the duplicated region (in beats)
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "duplicate_clip_region",
+            {
+                "track_index": track_index,
+                "clip_index": clip_index,
+                "region_start": region_start,
+                "region_end": region_end,
+                "destination_time": destination_time,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to duplicate clip region",
+            detail=str(e),
+            suggestion="Verify clip exists with get_clip_info",
+        )
+
+
+@mcp.tool()
 def set_clip_loop(
     ctx: Context,
     track_index: int,

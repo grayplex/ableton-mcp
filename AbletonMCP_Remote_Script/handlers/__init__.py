@@ -8,4 +8,4 @@ NOTE: If relative imports fail in Ableton's Python runtime, switch to
 absolute imports: from AbletonMCP_Remote_Script.handlers import base, ...
 """
 
-from . import audio_clips, automation, base, browser, clips, devices, mixer, notes, routing, scenes, tracks, transport  # noqa: F401
+from . import arrangement, audio_clips, automation, base, browser, clips, devices, mixer, notes, routing, scenes, tracks, transport  # noqa: F401

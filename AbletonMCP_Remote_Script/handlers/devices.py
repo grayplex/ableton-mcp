@@ -356,6 +356,86 @@ class DeviceHandlers:
             self.log_message(f"Error getting rack chains: {e}")
             raise
 
+    @command("insert_device", write=True)
+    def _insert_device(self, params):
+        """Insert a native Ableton device by name at a specific position.
+
+        Params:
+            track_index: Index of the track.
+            device_name: Name of the device to insert (e.g., "Wavetable", "EQ Eight").
+            position: Position in the device chain (0-based).
+            track_type: "track", "return", or "master" (default "track").
+
+        Returns:
+            inserted, device_name, position, track_name.
+        """
+        track_index = params.get("track_index", 0)
+        device_name = params.get("device_name")
+        position = params.get("position", 0)
+        track_type = params.get("track_type", "track")
+
+        try:
+            if device_name is None:
+                raise ValueError("device_name parameter is required")
+
+            track = _resolve_track(self._song, track_type, track_index)
+            track.insert_device(device_name, position)
+
+            return {
+                "inserted": True,
+                "device_name": device_name,
+                "position": position,
+                "track_name": track.name,
+            }
+        except Exception as e:
+            self.log_message(f"Error inserting device: {e}")
+            raise
+
+    @command("move_device", write=True)
+    def _move_device(self, params):
+        """Move a device from one track/position to another.
+
+        Params:
+            source_track_index: Index of the source track.
+            device_index: Index of the device on the source track.
+            target_track_index: Index of the target track.
+            target_position: Position in the target track's device chain.
+            source_track_type: "track", "return", or "master" (default "track").
+            target_track_type: "track", "return", or "master" (default "track").
+
+        Returns:
+            moved, device_name, target_track, position.
+        """
+        source_track_index = params.get("source_track_index", 0)
+        device_index = params.get("device_index", 0)
+        target_track_index = params.get("target_track_index", 0)
+        target_position = params.get("target_position", 0)
+        source_track_type = params.get("source_track_type", "track")
+        target_track_type = params.get("target_track_type", "track")
+
+        try:
+            # Resolve source device using existing _resolve_device pattern
+            device, _source_track = self._resolve_device({
+                "track_index": source_track_index,
+                "device_index": device_index,
+                "track_type": source_track_type,
+            })
+
+            # Resolve target track
+            target = _resolve_track(self._song, target_track_type, target_track_index)
+
+            self._song.move_device(device, target, target_position)
+
+            return {
+                "moved": True,
+                "device_name": device.name,
+                "target_track": target.name,
+                "position": target_position,
+            }
+        except Exception as e:
+            self.log_message(f"Error moving device: {e}")
+            raise
+
     def _get_device_type(self, device):
         """Get the type of a device."""
         try:

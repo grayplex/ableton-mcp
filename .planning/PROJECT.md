@@ -31,7 +31,7 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - [ ] Export/render capabilities
 - [ ] Python 3 only — no Python 2 compatibility code
 - [ ] Production-ready error handling and connection management
-- [ ] v2 LOM coverage — 58 new requirements across 13 categories (Arrangement, Scale & Key, Clip Launch, Note Expression, Scene Extended, Device Extended, Simpler, Audio Creation, Groove, Mixer Extended, DrumPad Extended, Session, Track Advanced)
+- [x] v2 LOM coverage — 37 high-value gap requirements implemented across Song, Track, Clip, Note, and Arrangement — Validated in Phase 12
 
 ### Out of Scope
 
@@ -73,7 +73,7 @@ A codebase map exists at `.planning/codebase/` with architecture, stack, and con
 
 ## Current State
 
-Phase 11 complete — LOM gap analysis produced 78 gaps across 12 classes, note expression correctness fix shipped, 58 v2 requirements added to REQUIREMENTS.md. All 11 phases of v1.0 milestone complete. Ready for milestone completion or v2 planning.
+Phase 12 complete — 46 new commands implementing high-value LOM gaps: scale/key awareness, cue points, capture workflows, arrangement clip CRUD, device insertion/movement, clip launch settings, warp markers, note expression operations, and native quantize. 115 total commands, 160 tests passing. All 12 phases of v1.0 milestone complete.
 
 ---
-*Last updated: 2026-03-18 after Phase 11 completion*
+*Last updated: 2026-03-19 after Phase 12 completion*

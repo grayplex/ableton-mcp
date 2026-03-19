@@ -70,3 +70,118 @@ def set_audio_clip_properties(
             detail=str(e),
             suggestion="Verify clip is audio (not MIDI) with get_clip_info. Ranges: pitch_coarse -48 to 48, pitch_fine -500 to 500, gain 0.0 to 1.0.",
         )
+
+
+@mcp.tool()
+def get_warp_markers(ctx: Context, track_index: int, clip_index: int) -> str:
+    """Get all warp markers from an audio clip. Requires warping to be enabled.
+
+    Parameters:
+    - track_index: Index of the track (regular tracks only, 0-based)
+    - clip_index: Index of the clip slot (0-based)
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "get_warp_markers",
+            {"track_index": track_index, "clip_index": clip_index},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to get warp markers",
+            detail=str(e),
+            suggestion="Verify clip is audio with warping enabled. Use get_audio_clip_properties to check.",
+        )
+
+
+@mcp.tool()
+def insert_warp_marker(
+    ctx: Context, track_index: int, clip_index: int, beat_time: float, sample_time: float
+) -> str:
+    """Insert a warp marker at a specific beat/sample position in an audio clip.
+
+    Parameters:
+    - track_index: Index of the track (regular tracks only, 0-based)
+    - clip_index: Index of the clip slot (0-based)
+    - beat_time: Beat position for the warp marker
+    - sample_time: Sample position for the warp marker
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "insert_warp_marker",
+            {
+                "track_index": track_index,
+                "clip_index": clip_index,
+                "beat_time": beat_time,
+                "sample_time": sample_time,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to insert warp marker",
+            detail=str(e),
+            suggestion="Verify clip is audio with warping enabled. Use get_warp_markers to see existing markers.",
+        )
+
+
+@mcp.tool()
+def move_warp_marker(
+    ctx: Context, track_index: int, clip_index: int, marker_index: int, new_beat_time: float
+) -> str:
+    """Move a warp marker to a new beat time.
+
+    Parameters:
+    - track_index: Index of the track (regular tracks only, 0-based)
+    - clip_index: Index of the clip slot (0-based)
+    - marker_index: Index of the warp marker to move (0-based)
+    - new_beat_time: New beat position for the warp marker
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "move_warp_marker",
+            {
+                "track_index": track_index,
+                "clip_index": clip_index,
+                "marker_index": marker_index,
+                "new_beat_time": new_beat_time,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to move warp marker",
+            detail=str(e),
+            suggestion="Use get_warp_markers to see available marker indices.",
+        )
+
+
+@mcp.tool()
+def remove_warp_marker(ctx: Context, track_index: int, clip_index: int, marker_index: int) -> str:
+    """Remove a warp marker by index.
+
+    Parameters:
+    - track_index: Index of the track (regular tracks only, 0-based)
+    - clip_index: Index of the clip slot (0-based)
+    - marker_index: Index of the warp marker to remove (0-based)
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "remove_warp_marker",
+            {
+                "track_index": track_index,
+                "clip_index": clip_index,
+                "marker_index": marker_index,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to remove warp marker",
+            detail=str(e),
+            suggestion="Use get_warp_markers to see available marker indices.",
+        )

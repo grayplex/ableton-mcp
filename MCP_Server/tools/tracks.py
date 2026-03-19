@@ -236,3 +236,49 @@ def get_all_tracks(ctx: Context) -> str:
             detail=str(e),
             suggestion="Check connection with get_session_info",
         )
+
+
+@mcp.tool()
+def stop_track_clips(ctx: Context, track_index: int, track_type: str = "track") -> str:
+    """Stop all clips on a specific track.
+
+    Parameters:
+    - track_index: Index of the track
+    - track_type: Type of track - 'track' (default), 'return', or 'master'
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "stop_track_clips",
+            {"track_index": track_index, "track_type": track_type},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to stop track clips",
+            detail=str(e),
+            suggestion="Verify track_index with get_all_tracks",
+        )
+
+
+@mcp.tool()
+def get_track_freeze_state(ctx: Context, track_index: int, track_type: str = "track") -> str:
+    """Get freeze state of a track (is_frozen, can_be_frozen).
+
+    Parameters:
+    - track_index: Index of the track
+    - track_type: Type of track - 'track' (default), 'return', or 'master'
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "get_track_freeze_state",
+            {"track_index": track_index, "track_type": track_type},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to get track freeze state",
+            detail=str(e),
+            suggestion="Verify track_index with get_all_tracks",
+        )

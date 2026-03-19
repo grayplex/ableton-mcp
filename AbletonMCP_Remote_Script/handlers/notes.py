@@ -241,6 +241,283 @@ class NoteHandlers:
             self.log_message(f"Error quantizing notes: {e}")
             raise
 
+    @command("apply_note_modifications", write=True)
+    def _apply_note_modifications(self, params):
+        """Apply in-place modifications to notes by ID."""
+        import Live.Clip
+
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        notes = params.get("notes", [])
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+
+            note_specs = []
+            for note in notes:
+                if "note_id" not in note:
+                    raise ValueError("Each note must have a 'note_id' field")
+
+                spec_kwargs = {"note_id": note["note_id"]}
+
+                if "pitch" in note:
+                    spec_kwargs["pitch"] = note["pitch"]
+                if "start_time" in note:
+                    spec_kwargs["start_time"] = note["start_time"]
+                if "duration" in note:
+                    spec_kwargs["duration"] = note["duration"]
+                if "velocity" in note:
+                    spec_kwargs["velocity"] = note["velocity"]
+                if "mute" in note:
+                    spec_kwargs["mute"] = note["mute"]
+                if "probability" in note:
+                    spec_kwargs["probability"] = note["probability"]
+                if "velocity_deviation" in note:
+                    spec_kwargs["velocity_deviation"] = note["velocity_deviation"]
+                if "release_velocity" in note:
+                    spec_kwargs["release_velocity"] = note["release_velocity"]
+
+                note_specs.append(
+                    Live.Clip.MidiNoteSpecification(**spec_kwargs)
+                )
+
+            clip.apply_note_modifications(tuple(note_specs))
+
+            return {"modified": True, "count": len(notes)}
+        except Exception as e:
+            self.log_message(f"Error applying note modifications: {e}")
+            raise
+
+    @command("select_all_notes", write=True)
+    def _select_all_notes(self, params):
+        """Select all notes in a clip."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+            clip.select_all_notes()
+
+            return {"selected": True}
+        except Exception as e:
+            self.log_message(f"Error selecting all notes: {e}")
+            raise
+
+    @command("deselect_all_notes", write=True)
+    def _deselect_all_notes(self, params):
+        """Deselect all notes in a clip."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+            clip.deselect_all_notes()
+
+            return {"deselected": True}
+        except Exception as e:
+            self.log_message(f"Error deselecting all notes: {e}")
+            raise
+
+    @command("select_notes_by_id", write=True)
+    def _select_notes_by_id(self, params):
+        """Select specific notes by their IDs."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        note_ids = params.get("note_ids", [])
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+            clip.select_notes_by_id(note_ids)
+
+            return {"selected": True, "count": len(note_ids)}
+        except Exception as e:
+            self.log_message(f"Error selecting notes by ID: {e}")
+            raise
+
+    @command("get_notes_by_id")
+    def _get_notes_by_id(self, params):
+        """Get specific notes by their IDs."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        note_ids = params.get("note_ids", [])
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+            raw_notes = clip.get_notes_by_id(note_ids)
+
+            notes = []
+            for note in raw_notes:
+                note_dict = {
+                    "pitch": note.pitch,
+                    "start_time": note.start_time,
+                    "duration": note.duration,
+                    "velocity": note.velocity,
+                    "mute": bool(note.mute),
+                }
+                if hasattr(note, "note_id"):
+                    note_dict["note_id"] = note.note_id
+                if hasattr(note, "probability"):
+                    note_dict["probability"] = note.probability
+                if hasattr(note, "velocity_deviation"):
+                    note_dict["velocity_deviation"] = note.velocity_deviation
+                if hasattr(note, "release_velocity"):
+                    note_dict["release_velocity"] = note.release_velocity
+                notes.append(note_dict)
+
+            return {"notes": notes}
+        except Exception as e:
+            self.log_message(f"Error getting notes by ID: {e}")
+            raise
+
+    @command("remove_notes_by_id", write=True)
+    def _remove_notes_by_id(self, params):
+        """Remove specific notes by their IDs."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        note_ids = params.get("note_ids", [])
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+            clip.remove_notes_by_id(note_ids)
+
+            return {"removed": True, "count": len(note_ids)}
+        except Exception as e:
+            self.log_message(f"Error removing notes by ID: {e}")
+            raise
+
+    @command("duplicate_notes_by_id", write=True)
+    def _duplicate_notes_by_id(self, params):
+        """Duplicate specific notes by their IDs."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        note_ids = params.get("note_ids", [])
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+            clip.duplicate_notes_by_id(note_ids)
+
+            return {"duplicated": True, "count": len(note_ids)}
+        except Exception as e:
+            self.log_message(f"Error duplicating notes by ID: {e}")
+            raise
+
+    @command("get_selected_notes")
+    def _get_selected_notes(self, params):
+        """Get currently selected notes in a clip."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+            raw_notes = clip.get_selected_notes_extended(
+                from_time=0, time_span=2147483647,
+                from_pitch=0, pitch_span=128
+            )
+
+            notes = []
+            for note in raw_notes:
+                note_dict = {
+                    "pitch": note.pitch,
+                    "start_time": note.start_time,
+                    "duration": note.duration,
+                    "velocity": note.velocity,
+                    "mute": bool(note.mute),
+                }
+                if hasattr(note, "note_id"):
+                    note_dict["note_id"] = note.note_id
+                if hasattr(note, "probability"):
+                    note_dict["probability"] = note.probability
+                if hasattr(note, "velocity_deviation"):
+                    note_dict["velocity_deviation"] = note.velocity_deviation
+                if hasattr(note, "release_velocity"):
+                    note_dict["release_velocity"] = note.release_velocity
+                notes.append(note_dict)
+
+            return {"notes": notes}
+        except Exception as e:
+            self.log_message(f"Error getting selected notes: {e}")
+            raise
+
+    @command("native_quantize", write=True)
+    def _native_quantize(self, params):
+        """Quantize notes using native Ableton quantize (respects Song.swing_amount).
+
+        Different from quantize_notes which is a manual implementation.
+        If pitch is provided, only quantizes notes at that pitch.
+        """
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        grid = params.get("grid", 0.5)
+        amount = params.get("amount", 1.0)
+        pitch = params.get("pitch")
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+
+            if pitch is not None:
+                clip.quantize_pitch(pitch, grid, amount)
+            else:
+                clip.quantize(grid, amount)
+
+            return {"quantized": True, "grid": grid, "amount": amount}
+        except Exception as e:
+            self.log_message(f"Error native quantizing: {e}")
+            raise
+
     @command("transpose_notes", write=True)
     def _transpose_clip_notes(self, params):
         """Transpose all notes in a clip by semitones with pre-validation."""

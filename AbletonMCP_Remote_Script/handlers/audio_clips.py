@@ -153,3 +153,171 @@ class AudioClipHandlers:
         except Exception as e:
             self.log_message(f"Error setting audio clip properties: {e}")
             raise
+
+    @command("get_warp_markers")
+    def _get_warp_markers(self, params):
+        """Get all warp markers from an audio clip."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+
+            if not clip.is_audio_clip:
+                raise ValueError(
+                    f"Clip at track {track_index} slot {clip_index} is a MIDI "
+                    f"clip, not audio. Warp markers only apply to audio clips."
+                )
+
+            if not clip.warping:
+                raise ValueError(
+                    f"Clip '{clip.name}' has warping disabled. "
+                    f"Enable warping first with set_audio_clip_properties."
+                )
+
+            markers = []
+            for wm in clip.warp_markers:
+                markers.append({
+                    "sample_time": wm.sample_time,
+                    "beat_time": wm.beat_time,
+                })
+
+            return {"clip_name": clip.name, "warp_markers": markers}
+        except Exception as e:
+            self.log_message(f"Error getting warp markers: {e}")
+            raise
+
+    @command("insert_warp_marker", write=True)
+    def _insert_warp_marker(self, params):
+        """Insert a warp marker at a specific beat/sample position."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        beat_time = params.get("beat_time", 0.0)
+        sample_time = params.get("sample_time", 0.0)
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+
+            if not clip.is_audio_clip:
+                raise ValueError(
+                    f"Clip at track {track_index} slot {clip_index} is a MIDI "
+                    f"clip, not audio. Warp markers only apply to audio clips."
+                )
+
+            if not clip.warping:
+                raise ValueError(
+                    f"Clip '{clip.name}' has warping disabled. "
+                    f"Enable warping first with set_audio_clip_properties."
+                )
+
+            clip.insert_warp_marker(beat_time, sample_time)
+
+            return {
+                "inserted": True,
+                "beat_time": beat_time,
+                "sample_time": sample_time,
+            }
+        except Exception as e:
+            self.log_message(f"Error inserting warp marker: {e}")
+            raise
+
+    @command("move_warp_marker", write=True)
+    def _move_warp_marker(self, params):
+        """Move a warp marker to a new beat time."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        marker_index = params.get("marker_index", 0)
+        new_beat_time = params.get("new_beat_time", 0.0)
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+
+            if not clip.is_audio_clip:
+                raise ValueError(
+                    f"Clip at track {track_index} slot {clip_index} is a MIDI "
+                    f"clip, not audio. Warp markers only apply to audio clips."
+                )
+
+            if not clip.warping:
+                raise ValueError(
+                    f"Clip '{clip.name}' has warping disabled. "
+                    f"Enable warping first with set_audio_clip_properties."
+                )
+
+            markers = list(clip.warp_markers)
+            if marker_index < 0 or marker_index >= len(markers):
+                raise IndexError(
+                    f"Warp marker index {marker_index} out of range "
+                    f"(0-{len(markers) - 1})"
+                )
+
+            clip.move_warp_marker(marker_index, new_beat_time)
+
+            return {
+                "moved": True,
+                "marker_index": marker_index,
+                "new_beat_time": new_beat_time,
+            }
+        except Exception as e:
+            self.log_message(f"Error moving warp marker: {e}")
+            raise
+
+    @command("remove_warp_marker", write=True)
+    def _remove_warp_marker(self, params):
+        """Remove a warp marker by index."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        marker_index = params.get("marker_index", 0)
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+
+            if not clip.is_audio_clip:
+                raise ValueError(
+                    f"Clip at track {track_index} slot {clip_index} is a MIDI "
+                    f"clip, not audio. Warp markers only apply to audio clips."
+                )
+
+            if not clip.warping:
+                raise ValueError(
+                    f"Clip '{clip.name}' has warping disabled. "
+                    f"Enable warping first with set_audio_clip_properties."
+                )
+
+            markers = list(clip.warp_markers)
+            if marker_index < 0 or marker_index >= len(markers):
+                raise IndexError(
+                    f"Warp marker index {marker_index} out of range "
+                    f"(0-{len(markers) - 1})"
+                )
+
+            clip.remove_warp_marker(marker_index)
+
+            return {"removed": True, "marker_index": marker_index}
+        except Exception as e:
+            self.log_message(f"Error removing warp marker: {e}")
+            raise

@@ -99,7 +99,7 @@ class TestFullRegistry:
         from AbletonMCP_Remote_Script.registry import CommandRegistry
 
         registered = {e[0] for e in CommandRegistry._entries}
-        assert len(registered) == 69, f"Expected 69 commands, got {len(registered)}: {registered}"
+        assert len(registered) == 115, f"Expected 115 commands, got {len(registered)}: {registered}"
 
         expected = {
             "get_session_info",
@@ -179,6 +179,55 @@ class TestFullRegistry:
             "set_output_routing",
             "get_audio_clip_properties",
             "set_audio_clip_properties",
+            # Phase 12: Song Gaps
+            "get_scale_info",
+            "set_scale",
+            "get_cue_points",
+            "set_or_delete_cue",
+            "jump_to_cue",
+            "capture_scene",
+            "capture_midi",
+            "tap_tempo",
+            "set_metronome",
+            "set_groove_amount",
+            "set_swing_amount",
+            "set_clip_trigger_quantization",
+            "set_session_record",
+            "jump_by",
+            "play_selection",
+            "get_song_length",
+            "duplicate_scene",
+            # Phase 12: Track + Arrangement Gaps
+            "create_arrangement_midi_clip",
+            "create_arrangement_audio_clip",
+            "get_arrangement_clips",
+            "duplicate_clip_to_arrangement",
+            "insert_device",
+            "move_device",
+            "stop_track_clips",
+            "get_track_freeze_state",
+            "get_input_routing_channels",
+            "get_output_routing_channels",
+            # Phase 12: Clip + Note Gaps
+            "set_clip_launch_settings",
+            "get_clip_launch_settings",
+            "set_clip_muted",
+            "crop_clip",
+            "duplicate_clip_loop",
+            "duplicate_clip_region",
+            "apply_note_modifications",
+            "select_all_notes",
+            "deselect_all_notes",
+            "select_notes_by_id",
+            "get_notes_by_id",
+            "remove_notes_by_id",
+            "duplicate_notes_by_id",
+            "get_selected_notes",
+            "native_quantize",
+            "get_warp_markers",
+            "insert_warp_marker",
+            "move_warp_marker",
+            "remove_warp_marker",
         }
         missing = expected - registered
         assert not missing, f"Commands not registered: {missing}"

@@ -143,3 +143,71 @@ async def test_add_notes_error(mcp_server, mock_connection):
     text = result[0][0].text
     assert "Error" in text
     assert "Velocity 0 out of range" in text
+
+
+async def test_note_gap_tools_registered(mcp_server):
+    """Phase 12 note gap tools are registered."""
+    tools = await mcp_server.list_tools()
+    names = {t.name for t in tools}
+    expected = {
+        "apply_note_modifications",
+        "select_all_notes",
+        "deselect_all_notes",
+        "select_notes_by_id",
+        "get_notes_by_id",
+        "remove_notes_by_id",
+        "duplicate_notes_by_id",
+        "get_selected_notes",
+        "native_quantize",
+    }
+    assert expected.issubset(names), f"Missing note gap tools: {expected - names}"
+
+
+async def test_apply_note_modifications_calls_send_command(mcp_server, mock_connection):
+    """apply_note_modifications parses JSON and sends correct command."""
+    mock_connection.send_command.return_value = {"modified": True, "count": 1}
+    result = await mcp_server.call_tool(
+        "apply_note_modifications",
+        {
+            "track_index": 0,
+            "clip_index": 0,
+            "notes": '[{"note_id": 1, "velocity": 80}]',
+        },
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert data["modified"] is True
+    call_args = mock_connection.send_command.call_args
+    params = call_args[0][1]
+    assert params["notes"] == [{"note_id": 1, "velocity": 80}]
+
+
+async def test_native_quantize_calls_send_command(mcp_server, mock_connection):
+    """native_quantize sends grid and amount params correctly."""
+    mock_connection.send_command.return_value = {"quantized": True, "grid": 0.5, "amount": 1.0}
+    result = await mcp_server.call_tool(
+        "native_quantize",
+        {"track_index": 0, "clip_index": 0, "grid": 0.5, "amount": 1.0},
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert data["quantized"] is True
+    call_args = mock_connection.send_command.call_args
+    params = call_args[0][1]
+    assert params["grid"] == 0.5
+    assert params["amount"] == 1.0
+
+
+async def test_get_notes_by_id_calls_send_command(mcp_server, mock_connection):
+    """get_notes_by_id parses comma-separated IDs to list."""
+    mock_connection.send_command.return_value = {"notes": []}
+    result = await mcp_server.call_tool(
+        "get_notes_by_id",
+        {"track_index": 0, "clip_index": 0, "note_ids": "1,2,3"},
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert "notes" in data
+    call_args = mock_connection.send_command.call_args
+    params = call_args[0][1]
+    assert params["note_ids"] == [1, 2, 3]

@@ -65,3 +65,21 @@ async def test_delete_scene_calls_send_command(mcp_server, mock_connection):
     parsed = json.loads(text)
     assert parsed["deleted"] is True
     mock_connection.send_command.assert_called_once_with("delete_scene", {"scene_index": 1})
+
+
+# --- Phase 12: duplicate_scene ---
+
+
+async def test_duplicate_scene_calls_send_command(mcp_server, mock_connection):
+    """duplicate_scene invokes send_command with correct params."""
+    mock_connection.send_command.return_value = {
+        "duplicated": True, "source_index": 0, "scene_count": 3,
+    }
+    result = await mcp_server.call_tool("duplicate_scene", {"scene_index": 0})
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["duplicated"] is True
+    assert parsed["source_index"] == 0
+    mock_connection.send_command.assert_called_once_with(
+        "duplicate_scene", {"scene_index": 0}
+    )

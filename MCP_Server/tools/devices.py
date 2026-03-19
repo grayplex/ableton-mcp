@@ -239,3 +239,81 @@ def get_rack_chains(
             detail=str(e),
             suggestion="Verify device is a rack with get_track_info (type='rack' or 'drum_machine')",
         )
+
+
+@mcp.tool()
+def insert_device(
+    ctx: Context,
+    track_index: int,
+    device_name: str,
+    position: int,
+    track_type: str = "track",
+) -> str:
+    """Insert a native Ableton device by name at a specific position in the device chain.
+
+    Parameters:
+    - track_index: Index of the track
+    - device_name: Name of the device to insert (e.g., "Wavetable", "EQ Eight")
+    - position: Position in the device chain (0-based)
+    - track_type: Track collection - "track", "return", or "master"
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "insert_device",
+            {
+                "track_index": track_index,
+                "device_name": device_name,
+                "position": position,
+                "track_type": track_type,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to insert device",
+            detail=str(e),
+            suggestion="Verify device name is a valid Ableton device",
+        )
+
+
+@mcp.tool()
+def move_device(
+    ctx: Context,
+    source_track_index: int,
+    device_index: int,
+    target_track_index: int,
+    target_position: int,
+    source_track_type: str = "track",
+    target_track_type: str = "track",
+) -> str:
+    """Move a device from one track/position to another.
+
+    Parameters:
+    - source_track_index: Index of the source track
+    - device_index: Index of the device on the source track
+    - target_track_index: Index of the target track
+    - target_position: Position in the target track's device chain
+    - source_track_type: Source track collection - "track", "return", or "master"
+    - target_track_type: Target track collection - "track", "return", or "master"
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "move_device",
+            {
+                "source_track_index": source_track_index,
+                "device_index": device_index,
+                "target_track_index": target_track_index,
+                "target_position": target_position,
+                "source_track_type": source_track_type,
+                "target_track_type": target_track_type,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to move device",
+            detail=str(e),
+            suggestion="Verify device and target track exist with get_track_info",
+        )

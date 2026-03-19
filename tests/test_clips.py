@@ -206,3 +206,67 @@ async def test_clip_tool_error_handling(mcp_server, mock_connection):
     text = result[0][0].text
     assert "Error" in text
     assert "No clip in slot" in text
+
+
+async def test_clip_gap_tools_registered(mcp_server):
+    """Phase 12 clip gap tools are registered."""
+    tools = await mcp_server.list_tools()
+    names = {t.name for t in tools}
+    expected = {
+        "set_clip_launch_settings",
+        "get_clip_launch_settings",
+        "set_clip_muted",
+        "crop_clip",
+        "duplicate_clip_loop",
+        "duplicate_clip_region",
+    }
+    assert expected.issubset(names), f"Missing clip gap tools: {expected - names}"
+
+
+async def test_set_clip_launch_settings_calls_send_command(mcp_server, mock_connection):
+    """set_clip_launch_settings sends launch_mode param correctly."""
+    mock_connection.send_command.return_value = {
+        "clip_name": "Clip", "launch_mode": 0,
+        "launch_quantization": 0, "legato": False, "velocity_amount": 0.0,
+    }
+    result = await mcp_server.call_tool(
+        "set_clip_launch_settings",
+        {"track_index": 0, "clip_index": 0, "launch_mode": 0},
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert data["launch_mode"] == 0
+    call_args = mock_connection.send_command.call_args
+    params = call_args[0][1]
+    assert params["launch_mode"] == 0
+
+
+async def test_set_clip_muted_calls_send_command(mcp_server, mock_connection):
+    """set_clip_muted sends muted param correctly."""
+    mock_connection.send_command.return_value = {"clip_name": "Clip", "muted": True}
+    result = await mcp_server.call_tool(
+        "set_clip_muted",
+        {"track_index": 0, "clip_index": 0, "muted": True},
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert data["muted"] is True
+    mock_connection.send_command.assert_called_once_with(
+        "set_clip_muted", {"track_index": 0, "clip_index": 0, "muted": True}
+    )
+
+
+async def test_crop_clip_calls_send_command(mcp_server, mock_connection):
+    """crop_clip sends correct command and returns JSON."""
+    mock_connection.send_command.return_value = {
+        "cropped": True, "clip_name": "Clip", "length": 4.0,
+    }
+    result = await mcp_server.call_tool(
+        "crop_clip", {"track_index": 0, "clip_index": 0}
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert data["cropped"] is True
+    mock_connection.send_command.assert_called_once_with(
+        "crop_clip", {"track_index": 0, "clip_index": 0}
+    )
