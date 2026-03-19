@@ -57,9 +57,15 @@ created: 2026-03-19
 
 ## Wave 0 Requirements
 
-- [ ] `tests/test_song_gaps.py` — stubs for scale/key, cue points, capture, session controls, navigation, device management
-- [ ] `tests/test_arrangement.py` — stubs for arrangement clips, insert_device, track ops, sub-routing
-- [ ] `tests/test_clip_gaps.py` — stubs for launch settings, warp markers, note operations
+- [ ] `tests/test_transport.py` — extended with scale/key, cue points, capture, session controls, navigation smoke tests
+- [ ] `tests/test_scenes.py` — extended with duplicate_scene smoke tests
+- [ ] `tests/test_arrangement.py` — new file for arrangement clips, session-to-arrangement bridge smoke tests
+- [ ] `tests/test_devices.py` — extended with insert_device, move_device smoke tests
+- [ ] `tests/test_tracks.py` — extended with stop_all_clips, freeze state smoke tests
+- [ ] `tests/test_routing.py` — extended with sub-routing channels smoke tests
+- [ ] `tests/test_clips.py` — extended with launch settings, clip state, clip editing smoke tests
+- [ ] `tests/test_notes.py` — extended with note ID ops, note modifications, native quantize smoke tests
+- [ ] `tests/test_audio_clips.py` — extended with warp marker smoke tests
 
 *Existing conftest.py and pytest infrastructure covers framework needs.*
 
