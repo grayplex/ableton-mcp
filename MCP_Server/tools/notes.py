@@ -1,4 +1,4 @@
-"""Note tools: get, remove, quantize, and transpose MIDI notes in clips."""
+"""Note tools: get, remove, quantize, transpose, modify, select, and ID-based MIDI note operations."""
 
 import json
 
@@ -117,4 +117,244 @@ def transpose_notes(ctx: Context, track_index: int, clip_index: int, semitones: 
             "Failed to transpose notes",
             detail=str(e),
             suggestion="Check note ranges with get_notes before transposing. Notes must stay within 0-127.",
+        )
+
+
+@mcp.tool()
+def apply_note_modifications(ctx: Context, track_index: int, clip_index: int, notes: str) -> str:
+    """Modify notes in-place by ID. More efficient than remove+re-add. The notes parameter is a JSON string: [{"note_id": 1, "velocity": 100}, ...]
+
+    Each note dict must have note_id, plus optional: pitch, start_time, duration, velocity, mute, probability, velocity_deviation, release_velocity.
+
+    Parameters:
+    - track_index: The index of the track containing the clip
+    - clip_index: The index of the clip slot containing the clip
+    - notes: JSON string of note modifications
+    """
+    try:
+        ableton = get_ableton_connection()
+        note_list = json.loads(notes)
+        result = ableton.send_command(
+            "apply_note_modifications",
+            {"track_index": track_index, "clip_index": clip_index, "notes": note_list},
+        )
+        return json.dumps(result, indent=2)
+    except json.JSONDecodeError as e:
+        return format_error(
+            "Invalid JSON in notes parameter",
+            detail=str(e),
+            suggestion='Provide a valid JSON array string, e.g. [{"note_id": 1, "velocity": 80}]',
+        )
+    except Exception as e:
+        return format_error(
+            "Failed to apply note modifications",
+            detail=str(e),
+            suggestion="Verify note IDs with get_notes first",
+        )
+
+
+@mcp.tool()
+def select_all_notes(ctx: Context, track_index: int, clip_index: int) -> str:
+    """Select all notes in a clip.
+
+    Parameters:
+    - track_index: The index of the track containing the clip
+    - clip_index: The index of the clip slot containing the clip
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "select_all_notes",
+            {"track_index": track_index, "clip_index": clip_index},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to select all notes",
+            detail=str(e),
+            suggestion="Verify clip exists with get_clip_info",
+        )
+
+
+@mcp.tool()
+def deselect_all_notes(ctx: Context, track_index: int, clip_index: int) -> str:
+    """Deselect all notes in a clip.
+
+    Parameters:
+    - track_index: The index of the track containing the clip
+    - clip_index: The index of the clip slot containing the clip
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "deselect_all_notes",
+            {"track_index": track_index, "clip_index": clip_index},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to deselect all notes",
+            detail=str(e),
+            suggestion="Verify clip exists with get_clip_info",
+        )
+
+
+@mcp.tool()
+def select_notes_by_id(ctx: Context, track_index: int, clip_index: int, note_ids: str) -> str:
+    """Select specific notes by their IDs.
+
+    Parameters:
+    - track_index: The index of the track containing the clip
+    - clip_index: The index of the clip slot containing the clip
+    - note_ids: Comma-separated note IDs (e.g. "1,2,3")
+    """
+    try:
+        ableton = get_ableton_connection()
+        id_list = [int(x.strip()) for x in note_ids.split(",")]
+        result = ableton.send_command(
+            "select_notes_by_id",
+            {"track_index": track_index, "clip_index": clip_index, "note_ids": id_list},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to select notes by ID",
+            detail=str(e),
+            suggestion="Verify note IDs with get_notes first",
+        )
+
+
+@mcp.tool()
+def get_notes_by_id(ctx: Context, track_index: int, clip_index: int, note_ids: str) -> str:
+    """Get specific notes by their IDs.
+
+    Parameters:
+    - track_index: The index of the track containing the clip
+    - clip_index: The index of the clip slot containing the clip
+    - note_ids: Comma-separated note IDs (e.g. "1,2,3")
+    """
+    try:
+        ableton = get_ableton_connection()
+        id_list = [int(x.strip()) for x in note_ids.split(",")]
+        result = ableton.send_command(
+            "get_notes_by_id",
+            {"track_index": track_index, "clip_index": clip_index, "note_ids": id_list},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to get notes by ID",
+            detail=str(e),
+            suggestion="Verify note IDs with get_notes first",
+        )
+
+
+@mcp.tool()
+def remove_notes_by_id(ctx: Context, track_index: int, clip_index: int, note_ids: str) -> str:
+    """Remove specific notes by their IDs.
+
+    Parameters:
+    - track_index: The index of the track containing the clip
+    - clip_index: The index of the clip slot containing the clip
+    - note_ids: Comma-separated note IDs (e.g. "1,2,3")
+    """
+    try:
+        ableton = get_ableton_connection()
+        id_list = [int(x.strip()) for x in note_ids.split(",")]
+        result = ableton.send_command(
+            "remove_notes_by_id",
+            {"track_index": track_index, "clip_index": clip_index, "note_ids": id_list},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to remove notes by ID",
+            detail=str(e),
+            suggestion="Verify note IDs with get_notes first",
+        )
+
+
+@mcp.tool()
+def duplicate_notes_by_id(ctx: Context, track_index: int, clip_index: int, note_ids: str) -> str:
+    """Duplicate specific notes by their IDs.
+
+    Parameters:
+    - track_index: The index of the track containing the clip
+    - clip_index: The index of the clip slot containing the clip
+    - note_ids: Comma-separated note IDs (e.g. "1,2,3")
+    """
+    try:
+        ableton = get_ableton_connection()
+        id_list = [int(x.strip()) for x in note_ids.split(",")]
+        result = ableton.send_command(
+            "duplicate_notes_by_id",
+            {"track_index": track_index, "clip_index": clip_index, "note_ids": id_list},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to duplicate notes by ID",
+            detail=str(e),
+            suggestion="Verify note IDs with get_notes first",
+        )
+
+
+@mcp.tool()
+def get_selected_notes(ctx: Context, track_index: int, clip_index: int) -> str:
+    """Get currently selected notes in a clip.
+
+    Parameters:
+    - track_index: The index of the track containing the clip
+    - clip_index: The index of the clip slot containing the clip
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "get_selected_notes",
+            {"track_index": track_index, "clip_index": clip_index},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to get selected notes",
+            detail=str(e),
+            suggestion="Verify clip exists with get_clip_info",
+        )
+
+
+@mcp.tool()
+def native_quantize(
+    ctx: Context,
+    track_index: int,
+    clip_index: int,
+    grid: float,
+    amount: float,
+    pitch: int | None = None,
+) -> str:
+    """Quantize notes using native Ableton quantize (respects Song.swing_amount). Grid: e.g. 0.5 for 1/8 notes. If pitch is provided, only quantizes notes at that pitch.
+
+    Parameters:
+    - track_index: The index of the track containing the clip
+    - clip_index: The index of the clip slot containing the clip
+    - grid: Quantize grid size in beats (e.g. 0.5 for 1/8 notes)
+    - amount: Quantize strength 0.0-1.0 (1.0 = full snap)
+    - pitch: Optional MIDI pitch to quantize only notes at this pitch (0-127)
+    """
+    try:
+        ableton = get_ableton_connection()
+        params: dict = {
+            "track_index": track_index,
+            "clip_index": clip_index,
+            "grid": grid,
+            "amount": amount,
+        }
+        if pitch is not None:
+            params["pitch"] = pitch
+        result = ableton.send_command("native_quantize", params)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to native quantize",
+            detail=str(e),
+            suggestion="Verify clip has notes with get_notes",
         )

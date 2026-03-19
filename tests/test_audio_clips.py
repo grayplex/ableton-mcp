@@ -153,3 +153,51 @@ async def test_set_audio_clip_properties_error(mcp_server, mock_connection):
     text = result[0][0].text
     assert "Error" in text
     assert "out of range" in text
+
+
+async def test_warp_marker_tools_registered(mcp_server):
+    """Phase 12 warp marker tools are registered."""
+    tools = await mcp_server.list_tools()
+    names = {t.name for t in tools}
+    expected = {
+        "get_warp_markers",
+        "insert_warp_marker",
+        "move_warp_marker",
+        "remove_warp_marker",
+    }
+    assert expected.issubset(names), f"Missing warp marker tools: {expected - names}"
+
+
+async def test_get_warp_markers_calls_send_command(mcp_server, mock_connection):
+    """get_warp_markers returns warp marker data."""
+    mock_connection.send_command.return_value = {
+        "clip_name": "Sample",
+        "warp_markers": [],
+    }
+    result = await mcp_server.call_tool(
+        "get_warp_markers", {"track_index": 0, "clip_index": 0}
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert "warp_markers" in data
+    mock_connection.send_command.assert_called_once_with(
+        "get_warp_markers", {"track_index": 0, "clip_index": 0}
+    )
+
+
+async def test_insert_warp_marker_calls_send_command(mcp_server, mock_connection):
+    """insert_warp_marker sends beat_time and sample_time."""
+    mock_connection.send_command.return_value = {
+        "inserted": True, "beat_time": 1.0, "sample_time": 44100.0,
+    }
+    result = await mcp_server.call_tool(
+        "insert_warp_marker",
+        {"track_index": 0, "clip_index": 0, "beat_time": 1.0, "sample_time": 44100.0},
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert data["inserted"] is True
+    call_args = mock_connection.send_command.call_args
+    params = call_args[0][1]
+    assert params["beat_time"] == 1.0
+    assert params["sample_time"] == 44100.0

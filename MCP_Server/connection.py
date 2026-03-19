@@ -112,6 +112,22 @@ _WRITE_COMMANDS = frozenset(
         "insert_device",
         "move_device",
         "stop_track_clips",
+        # Phase 12: Clip + Note Gaps
+        "set_clip_launch_settings",
+        "set_clip_muted",
+        "crop_clip",
+        "duplicate_clip_loop",
+        "duplicate_clip_region",
+        "apply_note_modifications",
+        "select_all_notes",
+        "deselect_all_notes",
+        "select_notes_by_id",
+        "remove_notes_by_id",
+        "duplicate_notes_by_id",
+        "native_quantize",
+        "insert_warp_marker",
+        "move_warp_marker",
+        "remove_warp_marker",
     ]
 )
 
