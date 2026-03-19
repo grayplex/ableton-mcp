@@ -218,3 +218,13 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 Plans:
 - [x] 11-01-PLAN.md — LOM gap report creation, correctness fixes (note expression fields), REQUIREMENTS.md update with ~9 new v2 categories
+
+### Phase 12: Fill in missing gaps
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 11
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 12 to break down)
