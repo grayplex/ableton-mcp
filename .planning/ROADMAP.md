@@ -21,7 +21,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 7: Device & Browser** - Working instrument loading plus full device parameter control (completed 2026-03-14)
 - [x] **Phase 8: Scene & Transport** - Scene management plus complete transport and session control (completed 2026-03-15)
 - [x] **Phase 9: Automation** - Clip automation envelopes for parameter movement (completed 2026-03-16)
-- [x] **Phase 10: Routing & Audio Clips** - Track routing control and audio clip properties (completed 2026-03-17)
+- [x] **Phase 10: Routing & Audio Clips** - Track routing control and audio clip properties (completed 2026-03-17)
 - [x] **Phase 11: Check for Live Object Model Gaps** - LOM gap analysis, correctness fixes, requirements update (completed 2026-03-18)
 
 ## Phase Details
@@ -221,10 +221,12 @@ Plans:
 
 ### Phase 12: Fill in missing gaps
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Implement the high-value "Add" tier gaps from the Phase 11 LOM gap report across Song, Track, and Clip classes -- scale/key awareness, arrangement view, cue points, capture workflows, clip launch settings, note expression operations, warp markers, and device insertion
+**Requirements**: SESS-01, SESS-03, SESS-04, SESS-05, SESS-06, SESS-07, SESS-08, SESS-09, SESS-10, SCLE-01, SCLE-02, SCLE-03, SCLE-04, ARR-01, ARR-02, ARR-03, ARR-04, ARR-05, ARR-06, ARR-07, CLNC-01, CLNC-02, CLNC-03, CLNC-04, CLNC-05, NOTE-01, NOTE-02, NOTE-03, NOTE-04, NOTE-05, NOTE-06, NOTE-07, DEVX-01, DEVX-02, TRKA-01, TRKA-04, TRKA-05, ACRT-03
 **Depends on:** Phase 11
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 12 to break down)
+- [ ] 12-01-PLAN.md — Song-level gaps: scale/key awareness, cue points, capture workflows, session controls, navigation, duplicate_scene (17 commands + 17 MCP tools + smoke tests)
+- [ ] 12-02-PLAN.md — Track + Arrangement gaps: arrangement clip CRUD, session-to-arrangement bridge, insert_device, move_device, per-track stop, freeze state, sub-routing channels (10 commands + 10 MCP tools + smoke tests)
+- [ ] 12-03-PLAN.md — Clip + Note gaps: launch settings, clip state/editing, warp markers, note ID ops, note modifications, native quantize, registry test update (19 commands + 19 MCP tools + smoke tests)
