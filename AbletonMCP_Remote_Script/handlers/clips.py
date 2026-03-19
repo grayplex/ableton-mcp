@@ -265,6 +265,197 @@ class ClipHandlers:
             self.log_message(f"Error setting clip color: {e}")
             raise
 
+    @command("get_clip_launch_settings")
+    def _get_clip_launch_settings(self, params):
+        """Get clip launch settings (mode, quantization, legato, velocity)."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+            return {
+                "clip_name": clip.name,
+                "launch_mode": clip.launch_mode,
+                "launch_quantization": clip.launch_quantization,
+                "legato": clip.legato,
+                "velocity_amount": clip.velocity_amount,
+            }
+        except Exception as e:
+            self.log_message(f"Error getting clip launch settings: {e}")
+            raise
+
+    @command("set_clip_launch_settings", write=True)
+    def _set_clip_launch_settings(self, params):
+        """Set clip launch settings (mode, quantization, legato, velocity).
+
+        launch_mode: 0=Trigger, 1=Gate, 2=Toggle, 3=Repeat
+        launch_quantization: 0-14
+        legato: bool
+        velocity_amount: 0.0-1.0
+        """
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+
+            launch_mode = params.get("launch_mode")
+            if launch_mode is not None:
+                if not (0 <= launch_mode <= 3):
+                    raise ValueError(
+                        f"launch_mode {launch_mode} out of range (0-3). "
+                        f"Current value: {clip.launch_mode}"
+                    )
+                clip.launch_mode = launch_mode
+
+            launch_quantization = params.get("launch_quantization")
+            if launch_quantization is not None:
+                if not (0 <= launch_quantization <= 14):
+                    raise ValueError(
+                        f"launch_quantization {launch_quantization} out of range (0-14). "
+                        f"Current value: {clip.launch_quantization}"
+                    )
+                clip.launch_quantization = launch_quantization
+
+            legato = params.get("legato")
+            if legato is not None:
+                clip.legato = legato
+
+            velocity_amount = params.get("velocity_amount")
+            if velocity_amount is not None:
+                if not (0.0 <= velocity_amount <= 1.0):
+                    raise ValueError(
+                        f"velocity_amount {velocity_amount} out of range (0.0-1.0). "
+                        f"Current value: {clip.velocity_amount}"
+                    )
+                clip.velocity_amount = velocity_amount
+
+            return {
+                "clip_name": clip.name,
+                "launch_mode": clip.launch_mode,
+                "launch_quantization": clip.launch_quantization,
+                "legato": clip.legato,
+                "velocity_amount": clip.velocity_amount,
+            }
+        except Exception as e:
+            self.log_message(f"Error setting clip launch settings: {e}")
+            raise
+
+    @command("set_clip_muted", write=True)
+    def _set_clip_muted(self, params):
+        """Set clip muted/active state (clip activator)."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        muted = params.get("muted", False)
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+            clip.muted = muted
+
+            return {"clip_name": clip.name, "muted": clip.muted}
+        except Exception as e:
+            self.log_message(f"Error setting clip muted: {e}")
+            raise
+
+    @command("crop_clip", write=True)
+    def _crop_clip(self, params):
+        """Crop clip to loop/markers."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+            clip.crop()
+
+            return {
+                "cropped": True,
+                "clip_name": clip.name,
+                "length": clip.length,
+            }
+        except Exception as e:
+            self.log_message(f"Error cropping clip: {e}")
+            raise
+
+    @command("duplicate_clip_loop", write=True)
+    def _duplicate_clip_loop(self, params):
+        """Double the loop length and duplicate the content."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+            clip.duplicate_loop()
+
+            return {
+                "duplicated": True,
+                "clip_name": clip.name,
+                "length": clip.length,
+                "loop_end": clip.loop_end,
+            }
+        except Exception as e:
+            self.log_message(f"Error duplicating clip loop: {e}")
+            raise
+
+    @command("duplicate_clip_region", write=True)
+    def _duplicate_clip_region(self, params):
+        """Duplicate a region within a clip to a destination time."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        region_start = params.get("region_start", 0.0)
+        region_end = params.get("region_end", 0.0)
+        destination_time = params.get("destination_time", 0.0)
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+            clip.duplicate_region(region_start, region_end, destination_time)
+
+            return {
+                "duplicated": True,
+                "clip_name": clip.name,
+                "region_start": region_start,
+                "region_end": region_end,
+                "destination_time": destination_time,
+            }
+        except Exception as e:
+            self.log_message(f"Error duplicating clip region: {e}")
+            raise
+
     @command("set_clip_loop", write=True)
     def _set_clip_loop(self, params):
         """Set loop/region properties on a clip.
