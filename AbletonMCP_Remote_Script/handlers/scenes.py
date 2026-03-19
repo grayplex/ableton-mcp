@@ -89,3 +89,26 @@ class SceneHandlers:
         except Exception as e:
             self.log_message(f"Error deleting scene: {e}")
             raise
+
+    @command("duplicate_scene", write=True)
+    def _duplicate_scene(self, params):
+        """Duplicate a scene by index."""
+        scene_index = params.get("scene_index")
+        try:
+            if scene_index is None:
+                raise ValueError("scene_index parameter is required")
+            scenes = self._song.scenes
+            if scene_index < 0 or scene_index >= len(scenes):
+                raise IndexError(
+                    f"Scene index {scene_index} out of range "
+                    f"(0-{len(scenes) - 1})"
+                )
+            self._song.duplicate_scene(scene_index)
+            return {
+                "duplicated": True,
+                "source_index": scene_index,
+                "scene_count": len(self._song.scenes),
+            }
+        except Exception as e:
+            self.log_message(f"Error duplicating scene: {e}")
+            raise
