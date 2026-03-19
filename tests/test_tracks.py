@@ -293,3 +293,39 @@ async def test_set_track_name_master(mcp_server, mock_connection):
     mock_connection.send_command.assert_called_once_with(
         "set_track_name", {"track_index": 0, "name": "MASTER", "track_type": "master"}
     )
+
+
+async def test_stop_track_clips_calls_send_command(mcp_server, mock_connection):
+    """stop_track_clips invokes send_command with correct params."""
+    mock_connection.send_command.return_value = {
+        "stopped": True,
+        "track_name": "1-MIDI",
+    }
+    result = await mcp_server.call_tool(
+        "stop_track_clips", {"track_index": 0}
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert data["stopped"] is True
+    mock_connection.send_command.assert_called_once_with(
+        "stop_track_clips", {"track_index": 0, "track_type": "track"}
+    )
+
+
+async def test_get_track_freeze_state_calls_send_command(mcp_server, mock_connection):
+    """get_track_freeze_state invokes send_command with correct params."""
+    mock_connection.send_command.return_value = {
+        "track_name": "1-MIDI",
+        "is_frozen": False,
+        "can_be_frozen": True,
+    }
+    result = await mcp_server.call_tool(
+        "get_track_freeze_state", {"track_index": 0}
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert data["is_frozen"] is False
+    assert data["can_be_frozen"] is True
+    mock_connection.send_command.assert_called_once_with(
+        "get_track_freeze_state", {"track_index": 0, "track_type": "track"}
+    )

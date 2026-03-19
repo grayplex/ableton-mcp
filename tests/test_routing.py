@@ -144,3 +144,33 @@ async def test_get_input_routing_types_error(mcp_server, mock_connection):
     )
     text = result[0][0].text
     assert "Error" in text
+
+
+async def test_routing_channels_tools_registered(mcp_server):
+    """Routing channel tools are registered."""
+    tools = await mcp_server.list_tools()
+    names = {t.name for t in tools}
+    assert "get_input_routing_channels" in names
+    assert "get_output_routing_channels" in names
+
+
+async def test_get_input_routing_channels_calls_send_command(mcp_server, mock_connection):
+    """get_input_routing_channels invokes send_command with correct params."""
+    mock_connection.send_command.return_value = {
+        "track_name": "1-Audio",
+        "current": "1/2",
+        "available": ["1/2", "3/4", "5/6"],
+        "track_index": 0,
+    }
+    result = await mcp_server.call_tool(
+        "get_input_routing_channels",
+        {"track_index": 0},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["current"] == "1/2"
+    assert len(parsed["available"]) == 3
+    mock_connection.send_command.assert_called_once_with(
+        "get_input_routing_channels",
+        {"track_index": 0, "track_type": "track"},
+    )

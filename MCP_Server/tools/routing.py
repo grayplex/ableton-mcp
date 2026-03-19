@@ -100,3 +100,49 @@ def set_output_routing(ctx: Context, track_index: int, routing_name: str, track_
             detail=str(e),
             suggestion="Use get_output_routing_types to see available routing options for this track.",
         )
+
+
+@mcp.tool()
+def get_input_routing_channels(ctx: Context, track_index: int, track_type: str = "track") -> str:
+    """Get available input sub-routing channels for a track.
+
+    Parameters:
+    - track_index: Index of the track
+    - track_type: Type of track - 'track' (default), 'return', or 'master'
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "get_input_routing_channels",
+            {"track_index": track_index, "track_type": track_type},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to get input routing channels",
+            detail=str(e),
+            suggestion="Check track_index with get_all_tracks.",
+        )
+
+
+@mcp.tool()
+def get_output_routing_channels(ctx: Context, track_index: int, track_type: str = "track") -> str:
+    """Get available output sub-routing channels for a track.
+
+    Parameters:
+    - track_index: Index of the track
+    - track_type: Type of track - 'track' (default), 'return', or 'master'
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "get_output_routing_channels",
+            {"track_index": track_index, "track_type": track_type},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to get output routing channels",
+            detail=str(e),
+            suggestion="Check track_index with get_all_tracks.",
+        )

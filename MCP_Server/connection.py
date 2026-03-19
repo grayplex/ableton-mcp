@@ -105,6 +105,13 @@ _WRITE_COMMANDS = frozenset(
         "jump_by",
         "play_selection",
         "duplicate_scene",
+        # Phase 12: Track + Arrangement Gaps
+        "create_arrangement_midi_clip",
+        "create_arrangement_audio_clip",
+        "duplicate_clip_to_arrangement",
+        "insert_device",
+        "move_device",
+        "stop_track_clips",
     ]
 )
 
