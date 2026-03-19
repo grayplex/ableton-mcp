@@ -90,6 +90,21 @@ _WRITE_COMMANDS = frozenset(
         "set_input_routing",
         "set_output_routing",
         "set_audio_clip_properties",
+        # Phase 12: Song Gaps
+        "set_scale",
+        "set_or_delete_cue",
+        "jump_to_cue",
+        "capture_scene",
+        "capture_midi",
+        "tap_tempo",
+        "set_metronome",
+        "set_groove_amount",
+        "set_swing_amount",
+        "set_clip_trigger_quantization",
+        "set_session_record",
+        "jump_by",
+        "play_selection",
+        "duplicate_scene",
     ]
 )
 

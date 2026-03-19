@@ -186,3 +186,111 @@ async def test_undo_consecutive_warning(mcp_server, mock_connection):
     parsed3 = json.loads(result3[0][0].text)
     assert "warning" in parsed3
     assert "3 times consecutively" in parsed3["warning"]
+
+
+# --- Phase 12: Song-level gap tools ---
+
+
+async def test_song_gap_tools_registered(mcp_server):
+    """All 16 new transport tools for Song-level gaps are registered."""
+    tools = await mcp_server.list_tools()
+    names = {t.name for t in tools}
+    expected = {
+        "get_scale_info", "set_scale",
+        "get_cue_points", "set_or_delete_cue", "jump_to_cue",
+        "capture_scene", "capture_midi",
+        "tap_tempo", "set_metronome", "set_groove_amount",
+        "set_swing_amount", "set_clip_trigger_quantization", "set_session_record",
+        "jump_by", "play_selection", "get_song_length",
+    }
+    missing = expected - names
+    assert not missing, f"Missing tools: {missing}"
+
+
+async def test_get_scale_info_calls_send_command(mcp_server, mock_connection):
+    """get_scale_info invokes send_command correctly."""
+    mock_connection.send_command.return_value = {
+        "root_note": 0, "scale_name": "Major",
+        "scale_intervals": [0, 2, 4, 5, 7, 9, 11], "scale_mode": 0,
+    }
+    result = await mcp_server.call_tool("get_scale_info", {})
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["root_note"] == 0
+    assert parsed["scale_name"] == "Major"
+    mock_connection.send_command.assert_called_once_with("get_scale_info")
+
+
+async def test_set_scale_calls_send_command(mcp_server, mock_connection):
+    """set_scale invokes send_command with correct params."""
+    mock_connection.send_command.return_value = {
+        "root_note": 2, "scale_name": "Major",
+        "scale_intervals": [0, 2, 4, 5, 7, 9, 11], "scale_mode": 0,
+    }
+    result = await mcp_server.call_tool("set_scale", {"root_note": 2})
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["root_note"] == 2
+    mock_connection.send_command.assert_called_once_with("set_scale", {"root_note": 2})
+
+
+async def test_get_cue_points_calls_send_command(mcp_server, mock_connection):
+    """get_cue_points invokes send_command correctly."""
+    mock_connection.send_command.return_value = {"cue_points": []}
+    result = await mcp_server.call_tool("get_cue_points", {})
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["cue_points"] == []
+    mock_connection.send_command.assert_called_once_with("get_cue_points")
+
+
+async def test_capture_scene_calls_send_command(mcp_server, mock_connection):
+    """capture_scene invokes send_command correctly."""
+    mock_connection.send_command.return_value = {"captured": True, "scene_count": 5}
+    result = await mcp_server.call_tool("capture_scene", {})
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["captured"] is True
+    mock_connection.send_command.assert_called_once_with("capture_scene")
+
+
+async def test_tap_tempo_calls_send_command(mcp_server, mock_connection):
+    """tap_tempo invokes send_command correctly."""
+    mock_connection.send_command.return_value = {"tapped": True, "tempo": 120.0}
+    result = await mcp_server.call_tool("tap_tempo", {})
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["tapped"] is True
+    assert parsed["tempo"] == 120.0
+    mock_connection.send_command.assert_called_once_with("tap_tempo")
+
+
+async def test_set_metronome_calls_send_command(mcp_server, mock_connection):
+    """set_metronome invokes send_command with correct params."""
+    mock_connection.send_command.return_value = {"metronome": True}
+    result = await mcp_server.call_tool("set_metronome", {"enabled": True})
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["metronome"] is True
+    mock_connection.send_command.assert_called_once_with("set_metronome", {"enabled": True})
+
+
+async def test_jump_by_calls_send_command(mcp_server, mock_connection):
+    """jump_by invokes send_command with correct params."""
+    mock_connection.send_command.return_value = {"jumped": True, "beats": 4.0, "position": 12.0}
+    result = await mcp_server.call_tool("jump_by", {"beats": 4.0})
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["jumped"] is True
+    assert parsed["beats"] == 4.0
+    mock_connection.send_command.assert_called_once_with("jump_by", {"beats": 4.0})
+
+
+async def test_get_song_length_calls_send_command(mcp_server, mock_connection):
+    """get_song_length invokes send_command correctly."""
+    mock_connection.send_command.return_value = {"song_length": 128.0, "last_event_time": 120.0}
+    result = await mcp_server.call_tool("get_song_length", {})
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["song_length"] == 128.0
+    mock_connection.send_command.assert_called_once_with("get_song_length")

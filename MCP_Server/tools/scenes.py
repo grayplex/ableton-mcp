@@ -87,3 +87,22 @@ def delete_scene(ctx: Context, scene_index: int) -> str:
             detail=str(e),
             suggestion="Verify scene_index is valid. Cannot delete the last scene.",
         )
+
+
+@mcp.tool()
+def duplicate_scene(ctx: Context, scene_index: int) -> str:
+    """Duplicate a scene by index. Creates a copy of the scene and all its clips.
+
+    Parameters:
+    - scene_index: The index of the scene to duplicate
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command("duplicate_scene", {"scene_index": scene_index})
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to duplicate scene",
+            detail=str(e),
+            suggestion="Verify scene_index is valid",
+        )
