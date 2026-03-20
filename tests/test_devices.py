@@ -356,3 +356,302 @@ async def test_move_device_calls_send_command(mcp_server, mock_connection):
             "target_track_type": "track",
         },
     )
+
+
+# --- Phase 13: Simpler, DrumPad, Plugin, A/B ---
+
+
+async def test_device_extended_tools_registered(mcp_server):
+    """All 15 new device extended tools are registered as MCP tools."""
+    tools = await mcp_server.list_tools()
+    names = {t.name for t in tools}
+    expected = {
+        "crop_simpler",
+        "reverse_simpler",
+        "warp_simpler",
+        "get_simpler_info",
+        "set_simpler_playback_mode",
+        "insert_simpler_slice",
+        "move_simpler_slice",
+        "remove_simpler_slice",
+        "clear_simpler_slices",
+        "set_drum_pad_mute",
+        "set_drum_pad_solo",
+        "delete_drum_pad_chains",
+        "list_plugin_presets",
+        "set_plugin_preset",
+        "compare_ab",
+    }
+    assert expected.issubset(names), f"Missing device extended tools: {expected - names}"
+
+
+async def test_crop_simpler_calls_send_command(mcp_server, mock_connection):
+    """crop_simpler invokes send_command and returns cropped status."""
+    mock_connection.send_command.return_value = {
+        "cropped": True,
+        "device_name": "Simpler",
+    }
+    result = await mcp_server.call_tool(
+        "crop_simpler",
+        {"track_index": 0},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["cropped"] is True
+
+
+async def test_reverse_simpler_calls_send_command(mcp_server, mock_connection):
+    """reverse_simpler invokes send_command and returns reversed status."""
+    mock_connection.send_command.return_value = {
+        "reversed": True,
+        "device_name": "Simpler",
+    }
+    result = await mcp_server.call_tool(
+        "reverse_simpler",
+        {"track_index": 0},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["reversed"] is True
+
+
+async def test_warp_simpler_calls_send_command(mcp_server, mock_connection):
+    """warp_simpler invokes send_command with mode param."""
+    mock_connection.send_command.return_value = {
+        "warped": True,
+        "device_name": "Simpler",
+        "mode": "double",
+    }
+    result = await mcp_server.call_tool(
+        "warp_simpler",
+        {"track_index": 0, "mode": "double"},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["mode"] == "double"
+
+
+async def test_get_simpler_info_calls_send_command(mcp_server, mock_connection):
+    """get_simpler_info returns playback mode and sample details."""
+    mock_connection.send_command.return_value = {
+        "device_name": "Simpler",
+        "playback_mode": 0,
+        "playback_mode_label": "Classic",
+        "sample": {
+            "file_path": "/test.wav",
+            "length": 44100,
+            "sample_rate": 44100,
+            "slices": [],
+            "slicing_sensitivity": 0.5,
+            "slicing_style": 0,
+        },
+        "can_warp_as": True,
+        "can_warp_double": True,
+        "can_warp_half": True,
+    }
+    result = await mcp_server.call_tool(
+        "get_simpler_info",
+        {"track_index": 0},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["playback_mode_label"] == "Classic"
+
+
+async def test_set_simpler_playback_mode_calls_send_command(mcp_server, mock_connection):
+    """set_simpler_playback_mode sets mode and returns label."""
+    mock_connection.send_command.return_value = {
+        "device_name": "Simpler",
+        "playback_mode": 2,
+        "playback_mode_label": "Slicing",
+    }
+    result = await mcp_server.call_tool(
+        "set_simpler_playback_mode",
+        {"track_index": 0, "mode": 2},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["playback_mode"] == 2
+
+
+async def test_insert_simpler_slice_calls_send_command(mcp_server, mock_connection):
+    """insert_simpler_slice inserts a slice and returns updated slices."""
+    mock_connection.send_command.return_value = {
+        "inserted": True,
+        "device_name": "Simpler",
+        "time": 22050,
+        "slices": [22050],
+    }
+    result = await mcp_server.call_tool(
+        "insert_simpler_slice",
+        {"track_index": 0, "time": 22050},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["inserted"] is True
+
+
+async def test_remove_simpler_slice_calls_send_command(mcp_server, mock_connection):
+    """remove_simpler_slice removes a slice and returns updated slices."""
+    mock_connection.send_command.return_value = {
+        "removed": True,
+        "device_name": "Simpler",
+        "time": 22050,
+        "slices": [],
+    }
+    result = await mcp_server.call_tool(
+        "remove_simpler_slice",
+        {"track_index": 0, "time": 22050},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["removed"] is True
+
+
+async def test_clear_simpler_slices_calls_send_command(mcp_server, mock_connection):
+    """clear_simpler_slices clears all slices."""
+    mock_connection.send_command.return_value = {
+        "cleared": True,
+        "device_name": "Simpler",
+        "slices": [],
+    }
+    result = await mcp_server.call_tool(
+        "clear_simpler_slices",
+        {"track_index": 0},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["cleared"] is True
+
+
+async def test_set_drum_pad_mute_calls_send_command(mcp_server, mock_connection):
+    """set_drum_pad_mute mutes a pad by MIDI note."""
+    mock_connection.send_command.return_value = {
+        "note": 36,
+        "name": "C1 Kick",
+        "mute": True,
+    }
+    result = await mcp_server.call_tool(
+        "set_drum_pad_mute",
+        {"track_index": 0, "note": 36, "mute": True},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["mute"] is True
+
+
+async def test_set_drum_pad_solo_calls_send_command(mcp_server, mock_connection):
+    """set_drum_pad_solo solos a pad by MIDI note."""
+    mock_connection.send_command.return_value = {
+        "note": 38,
+        "name": "D1 Snare",
+        "solo": True,
+        "note_text": "DrumPad solo does not auto-unsolo other pads. Use exclusive=True to solo exclusively.",
+    }
+    result = await mcp_server.call_tool(
+        "set_drum_pad_solo",
+        {"track_index": 0, "note": 38, "solo": True},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["solo"] is True
+
+
+async def test_set_drum_pad_solo_exclusive(mcp_server, mock_connection):
+    """set_drum_pad_solo with exclusive=True passes exclusive in params."""
+    mock_connection.send_command.return_value = {
+        "note": 38,
+        "name": "D1 Snare",
+        "solo": True,
+        "note_text": "DrumPad solo does not auto-unsolo other pads. Use exclusive=True to solo exclusively.",
+    }
+    await mcp_server.call_tool(
+        "set_drum_pad_solo",
+        {"track_index": 0, "note": 38, "solo": True, "exclusive": True},
+    )
+    call_args = mock_connection.send_command.call_args
+    params = call_args[0][1]
+    assert params["exclusive"] is True
+
+
+async def test_delete_drum_pad_chains_calls_send_command(mcp_server, mock_connection):
+    """delete_drum_pad_chains clears pad content."""
+    mock_connection.send_command.return_value = {
+        "deleted": True,
+        "note": 36,
+        "name": "C1 Kick",
+    }
+    result = await mcp_server.call_tool(
+        "delete_drum_pad_chains",
+        {"track_index": 0, "note": 36},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["deleted"] is True
+
+
+async def test_list_plugin_presets_calls_send_command(mcp_server, mock_connection):
+    """list_plugin_presets returns preset list for a plugin device."""
+    mock_connection.send_command.return_value = {
+        "device_name": "Serum",
+        "presets": ["Init", "Bass 1", "Lead 1"],
+        "selected_preset_index": 0,
+        "preset_count": 3,
+    }
+    result = await mcp_server.call_tool(
+        "list_plugin_presets",
+        {"track_index": 0},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert len(parsed["presets"]) == 3
+
+
+async def test_set_plugin_preset_calls_send_command(mcp_server, mock_connection):
+    """set_plugin_preset selects a preset by index."""
+    mock_connection.send_command.return_value = {
+        "device_name": "Serum",
+        "selected_preset_index": 1,
+        "preset_name": "Bass 1",
+    }
+    result = await mcp_server.call_tool(
+        "set_plugin_preset",
+        {"track_index": 0, "preset_index": 1},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["preset_name"] == "Bass 1"
+
+
+async def test_compare_ab_calls_send_command(mcp_server, mock_connection):
+    """compare_ab returns A/B comparison state."""
+    mock_connection.send_command.return_value = {
+        "device_name": "EQ Eight",
+        "can_compare_ab": True,
+        "is_using_compare_preset_b": False,
+        "action": "info",
+    }
+    result = await mcp_server.call_tool(
+        "compare_ab",
+        {"track_index": 0},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["can_compare_ab"] is True
+
+
+async def test_compare_ab_save(mcp_server, mock_connection):
+    """compare_ab with action='save' saves preset to compare slot."""
+    mock_connection.send_command.return_value = {
+        "device_name": "EQ Eight",
+        "can_compare_ab": True,
+        "is_using_compare_preset_b": False,
+        "action": "save",
+    }
+    result = await mcp_server.call_tool(
+        "compare_ab",
+        {"track_index": 0, "action": "save"},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["action"] == "save"

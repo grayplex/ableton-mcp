@@ -317,3 +317,544 @@ def move_device(
             detail=str(e),
             suggestion="Verify device and target track exist with get_track_info",
         )
+
+
+# --- Phase 13: Simpler, DrumPad, Plugin, A/B Compare ---
+
+
+@mcp.tool()
+def crop_simpler(
+    ctx: Context,
+    track_index: int,
+    device_index: int = 0,
+    track_type: str = "track",
+) -> str:
+    """Crop a Simpler device's sample to the active region.
+
+    Parameters:
+    - track_index: Index of the track
+    - device_index: Index of the Simpler device on the track
+    - track_type: Track collection - "track", "return", or "master"
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "crop_simpler",
+            {
+                "track_index": track_index,
+                "device_index": device_index,
+                "track_type": track_type,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to crop Simpler sample",
+            detail=str(e),
+            suggestion="Ensure the device is a Simpler with a sample loaded",
+        )
+
+
+@mcp.tool()
+def reverse_simpler(
+    ctx: Context,
+    track_index: int,
+    device_index: int = 0,
+    track_type: str = "track",
+) -> str:
+    """Reverse a Simpler device's loaded sample.
+
+    Parameters:
+    - track_index: Index of the track
+    - device_index: Index of the Simpler device on the track
+    - track_type: Track collection - "track", "return", or "master"
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "reverse_simpler",
+            {
+                "track_index": track_index,
+                "device_index": device_index,
+                "track_type": track_type,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to reverse Simpler sample",
+            detail=str(e),
+            suggestion="Ensure the device is a Simpler with a sample loaded",
+        )
+
+
+@mcp.tool()
+def warp_simpler(
+    ctx: Context,
+    track_index: int,
+    mode: str,
+    device_index: int = 0,
+    beats: float | None = None,
+    track_type: str = "track",
+) -> str:
+    """Warp a Simpler device's sample.
+
+    Parameters:
+    - track_index: Index of the track
+    - mode: 'as' (warp to specified beats), 'double' (double tempo), 'half' (half tempo)
+    - device_index: Index of the Simpler device on the track
+    - beats: Required when mode='as', number of beats to warp to
+    - track_type: Track collection - "track", "return", or "master"
+    """
+    try:
+        ableton = get_ableton_connection()
+        params = {
+            "track_index": track_index,
+            "device_index": device_index,
+            "track_type": track_type,
+            "mode": mode,
+        }
+        if beats is not None:
+            params["beats"] = beats
+        result = ableton.send_command("warp_simpler", params)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to warp Simpler sample",
+            detail=str(e),
+            suggestion="Ensure the device is a Simpler with a sample loaded",
+        )
+
+
+@mcp.tool()
+def get_simpler_info(
+    ctx: Context,
+    track_index: int,
+    device_index: int = 0,
+    track_type: str = "track",
+) -> str:
+    """Get Simpler device info: playback mode, warp capabilities, and sample details including slices.
+
+    Parameters:
+    - track_index: Index of the track
+    - device_index: Index of the Simpler device on the track
+    - track_type: Track collection - "track", "return", or "master"
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "get_simpler_info",
+            {
+                "track_index": track_index,
+                "device_index": device_index,
+                "track_type": track_type,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to get Simpler info",
+            detail=str(e),
+            suggestion="Ensure the device is a Simpler device",
+        )
+
+
+@mcp.tool()
+def set_simpler_playback_mode(
+    ctx: Context,
+    track_index: int,
+    mode: int,
+    device_index: int = 0,
+    track_type: str = "track",
+) -> str:
+    """Set Simpler playback mode.
+
+    Parameters:
+    - track_index: Index of the track
+    - mode: 0=Classic, 1=One-Shot, 2=Slicing
+    - device_index: Index of the Simpler device on the track
+    - track_type: Track collection - "track", "return", or "master"
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "set_simpler_playback_mode",
+            {
+                "track_index": track_index,
+                "device_index": device_index,
+                "track_type": track_type,
+                "mode": mode,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to set Simpler playback mode",
+            detail=str(e),
+            suggestion="Ensure the device is a Simpler device",
+        )
+
+
+@mcp.tool()
+def insert_simpler_slice(
+    ctx: Context,
+    track_index: int,
+    time: int,
+    device_index: int = 0,
+    track_type: str = "track",
+) -> str:
+    """Insert a slice marker in a Simpler sample at a position in sample frames.
+
+    Parameters:
+    - track_index: Index of the track
+    - time: Position in sample frames to insert the slice
+    - device_index: Index of the Simpler device on the track
+    - track_type: Track collection - "track", "return", or "master"
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "insert_simpler_slice",
+            {
+                "track_index": track_index,
+                "device_index": device_index,
+                "track_type": track_type,
+                "time": time,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to insert Simpler slice",
+            detail=str(e),
+            suggestion="Ensure the device is a Simpler with a sample loaded",
+        )
+
+
+@mcp.tool()
+def move_simpler_slice(
+    ctx: Context,
+    track_index: int,
+    source_time: int,
+    destination_time: int,
+    device_index: int = 0,
+    track_type: str = "track",
+) -> str:
+    """Move a slice marker from one position to another (positions in sample frames).
+
+    Parameters:
+    - track_index: Index of the track
+    - source_time: Current position of the slice in sample frames
+    - destination_time: New position for the slice in sample frames
+    - device_index: Index of the Simpler device on the track
+    - track_type: Track collection - "track", "return", or "master"
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "move_simpler_slice",
+            {
+                "track_index": track_index,
+                "device_index": device_index,
+                "track_type": track_type,
+                "source_time": source_time,
+                "destination_time": destination_time,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to move Simpler slice",
+            detail=str(e),
+            suggestion="Ensure the device is a Simpler with a sample loaded",
+        )
+
+
+@mcp.tool()
+def remove_simpler_slice(
+    ctx: Context,
+    track_index: int,
+    time: int,
+    device_index: int = 0,
+    track_type: str = "track",
+) -> str:
+    """Remove a slice marker at the specified position (in sample frames).
+
+    Parameters:
+    - track_index: Index of the track
+    - time: Position of the slice to remove in sample frames
+    - device_index: Index of the Simpler device on the track
+    - track_type: Track collection - "track", "return", or "master"
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "remove_simpler_slice",
+            {
+                "track_index": track_index,
+                "device_index": device_index,
+                "track_type": track_type,
+                "time": time,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to remove Simpler slice",
+            detail=str(e),
+            suggestion="Ensure the device is a Simpler with a sample loaded",
+        )
+
+
+@mcp.tool()
+def clear_simpler_slices(
+    ctx: Context,
+    track_index: int,
+    device_index: int = 0,
+    track_type: str = "track",
+) -> str:
+    """Clear all slice markers from a Simpler sample. Only works in Manual slicing mode.
+
+    Parameters:
+    - track_index: Index of the track
+    - device_index: Index of the Simpler device on the track
+    - track_type: Track collection - "track", "return", or "master"
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "clear_simpler_slices",
+            {
+                "track_index": track_index,
+                "device_index": device_index,
+                "track_type": track_type,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to clear Simpler slices",
+            detail=str(e),
+            suggestion="Ensure the device is a Simpler with a sample loaded",
+        )
+
+
+@mcp.tool()
+def set_drum_pad_mute(
+    ctx: Context,
+    track_index: int,
+    note: int,
+    mute: bool,
+    device_index: int = 0,
+    track_type: str = "track",
+) -> str:
+    """Mute or unmute a drum pad by MIDI note number.
+
+    Parameters:
+    - track_index: Index of the track
+    - note: MIDI note number of the drum pad (e.g., 36 for C1)
+    - mute: True to mute, False to unmute
+    - device_index: Index of the Drum Rack device on the track
+    - track_type: Track collection - "track", "return", or "master"
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "set_drum_pad_mute",
+            {
+                "track_index": track_index,
+                "device_index": device_index,
+                "track_type": track_type,
+                "note": note,
+                "mute": mute,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to set drum pad mute",
+            detail=str(e),
+            suggestion="Ensure the device is a Drum Rack and the note number is valid",
+        )
+
+
+@mcp.tool()
+def set_drum_pad_solo(
+    ctx: Context,
+    track_index: int,
+    note: int,
+    solo: bool,
+    device_index: int = 0,
+    track_type: str = "track",
+    exclusive: bool = False,
+) -> str:
+    """Solo or unsolo a drum pad by MIDI note number. Note: drum pad solo does not auto-unsolo other pads unless exclusive=True.
+
+    Parameters:
+    - track_index: Index of the track
+    - note: MIDI note number of the drum pad (e.g., 36 for C1)
+    - solo: True to solo, False to unsolo
+    - device_index: Index of the Drum Rack device on the track
+    - track_type: Track collection - "track", "return", or "master"
+    - exclusive: If True and solo=True, unsolo all other pads first
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "set_drum_pad_solo",
+            {
+                "track_index": track_index,
+                "device_index": device_index,
+                "track_type": track_type,
+                "note": note,
+                "solo": solo,
+                "exclusive": exclusive,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to set drum pad solo",
+            detail=str(e),
+            suggestion="Ensure the device is a Drum Rack and the note number is valid",
+        )
+
+
+@mcp.tool()
+def delete_drum_pad_chains(
+    ctx: Context,
+    track_index: int,
+    note: int,
+    device_index: int = 0,
+    track_type: str = "track",
+) -> str:
+    """Clear all chains from a drum pad, removing its content.
+
+    Parameters:
+    - track_index: Index of the track
+    - note: MIDI note number of the drum pad (e.g., 36 for C1)
+    - device_index: Index of the Drum Rack device on the track
+    - track_type: Track collection - "track", "return", or "master"
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "delete_drum_pad_chains",
+            {
+                "track_index": track_index,
+                "device_index": device_index,
+                "track_type": track_type,
+                "note": note,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to delete drum pad chains",
+            detail=str(e),
+            suggestion="Ensure the device is a Drum Rack and the note number is valid",
+        )
+
+
+@mcp.tool()
+def list_plugin_presets(
+    ctx: Context,
+    track_index: int,
+    device_index: int = 0,
+    track_type: str = "track",
+) -> str:
+    """List available presets for a VST/AU plugin device.
+
+    Parameters:
+    - track_index: Index of the track
+    - device_index: Index of the plugin device on the track
+    - track_type: Track collection - "track", "return", or "master"
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "list_plugin_presets",
+            {
+                "track_index": track_index,
+                "device_index": device_index,
+                "track_type": track_type,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to list plugin presets",
+            detail=str(e),
+            suggestion="Only VST/AU plugin devices have presets. Native Ableton devices do not.",
+        )
+
+
+@mcp.tool()
+def set_plugin_preset(
+    ctx: Context,
+    track_index: int,
+    preset_index: int,
+    device_index: int = 0,
+    track_type: str = "track",
+) -> str:
+    """Select a preset by index for a VST/AU plugin device. Use list_plugin_presets to see available presets.
+
+    Parameters:
+    - track_index: Index of the track
+    - preset_index: Index of the preset to select
+    - device_index: Index of the plugin device on the track
+    - track_type: Track collection - "track", "return", or "master"
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "set_plugin_preset",
+            {
+                "track_index": track_index,
+                "device_index": device_index,
+                "track_type": track_type,
+                "preset_index": preset_index,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to set plugin preset",
+            detail=str(e),
+            suggestion="Use list_plugin_presets to check available presets and valid indices",
+        )
+
+
+@mcp.tool()
+def compare_ab(
+    ctx: Context,
+    track_index: int,
+    device_index: int = 0,
+    track_type: str = "track",
+    action: str | None = None,
+) -> str:
+    """A/B preset comparison (Live 12.3+). Call without action to get current state. Use action='save' to save current preset to compare slot.
+
+    Parameters:
+    - track_index: Index of the track
+    - device_index: Index of the device on the track
+    - track_type: Track collection - "track", "return", or "master"
+    - action: 'save' to save preset to compare slot, or omit for info only
+    """
+    try:
+        ableton = get_ableton_connection()
+        params = {
+            "track_index": track_index,
+            "device_index": device_index,
+            "track_type": track_type,
+        }
+        if action is not None:
+            params["action"] = action
+        result = ableton.send_command("compare_ab", params)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to compare A/B presets",
+            detail=str(e),
+            suggestion="Ensure the device supports A/B comparison (Live 12.3+)",
+        )
