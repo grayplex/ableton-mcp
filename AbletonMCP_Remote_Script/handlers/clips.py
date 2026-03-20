@@ -456,6 +456,77 @@ class ClipHandlers:
             self.log_message(f"Error duplicating clip region: {e}")
             raise
 
+    @command("set_clip_groove", write=True)
+    def _set_clip_groove(self, params):
+        """Assign a groove from the groove pool to a clip, or clear it."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        groove_index = params.get("groove_index")
+        try:
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            if not clip_slot.has_clip:
+                raise Exception("No clip in slot")
+
+            clip = clip_slot.clip
+
+            if groove_index is None:
+                clip.groove = None
+                return {
+                    "clip_name": clip.name,
+                    "has_groove": False,
+                    "groove": None,
+                }
+
+            grooves = self._song.groove_pool.grooves
+            if groove_index < 0 or groove_index >= len(grooves):
+                raise IndexError(
+                    f"Groove index {groove_index} out of range "
+                    f"(0-{len(grooves) - 1})"
+                )
+            groove = grooves[groove_index]
+            clip.groove = groove
+
+            return {
+                "clip_name": clip.name,
+                "has_groove": clip.has_groove,
+                "groove_index": groove_index,
+                "groove_name": groove.name,
+            }
+        except Exception as e:
+            self.log_message(f"Error setting clip groove: {e}")
+            raise
+
+    @command("create_session_audio_clip", write=True)
+    def _create_session_audio_clip(self, params):
+        """Create an audio clip in a session view clip slot from a file path."""
+        track_index = params.get("track_index", 0)
+        clip_index = params.get("clip_index", 0)
+        file_path = params.get("file_path")
+        try:
+            if file_path is None:
+                raise ValueError("file_path parameter is required")
+
+            clip_slot, track = _resolve_clip_slot(
+                self._song, track_index, clip_index
+            )
+
+            clip_slot.create_audio_clip(file_path)
+
+            return {
+                "created": True,
+                "track_name": track.name,
+                "track_index": track_index,
+                "clip_index": clip_index,
+                "file_path": file_path,
+                "clip_name": clip_slot.clip.name if clip_slot.has_clip else None,
+            }
+        except Exception as e:
+            self.log_message(f"Error creating session audio clip: {e}")
+            raise
+
     @command("set_clip_loop", write=True)
     def _set_clip_loop(self, params):
         """Set loop/region properties on a clip.

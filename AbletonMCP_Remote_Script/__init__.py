@@ -20,6 +20,7 @@ from .handlers.base import BaseHandlers
 from .handlers.audio_clips import AudioClipHandlers
 from .handlers.automation import AutomationHandlers
 from .handlers.browser import BrowserHandlers
+from .handlers.grooves import GrooveHandlers
 from .handlers.clips import ClipHandlers
 from .handlers.devices import DeviceHandlers
 from .handlers.mixer import MixerHandlers
@@ -88,6 +89,7 @@ class AbletonMCP(
     AutomationHandlers,
     RoutingHandlers,
     AudioClipHandlers,
+    GrooveHandlers,
     BrowserHandlers,
     ControlSurface,
 ):
