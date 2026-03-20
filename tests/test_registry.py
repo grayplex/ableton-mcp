@@ -99,7 +99,7 @@ class TestFullRegistry:
         from AbletonMCP_Remote_Script.registry import CommandRegistry
 
         registered = {e[0] for e in CommandRegistry._entries}
-        assert len(registered) == 139, f"Expected 139 commands, got {len(registered)}: {registered}"
+        assert len(registered) == 144, f"Expected 144 commands, got {len(registered)}: {registered}"
 
         expected = {
             "get_session_info",
@@ -254,6 +254,12 @@ class TestFullRegistry:
             "set_plugin_preset",
             "list_plugin_presets",
             "compare_ab",
+            # Phase 13: Groove + Clip Extended
+            "list_grooves",
+            "get_groove_params",
+            "set_groove_params",
+            "set_clip_groove",
+            "create_session_audio_clip",
         }
         missing = expected - registered
         assert not missing, f"Commands not registered: {missing}"

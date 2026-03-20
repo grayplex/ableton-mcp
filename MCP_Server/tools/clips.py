@@ -392,6 +392,66 @@ def duplicate_clip_region(
 
 
 @mcp.tool()
+def set_clip_groove(
+    ctx: Context,
+    track_index: int,
+    clip_index: int,
+    groove_index: int | None = None,
+) -> str:
+    """Assign a groove from the groove pool to a clip, or clear the groove assignment.
+
+    Parameters:
+    - track_index: Index of the track
+    - clip_index: Index of the clip slot
+    - groove_index: Index of the groove in the pool (None to clear groove)
+    """
+    try:
+        ableton = get_ableton_connection()
+        params: dict = {"track_index": track_index, "clip_index": clip_index}
+        if groove_index is not None:
+            params["groove_index"] = groove_index
+        else:
+            params["groove_index"] = None
+        result = ableton.send_command("set_clip_groove", params)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to set clip groove",
+            detail=str(e),
+            suggestion="Use list_grooves to see available grooves. Groove must be loaded in pool first.",
+        )
+
+
+@mcp.tool()
+def create_session_audio_clip(
+    ctx: Context,
+    track_index: int,
+    clip_index: int,
+    file_path: str,
+) -> str:
+    """Create an audio clip in a session view clip slot from an audio file.
+
+    Parameters:
+    - track_index: Index of the track (must be an audio track)
+    - clip_index: Index of the clip slot
+    - file_path: Absolute path to the audio file
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "create_session_audio_clip",
+            {"track_index": track_index, "clip_index": clip_index, "file_path": file_path},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to create session audio clip",
+            detail=str(e),
+            suggestion="Track must be an audio track and not frozen. Provide an absolute file path.",
+        )
+
+
+@mcp.tool()
 def set_clip_loop(
     ctx: Context,
     track_index: int,

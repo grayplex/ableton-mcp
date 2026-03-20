@@ -149,6 +149,10 @@ _WRITE_COMMANDS = frozenset(
         "delete_drum_pad_chains",
         "set_plugin_preset",
         "compare_ab",
+        # Phase 13: Groove + Clip Extended
+        "set_groove_params",
+        "set_clip_groove",
+        "create_session_audio_clip",
     ]
 )
 

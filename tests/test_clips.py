@@ -270,3 +270,58 @@ async def test_crop_clip_calls_send_command(mcp_server, mock_connection):
     mock_connection.send_command.assert_called_once_with(
         "crop_clip", {"track_index": 0, "clip_index": 0}
     )
+
+
+# --- Phase 13: Clip Groove + Session Audio ---
+
+
+async def test_set_clip_groove_calls_send_command(mcp_server, mock_connection):
+    """set_clip_groove sends groove assignment correctly."""
+    mock_connection.send_command.return_value = {
+        "clip_name": "Piano", "has_groove": True,
+        "groove_index": 0, "groove_name": "Swing 8th",
+    }
+    result = await mcp_server.call_tool(
+        "set_clip_groove",
+        {"track_index": 0, "clip_index": 0, "groove_index": 0},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["has_groove"] is True
+    mock_connection.send_command.assert_called_once_with(
+        "set_clip_groove", {"track_index": 0, "clip_index": 0, "groove_index": 0}
+    )
+
+
+async def test_set_clip_groove_clear(mcp_server, mock_connection):
+    """set_clip_groove clears groove when no groove_index provided."""
+    mock_connection.send_command.return_value = {
+        "clip_name": "Piano", "has_groove": False, "groove": None,
+    }
+    result = await mcp_server.call_tool(
+        "set_clip_groove",
+        {"track_index": 0, "clip_index": 0},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["has_groove"] is False
+
+
+async def test_create_session_audio_clip_calls_send_command(mcp_server, mock_connection):
+    """create_session_audio_clip sends correct params."""
+    mock_connection.send_command.return_value = {
+        "created": True, "track_name": "Audio 1",
+        "track_index": 0, "clip_index": 0,
+        "file_path": "/samples/kick.wav", "clip_name": "kick",
+    }
+    result = await mcp_server.call_tool(
+        "create_session_audio_clip",
+        {"track_index": 0, "clip_index": 0, "file_path": "/samples/kick.wav"},
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["created"] is True
+    mock_connection.send_command.assert_called_once_with(
+        "create_session_audio_clip",
+        {"track_index": 0, "clip_index": 0, "file_path": "/samples/kick.wav"},
+    )
