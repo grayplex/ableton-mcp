@@ -436,6 +436,417 @@ class DeviceHandlers:
             self.log_message(f"Error moving device: {e}")
             raise
 
+    # --- Phase 13: Simpler, DrumPad, Plugin, A/B Compare ---
+
+    def _resolve_drum_pad(self, device, note):
+        """Find a drum pad by MIDI note number.
+
+        Args:
+            device: A Drum Rack device.
+            note: MIDI note number to find.
+
+        Returns:
+            The DrumPad with matching note.
+
+        Raises:
+            ValueError: If no pad with the given note exists.
+        """
+        for pad in device.drum_pads:
+            if pad.note == note:
+                return pad
+        raise ValueError(
+            f"No drum pad with note {note} found in '{device.name}'. "
+            f"Available notes: {[p.note for p in device.drum_pads if p.chains]}"
+        )
+
+    @command("crop_simpler", write=True)
+    def _crop_simpler(self, params):
+        """Crop a Simpler device's sample to its active region.
+
+        Params:
+            track_index, device_index, track_type: Standard device addressing.
+        """
+        device, _track = self._resolve_device(params)
+        if not hasattr(device, "playback_mode"):
+            raise ValueError(f"Device '{device.name}' is not a Simpler device")
+        if device.sample is None:
+            raise ValueError("No sample loaded in Simpler")
+        device.crop()
+        return {"cropped": True, "device_name": device.name}
+
+    @command("reverse_simpler", write=True)
+    def _reverse_simpler(self, params):
+        """Reverse a Simpler device's loaded sample.
+
+        Params:
+            track_index, device_index, track_type: Standard device addressing.
+        """
+        device, _track = self._resolve_device(params)
+        if not hasattr(device, "playback_mode"):
+            raise ValueError(f"Device '{device.name}' is not a Simpler device")
+        if device.sample is None:
+            raise ValueError("No sample loaded in Simpler")
+        device.reverse()
+        return {"reversed": True, "device_name": device.name}
+
+    @command("warp_simpler", write=True)
+    def _warp_simpler(self, params):
+        """Warp a Simpler device's sample.
+
+        Params:
+            track_index, device_index, track_type: Standard device addressing.
+            mode: 'as' (warp to beats), 'double', or 'half'.
+            beats: Required when mode='as', float number of beats.
+        """
+        mode = params.get("mode")
+        beats = params.get("beats")
+
+        device, _track = self._resolve_device(params)
+        if not hasattr(device, "playback_mode"):
+            raise ValueError(f"Device '{device.name}' is not a Simpler device")
+        if device.sample is None:
+            raise ValueError("No sample loaded in Simpler")
+
+        if mode == "as":
+            if not device.can_warp_as:
+                raise ValueError("Warp As is not available for this sample")
+            if beats is None:
+                raise ValueError("beats parameter is required when mode='as'")
+            device.warp_as(beats)
+        elif mode == "double":
+            if not device.can_warp_double:
+                raise ValueError("Warp Double is not available for this sample")
+            device.warp_double()
+        elif mode == "half":
+            if not device.can_warp_half:
+                raise ValueError("Warp Half is not available for this sample")
+            device.warp_half()
+        else:
+            raise ValueError(
+                f"Invalid warp mode '{mode}'. Use 'as', 'double', or 'half'."
+            )
+
+        return {"warped": True, "device_name": device.name, "mode": mode}
+
+    @command("get_simpler_info")
+    def _get_simpler_info(self, params):
+        """Get Simpler device info: playback mode, warp caps, and sample details.
+
+        Params:
+            track_index, device_index, track_type: Standard device addressing.
+        """
+        device, _track = self._resolve_device(params)
+        if not hasattr(device, "playback_mode"):
+            raise ValueError(f"Device '{device.name}' is not a Simpler device")
+
+        result = {
+            "device_name": device.name,
+            "playback_mode": device.playback_mode,
+            "playback_mode_label": {0: "Classic", 1: "One-Shot", 2: "Slicing"}.get(
+                device.playback_mode, "unknown"
+            ),
+            "can_warp_as": device.can_warp_as,
+            "can_warp_double": device.can_warp_double,
+            "can_warp_half": device.can_warp_half,
+        }
+
+        if device.sample is not None:
+            result["sample"] = {
+                "file_path": device.sample.file_path,
+                "length": device.sample.length,
+                "sample_rate": device.sample.sample_rate,
+                "slices": list(device.sample.slices),
+                "slicing_sensitivity": device.sample.slicing_sensitivity,
+                "slicing_style": device.sample.slicing_style,
+            }
+        else:
+            result["sample"] = None
+
+        return result
+
+    @command("set_simpler_playback_mode", write=True)
+    def _set_simpler_playback_mode(self, params):
+        """Set Simpler playback mode (0=Classic, 1=One-Shot, 2=Slicing).
+
+        Params:
+            track_index, device_index, track_type: Standard device addressing.
+            mode: int (0, 1, or 2).
+        """
+        mode = params.get("mode")
+
+        device, _track = self._resolve_device(params)
+        if not hasattr(device, "playback_mode"):
+            raise ValueError(f"Device '{device.name}' is not a Simpler device")
+
+        if mode not in {0, 1, 2}:
+            raise ValueError(
+                f"Invalid playback mode {mode}. "
+                "Use 0=Classic, 1=One-Shot, or 2=Slicing."
+            )
+
+        device.playback_mode = mode
+
+        return {
+            "device_name": device.name,
+            "playback_mode": device.playback_mode,
+            "playback_mode_label": {0: "Classic", 1: "One-Shot", 2: "Slicing"}.get(
+                device.playback_mode, "unknown"
+            ),
+        }
+
+    @command("insert_simpler_slice", write=True)
+    def _insert_simpler_slice(self, params):
+        """Insert a slice marker in a Simpler sample.
+
+        Params:
+            track_index, device_index, track_type: Standard device addressing.
+            time: Position in sample frames.
+        """
+        time = params.get("time")
+
+        device, _track = self._resolve_device(params)
+        if not hasattr(device, "playback_mode"):
+            raise ValueError(f"Device '{device.name}' is not a Simpler device")
+        if device.sample is None:
+            raise ValueError("No sample loaded in Simpler")
+
+        device.sample.insert_slice(time)
+
+        return {
+            "inserted": True,
+            "device_name": device.name,
+            "time": time,
+            "slices": list(device.sample.slices),
+        }
+
+    @command("move_simpler_slice", write=True)
+    def _move_simpler_slice(self, params):
+        """Move a slice marker from one position to another.
+
+        Params:
+            track_index, device_index, track_type: Standard device addressing.
+            source_time: Current position in sample frames.
+            destination_time: New position in sample frames.
+        """
+        source_time = params.get("source_time")
+        destination_time = params.get("destination_time")
+
+        device, _track = self._resolve_device(params)
+        if not hasattr(device, "playback_mode"):
+            raise ValueError(f"Device '{device.name}' is not a Simpler device")
+        if device.sample is None:
+            raise ValueError("No sample loaded in Simpler")
+
+        device.sample.move_slice(source_time, destination_time)
+
+        return {
+            "moved": True,
+            "device_name": device.name,
+            "source_time": source_time,
+            "destination_time": destination_time,
+            "slices": list(device.sample.slices),
+        }
+
+    @command("remove_simpler_slice", write=True)
+    def _remove_simpler_slice(self, params):
+        """Remove a slice marker at a position.
+
+        Params:
+            track_index, device_index, track_type: Standard device addressing.
+            time: Position in sample frames.
+        """
+        time = params.get("time")
+
+        device, _track = self._resolve_device(params)
+        if not hasattr(device, "playback_mode"):
+            raise ValueError(f"Device '{device.name}' is not a Simpler device")
+        if device.sample is None:
+            raise ValueError("No sample loaded in Simpler")
+
+        device.sample.remove_slice(time)
+
+        return {
+            "removed": True,
+            "device_name": device.name,
+            "time": time,
+            "slices": list(device.sample.slices),
+        }
+
+    @command("clear_simpler_slices", write=True)
+    def _clear_simpler_slices(self, params):
+        """Clear all slice markers from a Simpler sample.
+
+        Params:
+            track_index, device_index, track_type: Standard device addressing.
+        """
+        device, _track = self._resolve_device(params)
+        if not hasattr(device, "playback_mode"):
+            raise ValueError(f"Device '{device.name}' is not a Simpler device")
+        if device.sample is None:
+            raise ValueError("No sample loaded in Simpler")
+
+        device.sample.clear_slices()
+
+        return {
+            "cleared": True,
+            "device_name": device.name,
+            "slices": list(device.sample.slices),
+        }
+
+    @command("set_drum_pad_mute", write=True)
+    def _set_drum_pad_mute(self, params):
+        """Mute or unmute a drum pad by MIDI note number.
+
+        Params:
+            track_index, device_index, track_type: Standard device addressing.
+            note: MIDI note number of the drum pad.
+            mute: True to mute, False to unmute.
+        """
+        note = params.get("note")
+        mute = params.get("mute")
+
+        device, _track = self._resolve_device(params)
+        if not device.can_have_drum_pads:
+            raise ValueError(f"Device '{device.name}' is not a Drum Rack")
+
+        pad = self._resolve_drum_pad(device, note)
+        pad.mute = mute
+
+        return {"note": note, "name": pad.name, "mute": pad.mute}
+
+    @command("set_drum_pad_solo", write=True)
+    def _set_drum_pad_solo(self, params):
+        """Solo or unsolo a drum pad by MIDI note number.
+
+        Params:
+            track_index, device_index, track_type: Standard device addressing.
+            note: MIDI note number of the drum pad.
+            solo: True to solo, False to unsolo.
+            exclusive: If True and solo=True, unsolo all other pads first.
+        """
+        note = params.get("note")
+        solo = params.get("solo")
+        exclusive = params.get("exclusive", False)
+
+        device, _track = self._resolve_device(params)
+        if not device.can_have_drum_pads:
+            raise ValueError(f"Device '{device.name}' is not a Drum Rack")
+
+        pad = self._resolve_drum_pad(device, note)
+
+        if exclusive and solo:
+            for p in device.drum_pads:
+                p.solo = False
+
+        pad.solo = solo
+
+        return {
+            "note": note,
+            "name": pad.name,
+            "solo": pad.solo,
+            "note_text": (
+                "DrumPad solo does not auto-unsolo other pads. "
+                "Use exclusive=True to solo exclusively."
+            ),
+        }
+
+    @command("delete_drum_pad_chains", write=True)
+    def _delete_drum_pad_chains(self, params):
+        """Clear all chains from a drum pad, removing its content.
+
+        Params:
+            track_index, device_index, track_type: Standard device addressing.
+            note: MIDI note number of the drum pad.
+        """
+        note = params.get("note")
+
+        device, _track = self._resolve_device(params)
+        if not device.can_have_drum_pads:
+            raise ValueError(f"Device '{device.name}' is not a Drum Rack")
+
+        pad = self._resolve_drum_pad(device, note)
+        pad.delete_all_chains()
+
+        return {"deleted": True, "note": note, "name": pad.name}
+
+    @command("list_plugin_presets")
+    def _list_plugin_presets(self, params):
+        """List available presets for a VST/AU plugin device.
+
+        Params:
+            track_index, device_index, track_type: Standard device addressing.
+        """
+        device, _track = self._resolve_device(params)
+        if not hasattr(device, "presets"):
+            raise ValueError(
+                f"Device '{device.name}' is not a plugin device (VST/AU). "
+                "Only plugin devices have presets."
+            )
+
+        return {
+            "device_name": device.name,
+            "presets": list(device.presets),
+            "selected_preset_index": device.selected_preset_index,
+            "preset_count": len(device.presets),
+        }
+
+    @command("set_plugin_preset", write=True)
+    def _set_plugin_preset(self, params):
+        """Select a preset by index for a VST/AU plugin device.
+
+        Params:
+            track_index, device_index, track_type: Standard device addressing.
+            preset_index: Index of the preset to select.
+        """
+        preset_index = params.get("preset_index")
+
+        device, _track = self._resolve_device(params)
+        if not hasattr(device, "presets"):
+            raise ValueError(
+                f"Device '{device.name}' is not a plugin device (VST/AU). "
+                "Only plugin devices have presets."
+            )
+
+        if preset_index < 0 or preset_index >= len(device.presets):
+            raise IndexError(
+                f"Preset index {preset_index} out of range "
+                f"(0-{len(device.presets) - 1})"
+            )
+
+        device.selected_preset_index = preset_index
+
+        return {
+            "device_name": device.name,
+            "selected_preset_index": device.selected_preset_index,
+            "preset_name": device.presets[device.selected_preset_index],
+        }
+
+    @command("compare_ab", write=True)
+    def _compare_ab(self, params):
+        """A/B preset comparison (Live 12.3+).
+
+        Params:
+            track_index, device_index, track_type: Standard device addressing.
+            action: Optional. 'save' to save preset to compare slot, or omit for info.
+        """
+        action = params.get("action")
+
+        device, _track = self._resolve_device(params)
+        if not device.can_compare_ab:
+            raise ValueError(
+                f"Device '{device.name}' does not support A/B comparison"
+            )
+
+        if action == "save":
+            device.save_preset_to_compare_ab_slot()
+
+        return {
+            "device_name": device.name,
+            "can_compare_ab": device.can_compare_ab,
+            "is_using_compare_preset_b": device.is_using_compare_preset_b,
+            "action": action or "info",
+        }
+
     def _get_device_type(self, device):
         """Get the type of a device."""
         try:
