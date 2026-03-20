@@ -236,7 +236,7 @@ Plans:
 **Goal:** Implement all remaining Add-tier LOM gaps -- scene extensions (color, tempo, time signature), mixer extended (crossfader, crossfade assign), Simpler device operations (crop, reverse, warp, slicing), DrumPad controls (mute/solo, clear), plugin presets, A/B compare, groove pool, and session audio clip creation
 **Requirements**: SCNX-01, SCNX-02, SCNX-03, SCNX-04, SCNX-06, MIXX-01, MIXX-02, MIXX-03, SMPL-01, SMPL-02, SMPL-03, SMPL-04, SMPL-05, DRPD-01, DRPD-02, DEVX-03, DEVX-04, GRVX-01, GRVX-02, GRVX-03, ACRT-01
 **Depends on:** Phase 12
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] 13-01-PLAN.md — Scene + Mixer extended: scene color, per-scene tempo/time signature, fire-as-selected, is_empty, crossfader, crossfade assign, panning mode (9 commands + 9 MCP tools + 13 smoke tests)
