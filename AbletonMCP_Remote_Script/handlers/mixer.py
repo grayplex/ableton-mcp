@@ -232,3 +232,73 @@ class MixerHandlers:
         except Exception as e:
             self.log_message(f"Error setting send level: {e}")
             raise
+
+    @command("set_crossfader", write=True)
+    def _set_crossfader(self, params):
+        """Set the crossfader position on the master track mixer."""
+        value = params.get("value")
+        try:
+            crossfader = self._song.master_track.mixer_device.crossfader
+            crossfader.value = value
+            return {
+                "crossfader": crossfader.value,
+                "min": crossfader.min,
+                "max": crossfader.max,
+            }
+        except Exception as e:
+            self.log_message(f"Error setting crossfader: {e}")
+            raise
+
+    @command("set_crossfade_assign", write=True)
+    def _set_crossfade_assign(self, params):
+        """Set the crossfade assignment for a track (0=A, 1=none, 2=B)."""
+        track_index = params.get("track_index", 0)
+        track_type = params.get("track_type", "track")
+        assign = params.get("assign")
+        try:
+            if track_type == "master":
+                raise ValueError(
+                    "Master track does not have crossfade assignment"
+                )
+            if assign not in (0, 1, 2):
+                raise ValueError(
+                    f"assign must be 0 (A), 1 (none), or 2 (B). "
+                    f"Got: {assign}"
+                )
+            track = _resolve_track(self._song, track_type, track_index)
+            track.mixer_device.crossfade_assign = assign
+            label = {0: "A", 1: "none", 2: "B"}[assign]
+            return {
+                "crossfade_assign": track.mixer_device.crossfade_assign,
+                "assign_label": label,
+                "name": track.name,
+                "type": track_type,
+                "index": track_index,
+            }
+        except Exception as e:
+            self.log_message(f"Error setting crossfade assignment: {e}")
+            raise
+
+    @command("get_panning_mode")
+    def _get_panning_mode(self, params):
+        """Get the panning mode of a track (Stereo or Split Stereo)."""
+        track_index = params.get("track_index", 0)
+        track_type = params.get("track_type", "track")
+        try:
+            track = _resolve_track(self._song, track_type, track_index)
+            mode = track.mixer_device.panning_mode
+            label = {0: "Stereo", 1: "Split Stereo"}.get(
+                mode, f"unknown_{mode}"
+            )
+            result = {
+                "panning_mode": mode,
+                "mode_label": label,
+                "name": track.name,
+                "type": track_type,
+            }
+            if track_type != "master":
+                result["index"] = track_index
+            return result
+        except Exception as e:
+            self.log_message(f"Error getting panning mode: {e}")
+            raise
