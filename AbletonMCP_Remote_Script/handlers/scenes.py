@@ -1,6 +1,6 @@
 """Scene handlers: create, name, fire, delete, color, tempo, time sig, is_empty."""
 
-from AbletonMCP_Remote_Script.handlers.tracks import COLOR_NAMES, COLOR_INDEX_TO_NAME
+from AbletonMCP_Remote_Script.handlers.tracks import COLOR_INDEX_TO_NAME, COLOR_NAMES
 from AbletonMCP_Remote_Script.registry import command
 
 

@@ -190,3 +190,60 @@ async def test_set_track_volume_error_returns_format_error(mcp_server, mock_conn
     text = result[0][0].text
     assert "Error" in text
     assert "track volume" in text.lower() or "Track not found" in text
+
+
+# --- Phase 13: Mixer Extended ---
+
+
+async def test_mixer_extended_tools_registered(mcp_server):
+    """All 3 mixer extended tools are registered as MCP tools."""
+    tools = await mcp_server.list_tools()
+    names = {t.name for t in tools}
+    assert "set_crossfader" in names
+    assert "set_crossfade_assign" in names
+    assert "get_panning_mode" in names
+
+
+async def test_set_crossfader_calls_send_command(mcp_server, mock_connection):
+    """set_crossfader invokes send_command with correct params."""
+    mock_connection.send_command.return_value = {
+        "crossfader": 0.5, "min": 0.0, "max": 1.0,
+    }
+    result = await mcp_server.call_tool("set_crossfader", {"value": 0.5})
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["crossfader"] == 0.5
+
+
+async def test_set_crossfade_assign_calls_send_command(mcp_server, mock_connection):
+    """set_crossfade_assign invokes send_command with correct params."""
+    mock_connection.send_command.return_value = {
+        "crossfade_assign": 0, "assign_label": "A",
+        "name": "Bass", "type": "track", "index": 0,
+    }
+    result = await mcp_server.call_tool(
+        "set_crossfade_assign", {"track_index": 0, "assign": 0}
+    )
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["assign_label"] == "A"
+
+
+async def test_get_panning_mode_calls_send_command(mcp_server, mock_connection):
+    """get_panning_mode invokes send_command with correct params."""
+    mock_connection.send_command.return_value = {
+        "panning_mode": 0, "mode_label": "Stereo",
+        "name": "Bass", "type": "track", "index": 0,
+    }
+    result = await mcp_server.call_tool("get_panning_mode", {"track_index": 0})
+    text = result[0][0].text
+    parsed = json.loads(text)
+    assert parsed["mode_label"] == "Stereo"
+
+
+async def test_set_crossfader_error(mcp_server, mock_connection):
+    """set_crossfader returns format_error on exception."""
+    mock_connection.send_command.side_effect = Exception("Connection lost")
+    result = await mcp_server.call_tool("set_crossfader", {"value": 0.5})
+    text = result[0][0].text
+    assert "Error" in text

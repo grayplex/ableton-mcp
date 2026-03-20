@@ -1,8 +1,8 @@
 """Mixer handlers: volume, pan, mute, solo, arm, sends."""
 
-from AbletonMCP_Remote_Script.registry import command
+from AbletonMCP_Remote_Script.handlers.mixer_helpers import _pan_label, _to_db
 from AbletonMCP_Remote_Script.handlers.tracks import _resolve_track
-from AbletonMCP_Remote_Script.handlers.mixer_helpers import _to_db, _pan_label
+from AbletonMCP_Remote_Script.registry import command
 
 
 class MixerHandlers:

@@ -152,3 +152,72 @@ def set_send_level(ctx: Context, track_index: int, return_index: int, level: flo
             detail=str(e),
             suggestion="Level must be 0.0-1.0. Check return tracks with get_all_tracks.",
         )
+
+
+# --- Phase 13: Mixer Extended ---
+
+
+@mcp.tool()
+def set_crossfader(ctx: Context, value: float) -> str:
+    """Set the crossfader position. Only available on the master track mixer.
+
+    Parameters:
+    - value: Crossfader position (use min/max from response to know range)
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command("set_crossfader", {"value": value})
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to set crossfader",
+            detail=str(e),
+            suggestion="Crossfader is only on the master track mixer",
+        )
+
+
+@mcp.tool()
+def set_crossfade_assign(ctx: Context, track_index: int, assign: int, track_type: str = "track") -> str:
+    """Set the crossfade assignment for a track.
+
+    Parameters:
+    - track_index: Index of the track
+    - assign: 0=A, 1=none, 2=B
+    - track_type: 'track' (default) or 'return'. Master track cannot be assigned.
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "set_crossfade_assign",
+            {"track_index": track_index, "assign": assign, "track_type": track_type},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to set crossfade assignment",
+            detail=str(e),
+            suggestion="assign must be 0 (A), 1 (none), or 2 (B). Master track has no crossfade assignment.",
+        )
+
+
+@mcp.tool()
+def get_panning_mode(ctx: Context, track_index: int, track_type: str = "track") -> str:
+    """Get the panning mode of a track (Stereo or Split Stereo).
+
+    Parameters:
+    - track_index: Index of the track
+    - track_type: 'track' (default), 'return', or 'master'
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "get_panning_mode",
+            {"track_index": track_index, "track_type": track_type},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to get panning mode",
+            detail=str(e),
+            suggestion="Verify track_index is valid",
+        )

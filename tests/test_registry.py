@@ -99,7 +99,7 @@ class TestFullRegistry:
         from AbletonMCP_Remote_Script.registry import CommandRegistry
 
         registered = {e[0] for e in CommandRegistry._entries}
-        assert len(registered) == 115, f"Expected 115 commands, got {len(registered)}: {registered}"
+        assert len(registered) == 139, f"Expected 139 commands, got {len(registered)}: {registered}"
 
         expected = {
             "get_session_info",
@@ -228,6 +228,32 @@ class TestFullRegistry:
             "insert_warp_marker",
             "move_warp_marker",
             "remove_warp_marker",
+            # Phase 13: Scene + Mixer Extended
+            "set_scene_color",
+            "get_scene_color",
+            "set_scene_tempo",
+            "set_scene_time_signature",
+            "fire_scene_as_selected",
+            "get_scene_is_empty",
+            "set_crossfader",
+            "set_crossfade_assign",
+            "get_panning_mode",
+            # Phase 13: Device Extended (Simpler, DrumPad, Plugin, A/B)
+            "get_simpler_info",
+            "crop_simpler",
+            "reverse_simpler",
+            "warp_simpler",
+            "set_simpler_playback_mode",
+            "insert_simpler_slice",
+            "move_simpler_slice",
+            "remove_simpler_slice",
+            "clear_simpler_slices",
+            "set_drum_pad_mute",
+            "set_drum_pad_solo",
+            "delete_drum_pad_chains",
+            "set_plugin_preset",
+            "list_plugin_presets",
+            "compare_ab",
         }
         missing = expected - registered
         assert not missing, f"Commands not registered: {missing}"

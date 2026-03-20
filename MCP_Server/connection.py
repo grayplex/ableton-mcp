@@ -128,6 +128,27 @@ _WRITE_COMMANDS = frozenset(
         "insert_warp_marker",
         "move_warp_marker",
         "remove_warp_marker",
+        # Phase 13: Scene + Mixer Extended
+        "set_scene_color",
+        "set_scene_tempo",
+        "set_scene_time_signature",
+        "fire_scene_as_selected",
+        "set_crossfader",
+        "set_crossfade_assign",
+        # Phase 13: Device Extended (Simpler, DrumPad, Plugin, A/B)
+        "crop_simpler",
+        "reverse_simpler",
+        "warp_simpler",
+        "set_simpler_playback_mode",
+        "insert_simpler_slice",
+        "move_simpler_slice",
+        "remove_simpler_slice",
+        "clear_simpler_slices",
+        "set_drum_pad_mute",
+        "set_drum_pad_solo",
+        "delete_drum_pad_chains",
+        "set_plugin_preset",
+        "compare_ab",
     ]
 )
 

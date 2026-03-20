@@ -106,3 +106,148 @@ def duplicate_scene(ctx: Context, scene_index: int) -> str:
             detail=str(e),
             suggestion="Verify scene_index is valid",
         )
+
+
+# --- Phase 13: Scene Extended ---
+
+
+@mcp.tool()
+def set_scene_color(ctx: Context, scene_index: int, color: str) -> str:
+    """Set the color of a scene by friendly name.
+
+    Parameters:
+    - scene_index: Index of the scene
+    - color: Color name (e.g. 'red', 'blue', 'green')
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "set_scene_color", {"scene_index": scene_index, "color": color}
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to set scene color",
+            detail=str(e),
+            suggestion="Use get_scene_color to see available colors",
+        )
+
+
+@mcp.tool()
+def get_scene_color(ctx: Context, scene_index: int) -> str:
+    """Get the current color of a scene.
+
+    Parameters:
+    - scene_index: Index of the scene
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "get_scene_color", {"scene_index": scene_index}
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to get scene color",
+            detail=str(e),
+            suggestion="Verify scene_index is valid",
+        )
+
+
+@mcp.tool()
+def set_scene_tempo(ctx: Context, scene_index: int, tempo: float, enabled: bool = True) -> str:
+    """Set per-scene tempo. Scene tempo overrides global tempo when fired.
+
+    Parameters:
+    - scene_index: Index of the scene
+    - tempo: Tempo in BPM
+    - enabled: Whether scene tempo is active (default: True)
+    """
+    try:
+        ableton = get_ableton_connection()
+        params = {"scene_index": scene_index, "tempo": tempo, "enabled": enabled}
+        result = ableton.send_command("set_scene_tempo", params)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to set scene tempo",
+            detail=str(e),
+            suggestion="Verify scene_index is valid",
+        )
+
+
+@mcp.tool()
+def set_scene_time_signature(
+    ctx: Context,
+    scene_index: int,
+    numerator: int | None = None,
+    denominator: int | None = None,
+    enabled: bool = True,
+) -> str:
+    """Set per-scene time signature. Overrides global time signature when scene is fired.
+
+    Parameters:
+    - scene_index: Index of the scene
+    - numerator: Time signature numerator (e.g. 3 for 3/4)
+    - denominator: Time signature denominator (e.g. 4 for 3/4)
+    - enabled: Whether scene time signature is active (default: True)
+    """
+    try:
+        ableton = get_ableton_connection()
+        params: dict = {"scene_index": scene_index, "enabled": enabled}
+        if numerator is not None:
+            params["numerator"] = numerator
+        if denominator is not None:
+            params["denominator"] = denominator
+        result = ableton.send_command("set_scene_time_signature", params)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to set scene time signature",
+            detail=str(e),
+            suggestion="Verify scene_index is valid",
+        )
+
+
+@mcp.tool()
+def fire_scene_as_selected(ctx: Context, scene_index: int, force_legato: bool = False) -> str:
+    """Fire the selected scene and advance selection to the next scene.
+
+    Parameters:
+    - scene_index: Index of the scene to fire
+    - force_legato: If True, force legato transition (default: False)
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "fire_scene_as_selected",
+            {"scene_index": scene_index, "force_legato": force_legato},
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to fire scene as selected",
+            detail=str(e),
+            suggestion="Verify scene_index is valid",
+        )
+
+
+@mcp.tool()
+def get_scene_is_empty(ctx: Context, scene_index: int) -> str:
+    """Check if a scene has no clips.
+
+    Parameters:
+    - scene_index: Index of the scene
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "get_scene_is_empty", {"scene_index": scene_index}
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to check if scene is empty",
+            detail=str(e),
+            suggestion="Verify scene_index is valid",
+        )
