@@ -230,3 +230,15 @@ Plans:
 - [ ] 12-01-PLAN.md — Song-level gaps: scale/key awareness, cue points, capture workflows, session controls, navigation, duplicate_scene (17 commands + 17 MCP tools + smoke tests)
 - [ ] 12-02-PLAN.md — Track + Arrangement gaps: arrangement clip CRUD, session-to-arrangement bridge, insert_device, move_device, per-track stop, freeze state, sub-routing channels (10 commands + 10 MCP tools + smoke tests)
 - [ ] 12-03-PLAN.md — Clip + Note gaps: launch settings, clip state/editing, warp markers, note ID ops, note modifications, native quantize, registry test update (19 commands + 19 MCP tools + smoke tests)
+
+### Phase 13: Remaining LOM gaps
+
+**Goal:** Implement all remaining Add-tier LOM gaps -- scene extensions (color, tempo, time signature), mixer extended (crossfader, crossfade assign), Simpler device operations (crop, reverse, warp, slicing), DrumPad controls (mute/solo, clear), plugin presets, A/B compare, groove pool, and session audio clip creation
+**Requirements**: SCNX-01, SCNX-02, SCNX-03, SCNX-04, SCNX-06, MIXX-01, MIXX-02, MIXX-03, SMPL-01, SMPL-02, SMPL-03, SMPL-04, SMPL-05, DRPD-01, DRPD-02, DEVX-03, DEVX-04, GRVX-01, GRVX-02, GRVX-03, ACRT-01
+**Depends on:** Phase 12
+**Plans:** 3 plans
+
+Plans:
+- [ ] 13-01-PLAN.md — Scene + Mixer extended: scene color, per-scene tempo/time signature, fire-as-selected, is_empty, crossfader, crossfade assign, panning mode (9 commands + 9 MCP tools + 13 smoke tests)
+- [ ] 13-02-PLAN.md — Simpler + DrumPad + Plugin/Device: Simpler ops (crop, reverse, warp, playback mode, slicing), DrumPad mute/solo/clear, plugin presets, A/B compare (15 commands + 15 MCP tools + 17 smoke tests)
+- [ ] 13-03-PLAN.md — Groove pool + Clip extended: groove pool list/params/assign, session audio clip from file, GrooveHandlers MRO wiring, final registry update (5 commands + 5 MCP tools + 8 smoke tests)
