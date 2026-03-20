@@ -6,7 +6,7 @@ import pytest
 
 
 async def test_device_tools_registered(mcp_server):
-    """All 5 device tools are registered as MCP tools."""
+    """All device tools (original + 34 new LOM gap tools) are registered as MCP tools."""
     tools = await mcp_server.list_tools()
     names = {t.name for t in tools}
     expected = {
@@ -15,6 +15,41 @@ async def test_device_tools_registered(mcp_server):
         "set_device_parameter",
         "delete_device",
         "get_rack_chains",
+        # Quick Task: LOM gaps - 34 new tools
+        "get_wavetable_info",
+        "set_wavetable_oscillator",
+        "set_wavetable_voice_config",
+        "add_wavetable_modulation",
+        "set_wavetable_modulation_value",
+        "get_wavetable_modulation_value",
+        "get_compressor_sidechain",
+        "set_compressor_sidechain",
+        "get_rack_variations",
+        "rack_variation_action",
+        "rack_macro_action",
+        "insert_rack_chain",
+        "copy_drum_pad",
+        "get_drum_chain_config",
+        "set_drum_chain_config",
+        "get_parameter_automation_state",
+        "re_enable_parameter_automation",
+        "get_drift_mod_matrix",
+        "set_drift_mod_matrix",
+        "get_looper_info",
+        "looper_action",
+        "looper_export_to_clip_slot",
+        "get_spectral_resonator_info",
+        "set_spectral_resonator_config",
+        "get_eq8_info",
+        "set_eq8_mode",
+        "get_take_lanes",
+        "get_take_lane_clips",
+        "create_take_lane_clip",
+        "get_tuning_system",
+        "set_tuning_system",
+        "set_chain_mute_solo",
+        "set_chain_name_color",
+        "get_chain_info",
     }
     assert expected.issubset(names), f"Missing device tools: {expected - names}"
 
@@ -655,3 +690,96 @@ async def test_compare_ab_save(mcp_server, mock_connection):
     text = result[0][0].text
     parsed = json.loads(text)
     assert parsed["action"] == "save"
+
+
+# --- Quick Task: LOM Gap Smoke Tests ---
+
+
+async def test_get_wavetable_info(mcp_server, mock_connection):
+    """get_wavetable_info returns Wavetable device info."""
+    mock_connection.send_command.return_value = {
+        "device_name": "Wavetable",
+        "oscillator_wavetable_categories": ["Basic Shapes"],
+    }
+    result = await mcp_server.call_tool(
+        "get_wavetable_info",
+        {"track_index": 0, "device_index": 0},
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert data["device_name"] == "Wavetable"
+
+
+async def test_get_compressor_sidechain(mcp_server, mock_connection):
+    """get_compressor_sidechain returns sidechain routing info."""
+    mock_connection.send_command.return_value = {
+        "device_name": "Compressor",
+        "input_routing_type": "Post FX",
+    }
+    result = await mcp_server.call_tool(
+        "get_compressor_sidechain",
+        {"track_index": 0, "device_index": 0},
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert data["device_name"] == "Compressor"
+
+
+async def test_get_rack_variations(mcp_server, mock_connection):
+    """get_rack_variations returns macro variation info."""
+    mock_connection.send_command.return_value = {
+        "device_name": "Instrument Rack",
+        "variation_count": 3,
+    }
+    result = await mcp_server.call_tool(
+        "get_rack_variations",
+        {"track_index": 0, "device_index": 0},
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert data["variation_count"] == 3
+
+
+async def test_get_drift_mod_matrix(mcp_server, mock_connection):
+    """get_drift_mod_matrix returns Drift modulation matrix state."""
+    mock_connection.send_command.return_value = {
+        "device_name": "Drift",
+        "slots": [],
+    }
+    result = await mcp_server.call_tool(
+        "get_drift_mod_matrix",
+        {"track_index": 0, "device_index": 0},
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert data["device_name"] == "Drift"
+
+
+async def test_get_looper_info(mcp_server, mock_connection):
+    """get_looper_info returns Looper device state."""
+    mock_connection.send_command.return_value = {
+        "device_name": "Looper",
+        "loop_length": 4.0,
+    }
+    result = await mcp_server.call_tool(
+        "get_looper_info",
+        {"track_index": 0, "device_index": 0},
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert data["device_name"] == "Looper"
+
+
+async def test_get_tuning_system(mcp_server, mock_connection):
+    """get_tuning_system returns tuning system info."""
+    mock_connection.send_command.return_value = {
+        "name": "12-TET",
+        "reference_pitch": 440.0,
+    }
+    result = await mcp_server.call_tool(
+        "get_tuning_system",
+        {},
+    )
+    text = result[0][0].text
+    data = json.loads(text)
+    assert data["name"] == "12-TET"

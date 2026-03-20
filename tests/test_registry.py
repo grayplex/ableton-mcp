@@ -99,7 +99,7 @@ class TestFullRegistry:
         from AbletonMCP_Remote_Script.registry import CommandRegistry
 
         registered = {e[0] for e in CommandRegistry._entries}
-        assert len(registered) == 144, f"Expected 144 commands, got {len(registered)}: {registered}"
+        assert len(registered) == 178, f"Expected 178 commands, got {len(registered)}: {registered}"
 
         expected = {
             "get_session_info",
@@ -260,6 +260,41 @@ class TestFullRegistry:
             "set_groove_params",
             "set_clip_groove",
             "create_session_audio_clip",
+            # Quick Task: LOM gaps (34 new commands)
+            "get_wavetable_info",
+            "set_wavetable_oscillator",
+            "set_wavetable_voice_config",
+            "add_wavetable_modulation",
+            "set_wavetable_modulation_value",
+            "get_wavetable_modulation_value",
+            "get_compressor_sidechain",
+            "set_compressor_sidechain",
+            "get_rack_variations",
+            "rack_variation_action",
+            "rack_macro_action",
+            "insert_rack_chain",
+            "copy_drum_pad",
+            "get_drum_chain_config",
+            "set_drum_chain_config",
+            "get_parameter_automation_state",
+            "re_enable_parameter_automation",
+            "get_drift_mod_matrix",
+            "set_drift_mod_matrix",
+            "get_looper_info",
+            "looper_action",
+            "looper_export_to_clip_slot",
+            "get_spectral_resonator_info",
+            "set_spectral_resonator_config",
+            "get_eq8_info",
+            "set_eq8_mode",
+            "get_take_lanes",
+            "get_take_lane_clips",
+            "create_take_lane_clip",
+            "get_tuning_system",
+            "set_tuning_system",
+            "set_chain_mute_solo",
+            "set_chain_name_color",
+            "get_chain_info",
         }
         missing = expected - registered
         assert not missing, f"Commands not registered: {missing}"
