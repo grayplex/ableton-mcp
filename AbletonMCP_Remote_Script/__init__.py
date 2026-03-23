@@ -17,6 +17,7 @@ from _Framework.ControlSurface import ControlSurface
 import AbletonMCP_Remote_Script.handlers  # noqa: F401
 
 from .handlers.base import BaseHandlers
+from .handlers.arrangement import ArrangementHandlers
 from .handlers.audio_clips import AudioClipHandlers
 from .handlers.automation import AutomationHandlers
 from .handlers.browser import BrowserHandlers
@@ -89,6 +90,7 @@ class AbletonMCP(
     AutomationHandlers,
     RoutingHandlers,
     AudioClipHandlers,
+    ArrangementHandlers,
     GrooveHandlers,
     BrowserHandlers,
     ControlSurface,

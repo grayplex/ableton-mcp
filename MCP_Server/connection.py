@@ -153,6 +153,27 @@ _WRITE_COMMANDS = frozenset(
         "set_groove_params",
         "set_clip_groove",
         "create_session_audio_clip",
+        # Quick Task: LOM Gap Implementation
+        "add_wavetable_modulation",
+        "copy_drum_pad",
+        "create_take_lane_clip",
+        "insert_rack_chain",
+        "looper_action",
+        "looper_export_to_clip_slot",
+        "rack_macro_action",
+        "rack_variation_action",
+        "re_enable_parameter_automation",
+        "set_chain_mute_solo",
+        "set_chain_name_color",
+        "set_compressor_sidechain",
+        "set_drift_mod_matrix",
+        "set_drum_chain_config",
+        "set_eq8_mode",
+        "set_spectral_resonator_config",
+        "set_tuning_system",
+        "set_wavetable_modulation_value",
+        "set_wavetable_oscillator",
+        "set_wavetable_voice_config",
     ]
 )
 
