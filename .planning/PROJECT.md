@@ -46,12 +46,19 @@ Two-tier: MCP server (FastMCP/Python 3) ↔ TCP socket (length-prefix framing) �
 
 ## Next Milestone Goals
 
-*Not yet defined. Candidates from v2 requirements backlog:*
-- Clip follow actions
-- Track freeze/unfreeze
-- Real-time parameter monitoring (architecture change needed)
-- Performance optimization and connection resilience
-- Documentation and user guides
+**v1.1 — Theory Engine**
+
+Add a comprehensive music theory intelligence layer powered by music21 so Claude can compose with harmonic awareness — building chords, generating progressions, analyzing existing clips, and applying voice leading rules. All theory logic lives server-side in MCP_Server; no Remote Script changes needed.
+
+**Goals:**
+- Chord building: triads, 7ths, extended, altered, inversions, voicings (close/open/drop-2)
+- Scale & mode exploration: all scales/modes, degree generation, scale detection from notes
+- Progression engine: common templates by genre, Roman numeral analysis, next-chord suggestion
+- Harmonic analysis: key detection from clip notes, chord segmentation, harmonic rhythm analysis
+- Voice leading: smooth chord connections, voice-led progression generation
+- Rhythm patterns: arpeggios, bass lines, comping patterns applied to chord progressions
+- Deep music21 integration as the core theory engine
+- 15-25 new granular MCP tools in a dedicated theory module
 
 ## Constraints
 
@@ -70,6 +77,9 @@ Two-tier: MCP server (FastMCP/Python 3) ↔ TCP socket (length-prefix framing) �
 | Mixin class pattern for handlers | Domain isolation + single inheritance chain | Validated — scales to 15 modules cleanly |
 | Length-prefix framing protocol | Eliminates JSON-completeness parsing bugs | Validated — zero framing errors |
 | Comprehensive LOM coverage | Users want full production capability | Validated — 178 commands covering most LOM |
+| music21 as theory engine | Deep, battle-tested music theory library; avoids reinventing chord/scale/analysis logic | Pending — v1.1 |
+| Theory logic server-side only | No Remote Script changes needed; theory is computation, not Ableton API | Pending — v1.1 |
+| Granular theory tools | 15-25 individual tools vs. composite mega-tools; better AI tool selection | Pending — v1.1 |
 
 ## Context
 
@@ -77,4 +87,4 @@ A codebase map exists at `.planning/codebase/` with architecture, stack, and con
 v1.0 milestone archived at `.planning/milestones/` with full roadmap and requirements history.
 
 ---
-*Last updated: 2026-03-23 — v1.0 milestone archived*
+*Last updated: 2026-03-23 — v1.1 milestone defined*
