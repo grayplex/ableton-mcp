@@ -8,73 +8,73 @@ A comprehensive MCP (Model Context Protocol) server that gives AI assistants ful
 
 An AI assistant can produce actual music in Ableton — instruments load, notes play, effects shape sound, and the mix comes together. If the tools exist but nothing plays, the whole thing is worthless.
 
-## Requirements
+## Current State
 
-### Validated
+**Shipped: v1.0** (2026-03-23)
 
-- [x] Full track management (MIDI, audio, return, group, master) — Validated in Phase 2
-- [x] Comprehensive MIDI editing (notes, quantize, transpose, velocity) — Validated in Phase 4
-- [x] Mixing controls (volume, pan, sends, EQ) — Validated in Phase 5
-- [x] Device chain management (add, remove, configure effects and instruments) — Validated in Phase 6
-- [x] Scene management (create, launch, organize) — Validated in Phase 7
-- [x] Transport and playback control — Validated in Phase 1
-- [x] Browser navigation and preset loading — Validated in Phase 3
-- [x] Instrument and effect loading — Validated in Phase 3
-- [x] Undo/redo support — Validated in Phase 8
-- [x] Automation (parameter envelopes) — Validated in Phase 9
-- [x] Clean, installable package for open-source distribution — Validated in Phase 10
-- [x] LOM gap analysis and v2 requirements — Validated in Phase 11
+The server is production-quality with comprehensive Ableton Live 12 coverage:
+- **178 Remote Script handler commands** across 15 domain modules
+- **174 MCP tools** across 15 tool modules
+- **204 tests** (all passing)
+- **53 v1 requirements** — all complete
 
-### Active
+### Capabilities
 
-- [ ] Clip creation, editing, and arrangement (Session and Arrangement views)
-- [ ] Export/render capabilities
-- [ ] Python 3 only — no Python 2 compatibility code
-- [ ] Production-ready error handling and connection management
-- [x] v2 LOM coverage — 37 high-value gap requirements implemented across Song, Track, Clip, Note, and Arrangement — Validated in Phase 12
-- [x] Remaining LOM gaps — scene extensions, mixer extended, Simpler/DrumPad ops, plugin presets, A/B compare, groove pool, session audio clips — Validated in Phase 13
+| Domain | Tools | Description |
+|--------|-------|-------------|
+| Track Management | 15 | MIDI/audio/return/group CRUD, rename, color, info |
+| Mixing Controls | 9 | Volume, pan, mute, solo, arm, sends, crossfader |
+| Clip Management | 12 | Create, delete, duplicate, launch, stop, loop, color |
+| MIDI Editing | 12 | Notes CRUD, quantize, transpose, note expression, ID ops |
+| Device & Browser | 30 | Load instruments/effects, parameters, Racks, Simpler, DrumPad |
+| Scene & Transport | 23 | Scenes, playback, tempo, time sig, loop, undo/redo, cue points |
+| Automation | 3 | Envelope read/write/clear |
+| Routing | 6 | Input/output routing types and assignment |
+| Audio Clips | 8 | Pitch, gain, warp, warp markers, session audio creation |
+| Arrangement | 4 | MIDI/audio clip creation, listing, session-to-arrangement |
+| Groove Pool | 3 | List, parameters, clip association |
+| Session | 10+ | Scale/key, capture, metronome, recording, session state |
 
-### Out of Scope
+### Architecture
 
-- Max for Live device development — too complex, different domain
-- Audio recording from external inputs — requires hardware config beyond MCP scope
-- Real-time audio processing/DSP — MCP latency makes this impractical
-- Video features — Ableton's video support is minimal and not worth exposing
+Two-tier: MCP server (FastMCP/Python 3) ↔ TCP socket (length-prefix framing) ↔ Remote Script (Python 3.11 in Ableton)
 
-## Context
+- Remote Script uses mixin classes with `@command` decorator registry
+- MCP server uses domain-organized tool modules
+- Thread-safe connection with `threading.Lock`
+- Dict-based command dispatch (no if/elif chains)
 
-There's an existing codebase with a working but limited MCP server (~15 tools) and a Remote Script. The architecture is sound (two-tier: MCP server ↔ socket ↔ Remote Script), but:
+## Next Milestone Goals
 
-- **Instrument loading is broken** — `load_browser_item` doesn't reliably load instruments onto tracks, resulting in silent MIDI clips
-- **Python 2 remnants** — `from __future__` imports, Queue compatibility hacks, old-style class initialization
-- **Limited coverage** — basic track/clip/playback only; no mixing, no arrangement, no automation, no export
-- **Fragile error handling** — connection drops aren't recovered gracefully
-
-Ableton Live 12 ships with Python 3.11 for Remote Scripts. There is zero reason to support Python 2.
-
-A codebase map exists at `.planning/codebase/` with architecture, stack, and convention analysis.
+*Not yet defined. Candidates from v2 requirements backlog:*
+- Clip follow actions
+- Track freeze/unfreeze
+- Real-time parameter monitoring (architecture change needed)
+- Performance optimization and connection resilience
+- Documentation and user guides
 
 ## Constraints
 
-- **Ableton Remote Script API**: Must work within Ableton's `_Framework` / Live API — undocumented, reverse-engineered from community knowledge
+- **Ableton Remote Script API**: Must work within Ableton's `_Framework` / Live API
 - **Thread safety**: All Ableton API calls must happen on the main thread via `schedule_message()`
-- **Socket protocol**: Communication between MCP server and Remote Script uses JSON over TCP on localhost:9877
-- **Python 3.11**: Remote Script runs in Ableton's embedded Python 3.11; MCP server uses system Python 3
-- **MCP protocol**: Server must conform to Model Context Protocol spec (using FastMCP framework)
-- **Installable**: Must be pip-installable with clear setup instructions for the Remote Script side
+- **Socket protocol**: JSON over TCP on localhost:9877
+- **Python 3.11**: Remote Script runs in Ableton's embedded Python 3.11
+- **MCP protocol**: Server conforms to Model Context Protocol spec (FastMCP framework)
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Extend existing codebase rather than rebuild | Architecture is sound; rebuilding wastes effort on solved problems | — Pending |
-| Python 3 only, strip all Py2 compat | Ableton Live 12 = Python 3.11, no legacy users to support | — Pending |
-| Comprehensive API coverage (every Ableton action) | Users want full production capability, not a demo | — Pending |
-| Open-source quality | Polished enough for others to install and use | — Pending |
+| Extend existing codebase rather than rebuild | Architecture is sound; rebuilding wastes effort | Validated — 13 phases built on foundation |
+| Python 3 only, strip all Py2 compat | Ableton Live 12 = Python 3.11 | Validated — cleaner code, modern idioms |
+| Mixin class pattern for handlers | Domain isolation + single inheritance chain | Validated — scales to 15 modules cleanly |
+| Length-prefix framing protocol | Eliminates JSON-completeness parsing bugs | Validated — zero framing errors |
+| Comprehensive LOM coverage | Users want full production capability | Validated — 178 commands covering most LOM |
 
-## Current State
+## Context
 
-Phase 13 complete — 29 new commands implementing remaining LOM gaps: scene color/tempo/time-sig/fire-as-selected/is_empty, mixer crossfader/crossfade-assign/panning-mode, Simpler crop/reverse/warp/slicing/playback, DrumPad mute/solo/clear, plugin presets, A/B compare, groove pool, and session audio clip creation. 144 total commands, 198 tests passing. All 13 phases of v1.0 milestone complete.
+A codebase map exists at `.planning/codebase/` with architecture, stack, and convention analysis.
+v1.0 milestone archived at `.planning/milestones/` with full roadmap and requirements history.
 
 ---
-*Last updated: 2026-03-20 after Phase 13 completion*
+*Last updated: 2026-03-23 — v1.0 milestone archived*
