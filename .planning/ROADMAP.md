@@ -16,7 +16,7 @@
 |---|-------|------|-------------|
 | 14 | 2/2 | Complete    | 2026-03-24 |
 | 15 | 2/2 | Complete    | 2026-03-24 |
-| 16 | 2/2 | Complete   | 2026-03-24 |
+| 16 | 2/2 | Complete    | 2026-03-24 |
 | 17 | Progression Engine | Genre progression templates, voice-led generation, Roman numeral analysis, next-chord suggestion | PROG-01, PROG-02, PROG-03, PROG-04 |
 | 18 | Harmonic Analysis | Key detection from clip notes, chord segmentation by time, harmonic rhythm analysis | ANLY-01, ANLY-02, ANLY-03 |
 | 19 | Voice Leading & Rhythm | Voice-led chord connections, full progression voicing, rhythm pattern templates, pattern application to chords | VOIC-01, VOIC-02, RHYM-01, RHYM-02 |
