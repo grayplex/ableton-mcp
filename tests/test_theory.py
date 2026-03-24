@@ -428,3 +428,98 @@ class TestTheoryTools:
         result = await mcp_server.call_tool("note_to_midi", {"note_name": "XYZ"})
         text = result[0][0].text
         assert "Error" in text, f"Expected error message, got: {text}"
+
+
+class TestChordTools:
+    """Integration tests: chord MCP tools via mcp_server fixture."""
+
+    @pytest.mark.asyncio
+    async def test_chord_tools_registered(self, mcp_server):
+        """All 5 chord tools are registered."""
+        tools = await mcp_server.list_tools()
+        names = {t.name for t in tools}
+        for tool in ["build_chord", "get_chord_inversions", "get_chord_voicings", "identify_chord", "get_diatonic_chords"]:
+            assert tool in names, f"{tool} not registered"
+
+    @pytest.mark.asyncio
+    async def test_build_chord_major(self, mcp_server):
+        """build_chord C major at octave 4."""
+        result = await mcp_server.call_tool("build_chord", {"root": "C", "quality": "maj", "octave": 4})
+        data = json.loads(result[0][0].text)
+        midi_values = [n["midi"] for n in data["notes"]]
+        assert midi_values == [60, 64, 67]
+
+    @pytest.mark.asyncio
+    async def test_build_chord_min7(self, mcp_server):
+        """build_chord A minor 7th at octave 3."""
+        result = await mcp_server.call_tool("build_chord", {"root": "A", "quality": "min7", "octave": 3})
+        data = json.loads(result[0][0].text)
+        midi_values = [n["midi"] for n in data["notes"]]
+        assert midi_values == [57, 60, 64, 67]
+
+    @pytest.mark.asyncio
+    async def test_build_chord_invalid_quality(self, mcp_server):
+        """build_chord with invalid quality returns error."""
+        result = await mcp_server.call_tool("build_chord", {"root": "C", "quality": "notachord"})
+        text = result[0][0].text
+        assert "Error" in text
+
+    @pytest.mark.asyncio
+    async def test_inversions_triad(self, mcp_server):
+        """get_chord_inversions for C major triad returns 3 inversions."""
+        result = await mcp_server.call_tool("get_chord_inversions", {"root": "C", "quality": "maj", "octave": 4})
+        data = json.loads(result[0][0].text)
+        assert len(data) == 3
+        assert data[0]["inversion"] == 0
+        assert data[1]["inversion"] == 1
+        assert data[2]["inversion"] == 2
+
+    @pytest.mark.asyncio
+    async def test_voicings_maj7(self, mcp_server):
+        """get_chord_voicings for Cmaj7 returns all 4 voicing types."""
+        result = await mcp_server.call_tool("get_chord_voicings", {"root": "C", "quality": "maj7", "octave": 4})
+        data = json.loads(result[0][0].text)
+        assert "close" in data
+        assert "open" in data
+        assert "drop2" in data
+        assert "drop3" in data
+
+    @pytest.mark.asyncio
+    async def test_identify_c_major(self, mcp_server):
+        """identify_chord [60,64,67] top candidate is C major."""
+        result = await mcp_server.call_tool("identify_chord", {"midi_pitches": [60, 64, 67]})
+        data = json.loads(result[0][0].text)
+        assert len(data) >= 1
+        assert "C" in data[0]["root"]
+        assert data[0]["inversion"] == 0
+
+    @pytest.mark.asyncio
+    async def test_identify_too_few_pitches(self, mcp_server):
+        """identify_chord with 1 pitch returns error."""
+        result = await mcp_server.call_tool("identify_chord", {"midi_pitches": [60]})
+        text = result[0][0].text
+        assert "Error" in text or "at least 2" in text.lower()
+
+    @pytest.mark.asyncio
+    async def test_identify_out_of_range(self, mcp_server):
+        """identify_chord with MIDI > 127 returns error."""
+        result = await mcp_server.call_tool("identify_chord", {"midi_pitches": [60, 200]})
+        text = result[0][0].text
+        assert "Error" in text or "out of range" in text.lower()
+
+    @pytest.mark.asyncio
+    async def test_diatonic_c_major(self, mcp_server):
+        """get_diatonic_chords C major returns 7 triads and 7 sevenths."""
+        result = await mcp_server.call_tool("get_diatonic_chords", {"key_name": "C", "scale_type": "major", "octave": 4})
+        data = json.loads(result[0][0].text)
+        assert len(data["triads"]) == 7
+        assert len(data["sevenths"]) == 7
+        assert data["triads"][0]["roman"] == "I"
+
+    @pytest.mark.asyncio
+    async def test_diatonic_a_minor(self, mcp_server):
+        """get_diatonic_chords A minor returns correct Roman numerals."""
+        result = await mcp_server.call_tool("get_diatonic_chords", {"key_name": "A", "scale_type": "minor", "octave": 4})
+        data = json.loads(result[0][0].text)
+        assert data["triads"][0]["roman"] == "i"
+        assert len(data["triads"]) == 7
