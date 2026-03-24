@@ -798,3 +798,147 @@ class TestScaleLibrary:
 
         with pytest.raises(ValueError):
             detect_scales_from_notes([])
+
+
+class TestScaleTools:
+    """Integration tests: scale MCP tools via mcp_server fixture."""
+
+    @pytest.mark.asyncio
+    async def test_scale_tools_registered(self, mcp_server):
+        """All 5 scale tools are registered."""
+        tools = await mcp_server.list_tools()
+        names = {t.name for t in tools}
+        for tool in [
+            "list_scales",
+            "get_scale_pitches",
+            "check_notes_in_scale",
+            "get_related_scales",
+            "detect_scales_from_notes",
+        ]:
+            assert tool in names, f"{tool} not registered"
+
+    @pytest.mark.asyncio
+    async def test_list_scales(self, mcp_server):
+        """list_scales returns catalog with 38 scales."""
+        result = await mcp_server.call_tool("list_scales", {})
+        data = json.loads(result[0][0].text)
+        assert len(data) == 38
+        # Check structure
+        first = data[0]
+        assert "name" in first
+        assert "intervals" in first
+        assert "category" in first
+        assert "note_count" in first
+
+    @pytest.mark.asyncio
+    async def test_get_scale_pitches_c_major(self, mcp_server):
+        """get_scale_pitches C major octave 4-5 returns pitches starting at MIDI 60."""
+        result = await mcp_server.call_tool(
+            "get_scale_pitches",
+            {"root": "C", "scale_name": "major", "octave_start": 4, "octave_end": 5},
+        )
+        data = json.loads(result[0][0].text)
+        assert data["root"] == "C"
+        assert data["scale"] == "major"
+        assert data["pitches"][0]["midi"] == 60
+        assert data["pitches"][-1]["midi"] == 72  # C5
+
+    @pytest.mark.asyncio
+    async def test_get_scale_pitches_invalid_scale(self, mcp_server):
+        """get_scale_pitches with invalid scale returns error."""
+        result = await mcp_server.call_tool(
+            "get_scale_pitches", {"root": "C", "scale_name": "notascale"}
+        )
+        text = result[0][0].text
+        assert "Error" in text
+
+    @pytest.mark.asyncio
+    async def test_check_notes_in_scale_all_in(self, mcp_server):
+        """check_notes_in_scale with C major triad in C major -> all_in_scale true."""
+        result = await mcp_server.call_tool(
+            "check_notes_in_scale",
+            {"midi_pitches": [60, 64, 67], "root": "C", "scale_name": "major"},
+        )
+        data = json.loads(result[0][0].text)
+        assert data["all_in_scale"] is True
+        assert len(data["out_of_scale"]) == 0
+
+    @pytest.mark.asyncio
+    async def test_check_notes_in_scale_out_of_scale(self, mcp_server):
+        """check_notes_in_scale with Eb (63) in C major -> out_of_scale."""
+        result = await mcp_server.call_tool(
+            "check_notes_in_scale",
+            {"midi_pitches": [60, 63, 67], "root": "C", "scale_name": "major"},
+        )
+        data = json.loads(result[0][0].text)
+        assert data["all_in_scale"] is False
+        assert len(data["out_of_scale"]) == 1
+
+    @pytest.mark.asyncio
+    async def test_check_notes_out_of_midi_range(self, mcp_server):
+        """check_notes_in_scale with MIDI > 127 returns error."""
+        result = await mcp_server.call_tool(
+            "check_notes_in_scale",
+            {"midi_pitches": [60, 200], "root": "C", "scale_name": "major"},
+        )
+        text = result[0][0].text
+        assert "Error" in text or "out of range" in text.lower()
+
+    @pytest.mark.asyncio
+    async def test_get_related_scales_c_major(self, mcp_server):
+        """get_related_scales C major returns parallel, relative, modes."""
+        result = await mcp_server.call_tool(
+            "get_related_scales", {"root": "C", "scale_name": "major"}
+        )
+        data = json.loads(result[0][0].text)
+        assert "parallel" in data
+        assert "relative" in data
+        assert "modes" in data
+        # Relative should include A minor
+        relative_names = [(r["root"], r["scale"]) for r in data["relative"]]
+        assert any("A" in root for root, scale in relative_names)
+
+    @pytest.mark.asyncio
+    async def test_detect_scales_c_major_notes(self, mcp_server):
+        """detect_scales_from_notes with C major scale pitches -> C major top result."""
+        result = await mcp_server.call_tool(
+            "detect_scales_from_notes",
+            {"midi_pitches": [60, 62, 64, 65, 67, 69, 71]},
+        )
+        data = json.loads(result[0][0].text)
+        assert len(data) <= 5
+        top = data[0]
+        assert top["coverage"] == 1.0
+        assert "C" in top["root"]
+        assert top["scale"] == "major" or top["scale"] == "ionian"
+
+    @pytest.mark.asyncio
+    async def test_detect_scales_empty_pitches(self, mcp_server):
+        """detect_scales_from_notes with empty list returns error."""
+        result = await mcp_server.call_tool(
+            "detect_scales_from_notes", {"midi_pitches": []}
+        )
+        text = result[0][0].text
+        assert "Error" in text
+
+    @pytest.mark.asyncio
+    async def test_diatonic_harmonic_minor(self, mcp_server):
+        """get_diatonic_chords with harmonic_minor returns 7 triads."""
+        result = await mcp_server.call_tool(
+            "get_diatonic_chords",
+            {"key_name": "C", "scale_type": "harmonic_minor", "octave": 4},
+        )
+        data = json.loads(result[0][0].text)
+        assert len(data["triads"]) == 7
+        assert len(data["sevenths"]) == 7
+
+    @pytest.mark.asyncio
+    async def test_diatonic_melodic_minor(self, mcp_server):
+        """get_diatonic_chords with melodic_minor returns 7 triads."""
+        result = await mcp_server.call_tool(
+            "get_diatonic_chords",
+            {"key_name": "A", "scale_type": "melodic_minor", "octave": 4},
+        )
+        data = json.loads(result[0][0].text)
+        assert len(data["triads"]) == 7
+        assert len(data["sevenths"]) == 7
