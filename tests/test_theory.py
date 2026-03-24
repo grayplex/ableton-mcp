@@ -74,12 +74,12 @@ class TestChordLibrary:
         assert midis == [60, 64, 67]
 
     def test_build_chord_minor7(self):
-        """A minor 7th at octave 3: midi [45, 48, 52, 55]."""
+        """A minor 7th at octave 3: root A3=57, midi [57, 60, 64, 67]."""
         from MCP_Server.theory.chords import build_chord
 
         result = build_chord("A", "min7", 3)
         midis = [n["midi"] for n in result["notes"]]
-        assert midis == [45, 48, 52, 55]
+        assert midis == [57, 60, 64, 67]
 
     def test_build_chord_dom7(self):
         """G dominant 7th at octave 4: midi [67, 71, 74, 77]."""
