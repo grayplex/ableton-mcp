@@ -14,7 +14,7 @@
 
 | # | Phase | Goal | Requirements |
 |---|-------|------|-------------|
-| 14 | 1/2 | In Progress|  |
+| 14 | 2/2 | Complete   | 2026-03-24 |
 | 15 | Chord Engine | Build, identify, invert, and voice chords; diatonic chord generation for any key | CHRD-01, CHRD-02, CHRD-03, CHRD-04, CHRD-05 |
 | 16 | Scale & Mode Explorer | List scales/modes, generate pitch sets, validate notes against scales, find related scales | SCLE-01, SCLE-02, SCLE-03, SCLE-04, SCLE-05 |
 | 17 | Progression Engine | Genre progression templates, voice-led generation, Roman numeral analysis, next-chord suggestion | PROG-01, PROG-02, PROG-03, PROG-04 |
@@ -26,11 +26,11 @@
 #### Phase 14: Theory Foundation
 **Goal:** music21 is installed, importable, and wrapped in a theory library that converts between music21 objects and MCP-friendly JSON. The module structure is established for all subsequent phases.
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 14-01-PLAN.md — Install music21 dependency, create theory/ package with pitch mapping utilities
-- [ ] 14-02-PLAN.md — Wire MCP tools, register with FastMCP, create comprehensive test suite
+- [x] 14-02-PLAN.md — Wire MCP tools, register with FastMCP, create comprehensive test suite
 
 **Delivers:**
 - `music21` in MCP_Server dependencies (pyproject.toml / requirements.txt)
