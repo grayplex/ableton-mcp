@@ -80,6 +80,12 @@ Plans:
 #### Phase 17: Progression Engine
 **Goal:** Claude can retrieve genre-specific progressions, generate voice-led chord sequences, analyze existing progressions as Roman numerals, and get next-chord suggestions.
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 17-01-PLAN.md — Progression library with PROGRESSION_CATALOG (25 progressions), 4 functions, and unit tests
+- [ ] 17-02-PLAN.md — Wire 4 MCP progression tools, add integration tests
+
 **Delivers:**
 - `get_common_progressions` tool — genre/style → progression templates with MIDI output
 - `generate_progression` tool — key + Roman numerals → voice-led MIDI chords
