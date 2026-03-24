@@ -15,7 +15,7 @@
 | # | Phase | Goal | Requirements |
 |---|-------|------|-------------|
 | 14 | 2/2 | Complete    | 2026-03-24 |
-| 15 | 2/2 | Complete   | 2026-03-24 |
+| 15 | 2/2 | Complete    | 2026-03-24 |
 | 16 | Scale & Mode Explorer | List scales/modes, generate pitch sets, validate notes against scales, find related scales | SCLE-01, SCLE-02, SCLE-03, SCLE-04, SCLE-05 |
 | 17 | Progression Engine | Genre progression templates, voice-led generation, Roman numeral analysis, next-chord suggestion | PROG-01, PROG-02, PROG-03, PROG-04 |
 | 18 | Harmonic Analysis | Key detection from clip notes, chord segmentation by time, harmonic rhythm analysis | ANLY-01, ANLY-02, ANLY-03 |
