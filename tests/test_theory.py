@@ -1258,3 +1258,218 @@ class TestProgressionLibrary:
         assert vl_movement <= naive_movement, (
             f"Voice-led movement {vl_movement} should be <= naive {naive_movement}"
         )
+
+
+class TestProgressionTools:
+    """Integration tests: progression MCP tools via mcp_server fixture."""
+
+    @pytest.mark.asyncio
+    async def test_progression_tools_registered(self, mcp_server):
+        """All 4 progression tools are registered."""
+        tools = await mcp_server.list_tools()
+        names = {t.name for t in tools}
+        for tool in [
+            "get_common_progressions",
+            "generate_progression",
+            "analyze_progression",
+            "suggest_next_chord",
+        ]:
+            assert tool in names, f"{tool} not registered"
+
+    # --- get_common_progressions ---
+
+    @pytest.mark.asyncio
+    async def test_get_common_progressions_all(self, mcp_server):
+        """get_common_progressions returns 25 progressions without genre filter."""
+        result = await mcp_server.call_tool("get_common_progressions", {"key": "C"})
+        data = json.loads(result[0][0].text)
+        assert len(data) == 25
+
+    @pytest.mark.asyncio
+    async def test_get_common_progressions_genre_filter(self, mcp_server):
+        """get_common_progressions with genre='jazz' returns only jazz progressions."""
+        result = await mcp_server.call_tool(
+            "get_common_progressions", {"key": "C", "genre": "jazz"}
+        )
+        data = json.loads(result[0][0].text)
+        assert len(data) == 5
+        assert all(p["genre"] == "jazz" for p in data)
+
+    @pytest.mark.asyncio
+    async def test_get_common_progressions_chord_format(self, mcp_server):
+        """Each chord in progressions has unified format with numeral, root, quality, notes."""
+        result = await mcp_server.call_tool(
+            "get_common_progressions", {"key": "C", "genre": "pop"}
+        )
+        data = json.loads(result[0][0].text)
+        first_chord = data[0]["chords"][0]
+        assert "numeral" in first_chord
+        assert "root" in first_chord
+        assert "quality" in first_chord
+        assert "notes" in first_chord
+        assert "midi" in first_chord["notes"][0]
+        assert "name" in first_chord["notes"][0]
+
+    @pytest.mark.asyncio
+    async def test_get_common_progressions_key_resolution(self, mcp_server):
+        """Progressions resolve to the requested key (G major I chord = G root)."""
+        result = await mcp_server.call_tool(
+            "get_common_progressions", {"key": "G", "genre": "rock"}
+        )
+        data = json.loads(result[0][0].text)
+        # Find a progression starting with I chord
+        for prog in data:
+            if prog["numerals"][0] == "I":
+                assert "G" in prog["chords"][0]["root"]
+                break
+
+    @pytest.mark.asyncio
+    async def test_get_common_progressions_empty_genre(self, mcp_server):
+        """get_common_progressions with nonexistent genre returns empty list."""
+        result = await mcp_server.call_tool(
+            "get_common_progressions", {"key": "C", "genre": "nonexistent"}
+        )
+        data = json.loads(result[0][0].text)
+        assert data == []
+
+    # --- generate_progression ---
+
+    @pytest.mark.asyncio
+    async def test_generate_progression_basic(self, mcp_server):
+        """generate_progression with I-IV-V-I returns 4 chords."""
+        result = await mcp_server.call_tool(
+            "generate_progression", {"key": "C", "numerals": ["I", "IV", "V", "I"]}
+        )
+        data = json.loads(result[0][0].text)
+        assert data["key"] == "C"
+        assert len(data["chords"]) == 4
+
+    @pytest.mark.asyncio
+    async def test_generate_progression_chord_format(self, mcp_server):
+        """Each generated chord has unified format."""
+        result = await mcp_server.call_tool(
+            "generate_progression", {"key": "C", "numerals": ["I", "V"]}
+        )
+        data = json.loads(result[0][0].text)
+        for chord in data["chords"]:
+            assert "numeral" in chord
+            assert "root" in chord
+            assert "quality" in chord
+            assert "notes" in chord
+
+    @pytest.mark.asyncio
+    async def test_generate_progression_modal(self, mcp_server):
+        """generate_progression supports modal scale types."""
+        result = await mcp_server.call_tool(
+            "generate_progression",
+            {"key": "D", "numerals": ["I", "IV"], "scale_type": "dorian"},
+        )
+        data = json.loads(result[0][0].text)
+        assert data["scale_type"] == "dorian"
+        assert len(data["chords"]) == 2
+
+    @pytest.mark.asyncio
+    async def test_generate_progression_empty_numerals(self, mcp_server):
+        """generate_progression with empty numerals returns error."""
+        result = await mcp_server.call_tool(
+            "generate_progression", {"key": "C", "numerals": []}
+        )
+        text = result[0][0].text
+        assert "Error" in text
+
+    # --- analyze_progression ---
+
+    @pytest.mark.asyncio
+    async def test_analyze_progression_basic(self, mcp_server):
+        """analyze_progression identifies C-F-G-C as I-IV-V-I in C."""
+        result = await mcp_server.call_tool(
+            "analyze_progression",
+            {"chord_names": ["C", "F", "G", "C"], "key": "C"},
+        )
+        data = json.loads(result[0][0].text)
+        assert len(data) == 4
+        numerals = [c["numeral"] for c in data]
+        assert "I" in numerals[0]  # First chord is I
+        assert "IV" in numerals[1]  # Second chord is IV
+
+    @pytest.mark.asyncio
+    async def test_analyze_progression_sevenths(self, mcp_server):
+        """analyze_progression handles seventh chords."""
+        result = await mcp_server.call_tool(
+            "analyze_progression",
+            {"chord_names": ["Dm7", "G7", "Cmaj7"], "key": "C"},
+        )
+        data = json.loads(result[0][0].text)
+        assert len(data) == 3
+
+    @pytest.mark.asyncio
+    async def test_analyze_progression_chord_format(self, mcp_server):
+        """Each analyzed chord has unified format."""
+        result = await mcp_server.call_tool(
+            "analyze_progression", {"chord_names": ["C", "G"], "key": "C"}
+        )
+        data = json.loads(result[0][0].text)
+        for chord in data:
+            assert "numeral" in chord
+            assert "root" in chord
+            assert "quality" in chord
+            assert "notes" in chord
+
+    @pytest.mark.asyncio
+    async def test_analyze_progression_empty(self, mcp_server):
+        """analyze_progression with empty chord list returns error."""
+        result = await mcp_server.call_tool(
+            "analyze_progression", {"chord_names": [], "key": "C"}
+        )
+        text = result[0][0].text
+        assert "Error" in text
+
+    # --- suggest_next_chord ---
+
+    @pytest.mark.asyncio
+    async def test_suggest_next_chord_dominant_resolution(self, mcp_server):
+        """suggest_next_chord after V suggests I (dominant resolution)."""
+        result = await mcp_server.call_tool(
+            "suggest_next_chord", {"key": "C", "preceding": ["V"]}
+        )
+        data = json.loads(result[0][0].text)
+        assert len(data) >= 3
+        numerals = [s["numeral"] for s in data]
+        assert any("I" in n for n in numerals), (
+            f"Expected I in suggestions after V, got {numerals}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_suggest_next_chord_format(self, mcp_server):
+        """Each suggestion has numeral, root, quality, notes, reason, and score."""
+        result = await mcp_server.call_tool(
+            "suggest_next_chord", {"key": "C", "preceding": ["I"]}
+        )
+        data = json.loads(result[0][0].text)
+        first = data[0]
+        assert "numeral" in first
+        assert "root" in first
+        assert "quality" in first
+        assert "notes" in first
+        assert "reason" in first
+        assert "score" in first
+        assert len(first["reason"]) > 0  # Non-empty reason string
+
+    @pytest.mark.asyncio
+    async def test_suggest_next_chord_with_genre(self, mcp_server):
+        """suggest_next_chord accepts genre filter."""
+        result = await mcp_server.call_tool(
+            "suggest_next_chord",
+            {"key": "C", "preceding": ["ii7", "V7"], "genre": "jazz"},
+        )
+        data = json.loads(result[0][0].text)
+        assert len(data) >= 1
+
+    @pytest.mark.asyncio
+    async def test_suggest_next_chord_empty_preceding(self, mcp_server):
+        """suggest_next_chord with empty preceding returns error."""
+        result = await mcp_server.call_tool(
+            "suggest_next_chord", {"key": "C", "preceding": []}
+        )
+        text = result[0][0].text
+        assert "Error" in text
