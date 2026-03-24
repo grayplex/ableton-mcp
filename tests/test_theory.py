@@ -366,6 +366,90 @@ class TestChordLibrary:
         with pytest.raises(ValueError):
             get_diatonic_chords("C", "pentatonic", 4)
 
+    # --- Harmonic minor diatonic chords ---
+
+    def test_diatonic_harmonic_minor_triads(self):
+        """C harmonic minor diatonic triads: 7 chords."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("C", "harmonic_minor", 4)
+        assert len(result["triads"]) == 7
+
+    def test_diatonic_harmonic_minor_augmented_III(self):
+        """C harmonic minor triad degree 3 has augmented quality."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("C", "harmonic_minor", 4)
+        third = result["triads"][2]  # degree 3, index 2
+        assert "III" in third["roman"]
+        assert "augmented" in third["quality"].lower()
+
+    def test_diatonic_harmonic_minor_major_V(self):
+        """C harmonic minor triad degree 5 has major quality."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("C", "harmonic_minor", 4)
+        fifth = result["triads"][4]  # degree 5, index 4
+        assert fifth["roman"] == "V"
+        assert "major" in fifth["quality"].lower()
+
+    def test_diatonic_harmonic_minor_sevenths(self):
+        """C harmonic minor has 7 seventh chords."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("C", "harmonic_minor", 4)
+        assert len(result["sevenths"]) == 7
+
+    # --- Melodic minor diatonic chords ---
+
+    def test_diatonic_melodic_minor_triads(self):
+        """C melodic minor diatonic triads: 7 chords."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("C", "melodic_minor", 4)
+        assert len(result["triads"]) == 7
+
+    def test_diatonic_melodic_minor_major_IV(self):
+        """C melodic minor triad degree 4 has major quality."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("C", "melodic_minor", 4)
+        fourth = result["triads"][3]  # degree 4, index 3
+        assert fourth["roman"] == "IV"
+        assert "major" in fourth["quality"].lower()
+
+    def test_diatonic_melodic_minor_sevenths(self):
+        """C melodic minor has 7 seventh chords."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("C", "melodic_minor", 4)
+        assert len(result["sevenths"]) == 7
+
+    # --- Regression tests ---
+
+    def test_diatonic_major_still_works(self):
+        """get_diatonic_chords major still works after extension."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("C", "major", 4)
+        assert len(result["triads"]) == 7
+        assert result["triads"][0]["roman"] == "I"
+
+    def test_diatonic_minor_still_works(self):
+        """get_diatonic_chords minor still works after extension."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("A", "minor", 4)
+        assert len(result["triads"]) == 7
+        assert result["triads"][0]["roman"] == "i"
+
+    def test_diatonic_pentatonic_still_raises(self):
+        """get_diatonic_chords pentatonic still raises ValueError."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        with pytest.raises(ValueError):
+            get_diatonic_chords("C", "pentatonic", 4)
+
 
 class TestTheoryTools:
     """Integration tests: MCP tool calls via mcp_server fixture (async, no mock_connection)."""
