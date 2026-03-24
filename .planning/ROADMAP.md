@@ -62,6 +62,12 @@ Plans:
 #### Phase 16: Scale & Mode Explorer
 **Goal:** Claude can explore all available scales/modes, generate pitch sets for composition, validate notes against scales, and discover related tonalities.
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 16-01-PLAN.md — Scale library with SCALE_CATALOG (38 scales), 5 functions, extended diatonic chords, and unit tests
+- [ ] 16-02-PLAN.md — Wire 5 MCP scale tools, update diatonic chords tool, add integration tests
+
 **Delivers:**
 - `list_scales` tool — all available scales/modes with intervals
 - `get_scale_pitches` tool — root + scale + octave range → MIDI pitches
