@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: — Theory Engine
-status: Ready to plan
-stopped_at: Phase 17 context gathered
-last_updated: "2026-03-24T17:45:07.070Z"
+status: Executing
+stopped_at: Completed 17-01-PLAN.md
+last_updated: "2026-03-24T21:19:46Z"
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 8
+  completed_plans: 7
 ---
 
 # Project State
@@ -19,20 +19,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Claude composes with harmonic intelligence — chords, progressions, and voice leading flow from music theory knowledge, not brute-force pitch guessing.
-**Current focus:** Phase 16 — scale-mode-explorer
+**Current focus:** Phase 17 — progression-engine
 
 ## Current Position
 
 Phase: 17
-Plan: Not started
+Plan: 1 of 2 complete
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
-- Average duration: N/A
-- Total execution time: 0
+- Total plans completed: 1
+- Average duration: ~5min/plan
+- Total execution time: 315s
 
 **v1.0 Reference:** 33 plans in ~1.4 hours (avg ~3min/plan)
 
@@ -54,6 +54,9 @@ Plan: Not started
 - [Phase 16]: Pitch class set comparison for scale detection and validation
 - [Phase 16]: Mode rotation from major intervals for related scale computation
 - [Phase 16]: Task 1 already committed from prior session - verified tools registered and functional before testing
+- [Phase 17]: Permutation-based voice leading for chords up to 5 notes (O(n!) but n<=5)
+- [Phase 17]: Chord name normalization "Bb" -> "B-" for music21 ChordSymbol compatibility
+- [Phase 17]: Modal progression resolution via parent major key rotation
 
 ### Roadmap Evolution
 
@@ -70,6 +73,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-24T17:45:07.067Z
-Stopped at: Phase 17 context gathered
-Resume file: .planning/phases/17-progression-engine/17-CONTEXT.md
+Last session: 2026-03-24T21:19:46Z
+Stopped at: Completed 17-01-PLAN.md
+Resume file: .planning/phases/17-progression-engine/17-01-SUMMARY.md

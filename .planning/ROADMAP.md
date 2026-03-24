@@ -83,7 +83,7 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 17-01-PLAN.md — Progression library with PROGRESSION_CATALOG (25 progressions), 4 functions, and unit tests
+- [x] 17-01-PLAN.md — Progression library with PROGRESSION_CATALOG (25 progressions), 4 functions, and unit tests
 - [ ] 17-02-PLAN.md — Wire 4 MCP progression tools, add integration tests
 
 **Delivers:**
