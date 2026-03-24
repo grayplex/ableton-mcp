@@ -11,11 +11,11 @@
 
 ## Chord Tools (5)
 
-- [ ] **CHRD-01**: User can build a chord from root note + quality (e.g., root="C", quality="maj7" → MIDI pitches [60, 64, 67, 71]) with configurable octave
-- [ ] **CHRD-02**: User can get chord inversions (root position, 1st, 2nd, 3rd inversion) for any chord
-- [ ] **CHRD-03**: User can get chord voicings (close, open, drop-2, drop-3) for any chord
-- [ ] **CHRD-04**: User can identify a chord from a set of MIDI pitches (e.g., [60, 64, 67] → "C major")
-- [ ] **CHRD-05**: User can get all diatonic chords (triads and 7ths) for a given key/scale
+- [x] **CHRD-01**: User can build a chord from root note + quality (e.g., root="C", quality="maj7" → MIDI pitches [60, 64, 67, 71]) with configurable octave
+- [x] **CHRD-02**: User can get chord inversions (root position, 1st, 2nd, 3rd inversion) for any chord
+- [x] **CHRD-03**: User can get chord voicings (close, open, drop-2, drop-3) for any chord
+- [x] **CHRD-04**: User can identify a chord from a set of MIDI pitches (e.g., [60, 64, 67] → "C major")
+- [x] **CHRD-05**: User can get all diatonic chords (triads and 7ths) for a given key/scale
 
 ## Scale & Mode Tools (5)
 
