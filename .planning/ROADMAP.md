@@ -44,6 +44,12 @@ Plans:
 #### Phase 15: Chord Engine
 **Goal:** Claude can build any chord by name, get inversions and voicings, identify chords from pitches, and enumerate all diatonic chords in a key.
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 15-01-PLAN.md — Chord library with all 5 functions (build, inversions, voicings, identify, diatonic) and unit tests
+- [ ] 15-02-PLAN.md — Wire 5 MCP chord tools, update barrel exports, add integration tests
+
 **Delivers:**
 - `build_chord` tool — root + quality → MIDI pitches
 - `get_chord_inversions` tool — all inversions of a chord
