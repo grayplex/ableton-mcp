@@ -17,7 +17,7 @@
 | 14 | 2/2 | Complete    | 2026-03-24 |
 | 15 | 2/2 | Complete    | 2026-03-24 |
 | 16 | 2/2 | Complete    | 2026-03-24 |
-| 17 | Progression Engine | Genre progression templates, voice-led generation, Roman numeral analysis, next-chord suggestion | PROG-01, PROG-02, PROG-03, PROG-04 |
+| 17 | 2/2 | Complete    | 2026-03-24 |
 | 18 | Harmonic Analysis | Key detection from clip notes, chord segmentation by time, harmonic rhythm analysis | ANLY-01, ANLY-02, ANLY-03 |
 | 19 | Voice Leading & Rhythm | Voice-led chord connections, full progression voicing, rhythm pattern templates, pattern application to chords | VOIC-01, VOIC-02, RHYM-01, RHYM-02 |
 
@@ -80,11 +80,11 @@ Plans:
 #### Phase 17: Progression Engine
 **Goal:** Claude can retrieve genre-specific progressions, generate voice-led chord sequences, analyze existing progressions as Roman numerals, and get next-chord suggestions.
 
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 17-01-PLAN.md — Progression library with PROGRESSION_CATALOG (25 progressions), 4 functions, and unit tests
-- [ ] 17-02-PLAN.md — Wire 4 MCP progression tools, add integration tests
+- [x] 17-02-PLAN.md — Wire 4 MCP progression tools, add integration tests
 
 **Delivers:**
 - `get_common_progressions` tool — genre/style → progression templates with MIDI output

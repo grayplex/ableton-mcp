@@ -27,10 +27,10 @@
 
 ## Progression Tools (4)
 
-- [ ] **PROG-01**: User can retrieve common chord progressions by genre/style (jazz ii-V-I, pop I-V-vi-IV, 12-bar blues, etc.) with MIDI pitch output
-- [ ] **PROG-02**: User can generate a chord progression with voice leading applied, given a key and Roman numeral sequence
-- [ ] **PROG-03**: User can analyze a sequence of chords as Roman numeral progression in a given key
-- [ ] **PROG-04**: User can get next-chord suggestions given current progression context and style
+- [x] **PROG-01**: User can retrieve common chord progressions by genre/style (jazz ii-V-I, pop I-V-vi-IV, 12-bar blues, etc.) with MIDI pitch output
+- [x] **PROG-02**: User can generate a chord progression with voice leading applied, given a key and Roman numeral sequence
+- [x] **PROG-03**: User can analyze a sequence of chords as Roman numeral progression in a given key
+- [x] **PROG-04**: User can get next-chord suggestions given current progression context and style
 
 ## Harmonic Analysis Tools (3)
 

@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: — Theory Engine
 status: Executing
-stopped_at: Completed 17-01-PLAN.md
-last_updated: "2026-03-24T21:19:46Z"
+stopped_at: Completed 17-02-PLAN.md
+last_updated: "2026-03-24T21:25:00Z"
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -24,15 +24,15 @@ See: .planning/PROJECT.md (updated 2026-03-23)
 ## Current Position
 
 Phase: 17
-Plan: 1 of 2 complete
+Plan: 2 of 2 complete
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 1
-- Average duration: ~5min/plan
-- Total execution time: 315s
+- Total plans completed: 2
+- Average duration: ~3.6min/plan
+- Total execution time: 435s
 
 **v1.0 Reference:** 33 plans in ~1.4 hours (avg ~3min/plan)
 
@@ -57,6 +57,8 @@ Plan: 1 of 2 complete
 - [Phase 17]: Permutation-based voice leading for chords up to 5 notes (O(n!) but n<=5)
 - [Phase 17]: Chord name normalization "Bb" -> "B-" for music21 ChordSymbol compatibility
 - [Phase 17]: Modal progression resolution via parent major key rotation
+- [Phase 17]: All 4 tools follow aliased-import + json.dumps + format_error + MIDI boundary validation pattern
+- [Phase 17]: Empty input validation at tool boundary before library calls
 
 ### Roadmap Evolution
 
@@ -73,6 +75,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-24T21:19:46Z
-Stopped at: Completed 17-01-PLAN.md
-Resume file: .planning/phases/17-progression-engine/17-01-SUMMARY.md
+Last session: 2026-03-24T21:25:00Z
+Stopped at: Completed 17-02-PLAN.md
+Resume file: .planning/phases/17-progression-engine/17-02-SUMMARY.md
