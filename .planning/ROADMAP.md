@@ -26,6 +26,12 @@
 #### Phase 14: Theory Foundation
 **Goal:** music21 is installed, importable, and wrapped in a theory library that converts between music21 objects and MCP-friendly JSON. The module structure is established for all subsequent phases.
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 14-01-PLAN.md — Install music21 dependency, create theory/ package with pitch mapping utilities
+- [ ] 14-02-PLAN.md — Wire MCP tools, register with FastMCP, create comprehensive test suite
+
 **Delivers:**
 - `music21` in MCP_Server dependencies (pyproject.toml / requirements.txt)
 - `MCP_Server/theory/` package with core utilities (pitch mapping, chord builder, scale utils)
