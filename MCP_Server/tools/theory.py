@@ -18,6 +18,10 @@ from MCP_Server.theory import get_scale_pitches as _get_scale_pitches
 from MCP_Server.theory import check_notes_in_scale as _check_notes_in_scale
 from MCP_Server.theory import get_related_scales as _get_related_scales
 from MCP_Server.theory import detect_scales_from_notes as _detect_scales_from_notes
+from MCP_Server.theory import get_common_progressions as _get_common_progressions
+from MCP_Server.theory import generate_progression as _generate_progression
+from MCP_Server.theory import analyze_progression as _analyze_progression
+from MCP_Server.theory import suggest_next_chord as _suggest_next_chord
 
 
 @mcp.tool()
@@ -329,4 +333,154 @@ def detect_scales_from_notes(ctx: Context, midi_pitches: list[int]) -> str:
             "Failed to detect scales from notes",
             detail=str(e),
             suggestion="Provide a list of valid MIDI pitch numbers (e.g., [60, 62, 64])",
+        )
+
+
+@mcp.tool()
+def get_common_progressions(ctx: Context, key: str, genre: str | None = None, octave: int = 4) -> str:
+    """Get common chord progressions by genre, resolved to MIDI pitches in a given key.
+
+    Returns a catalog of ~25 progressions across pop, rock, jazz, blues, R&B/soul, classical,
+    and EDM genres. Each progression includes Roman numerals and resolved MIDI chord data.
+
+    Parameters:
+    - key: Key to resolve progressions in (e.g., "C", "G", "F#")
+    - genre: Optional genre filter (e.g., "jazz", "pop", "blues", "rock", "rnb", "classical", "edm")
+    - octave: Base octave for chord pitches (default 4)
+    """
+    try:
+        result = _get_common_progressions(key, genre, octave)
+        # MIDI range validation at tool boundary (D-20)
+        for prog in result:
+            for chord in prog["chords"]:
+                for note in chord["notes"]:
+                    if not (0 <= note["midi"] <= 127):
+                        return format_error(
+                            "Progression contains notes outside MIDI range",
+                            detail=f"{note['name']} = MIDI {note['midi']}, outside 0-127",
+                            suggestion="Try a different octave to keep all notes within MIDI 0-127",
+                        )
+        return json.dumps(result, indent=2)
+    except ValueError as e:
+        return format_error(
+            "Invalid parameters for get_common_progressions",
+            detail=str(e),
+            suggestion="Check key (e.g., 'C', 'G') and genre (e.g., 'jazz', 'pop', 'blues')",
+        )
+    except Exception as e:
+        return format_error(
+            "Failed to get common progressions",
+            detail=str(e),
+            suggestion="Check key (e.g., 'C', 'G') and optional genre filter",
+        )
+
+
+@mcp.tool()
+def generate_progression(ctx: Context, key: str, numerals: list[str], scale_type: str = "major", octave: int = 4) -> str:
+    """Generate a voice-led chord progression from Roman numeral input in any key and scale.
+
+    Applies basic nearest-voice voice leading to minimize pitch movement between consecutive chords.
+
+    Parameters:
+    - key: Key root (e.g., "C", "G", "Bb")
+    - numerals: List of Roman numerals (e.g., ["I", "IV", "V", "I"] or ["ii7", "V7", "I7"])
+    - scale_type: Scale context (default "major"). Supports "major", "minor", "dorian", "mixolydian", etc.
+    - octave: Base octave for chord pitches (default 4)
+    """
+    try:
+        if not numerals:
+            return format_error(
+                "Empty numerals list",
+                detail="numerals must be a non-empty list of Roman numeral strings",
+                suggestion="Provide at least one Roman numeral (e.g., ['I', 'IV', 'V', 'I'])",
+            )
+        result = _generate_progression(key, numerals, scale_type, octave)
+        # MIDI range validation at tool boundary (D-20)
+        for chord in result["chords"]:
+            for note in chord["notes"]:
+                if not (0 <= note["midi"] <= 127):
+                    return format_error(
+                        "Progression contains notes outside MIDI range",
+                        detail=f"{note['name']} = MIDI {note['midi']}, outside 0-127",
+                        suggestion="Try a different octave to keep all notes within MIDI 0-127",
+                    )
+        return json.dumps(result, indent=2)
+    except ValueError as e:
+        return format_error(
+            "Invalid parameters for generate_progression",
+            detail=str(e),
+            suggestion="Check key, numerals (e.g., ['I', 'IV', 'V']), and scale_type",
+        )
+    except Exception as e:
+        return format_error(
+            "Failed to generate progression",
+            detail=str(e),
+            suggestion="Check key (e.g., 'C', 'G') and numerals (e.g., ['I', 'IV', 'V', 'I'])",
+        )
+
+
+@mcp.tool()
+def analyze_progression(ctx: Context, chord_names: list[str], key: str) -> str:
+    """Analyze a sequence of chord names as Roman numerals in a given key.
+
+    Detects diatonic chords, borrowed chords (bVII, bIII), and chromatic alterations.
+
+    Parameters:
+    - chord_names: List of chord name strings (e.g., ["Cmaj7", "Dm", "G7", "C"])
+    - key: Analysis key (e.g., "C", "G", "F#")
+    """
+    try:
+        if not chord_names:
+            return format_error(
+                "Empty chord names list",
+                detail="chord_names must be a non-empty list of chord name strings",
+                suggestion="Provide at least one chord name (e.g., ['C', 'F', 'G'])",
+            )
+        result = _analyze_progression(chord_names, key)
+        return json.dumps(result, indent=2)
+    except ValueError as e:
+        return format_error(
+            "Invalid parameters for analyze_progression",
+            detail=str(e),
+            suggestion="Check chord_names (e.g., ['C', 'Dm', 'G7']) and key (e.g., 'C')",
+        )
+    except Exception as e:
+        return format_error(
+            "Failed to analyze progression",
+            detail=str(e),
+            suggestion="Check chord_names (e.g., ['C', 'F', 'G', 'C']) and key (e.g., 'C')",
+        )
+
+
+@mcp.tool()
+def suggest_next_chord(ctx: Context, key: str, preceding: list[str], genre: str | None = None) -> str:
+    """Suggest next chords given a progression context, using hybrid theory rules and catalog patterns.
+
+    Returns 3-5 ranked suggestions, each with a brief reason explaining the harmonic logic.
+
+    Parameters:
+    - key: Key context (e.g., "C", "G", "Bb")
+    - preceding: 1-4 preceding chords as Roman numerals (e.g., ["I", "V", "vi"])
+    - genre: Optional genre filter to weight catalog patterns (e.g., "jazz", "pop")
+    """
+    try:
+        if not preceding:
+            return format_error(
+                "Empty preceding list",
+                detail="preceding must be a non-empty list of Roman numeral strings",
+                suggestion="Provide at least one preceding chord (e.g., ['I', 'V'])",
+            )
+        result = _suggest_next_chord(key, preceding, genre)
+        return json.dumps(result, indent=2)
+    except ValueError as e:
+        return format_error(
+            "Invalid parameters for suggest_next_chord",
+            detail=str(e),
+            suggestion="Check key (e.g., 'C') and preceding numerals (e.g., ['I', 'V'])",
+        )
+    except Exception as e:
+        return format_error(
+            "Failed to suggest next chord",
+            detail=str(e),
+            suggestion="Check key (e.g., 'C') and preceding (e.g., ['I', 'V', 'vi'])",
         )
