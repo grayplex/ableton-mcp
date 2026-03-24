@@ -14,11 +14,11 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 
 The server is production-quality with comprehensive Ableton Live 12 coverage:
 - **178 Remote Script handler commands** across 15 domain modules
-- **181 MCP tools** across 16 tool modules (174 v1.0 + 2 pitch + 5 chord)
-- **264 tests** (all passing)
+- **186 MCP tools** across 16 tool modules (174 v1.0 + 2 pitch + 5 chord + 5 scale)
+- **295 tests** (all passing)
 - **53 v1 requirements** — all complete
 
-**v1.1 Progress:** Phase 15 (Chord Engine) complete — 5 chord tools (build, inversions, voicings, identify, diatonic), 181 total MCP tools
+**v1.1 Progress:** Phase 16 (Scale & Mode Explorer) complete — 5 scale tools (list, pitches, check, related, detect), extended diatonic chords for harmonic/melodic minor, 186 total MCP tools
 
 ### Capabilities
 
@@ -89,4 +89,4 @@ A codebase map exists at `.planning/codebase/` with architecture, stack, and con
 v1.0 milestone archived at `.planning/milestones/` with full roadmap and requirements history.
 
 ---
-*Last updated: 2026-03-24 — Phase 15 complete, v1.1 in progress*
+*Last updated: 2026-03-24 — Phase 16 complete, v1.1 in progress*
