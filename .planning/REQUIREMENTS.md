@@ -5,9 +5,9 @@
 
 ## Theory Foundation (3)
 
-- [ ] **THRY-01**: music21 installed as MCP_Server dependency and importable at server startup
+- [x] **THRY-01**: music21 installed as MCP_Server dependency and importable at server startup
 - [ ] **THRY-02**: Theory engine module (`MCP_Server/tools/theory.py` + `MCP_Server/theory/` library) with music21-powered utilities for chord, scale, progression, and analysis operations
-- [ ] **THRY-03**: Bidirectional MIDI pitch ↔ note name mapping (e.g., 60 ↔ "C4", 63 ↔ "Eb4") consistent with Ableton's 0-127 range and music21's pitch representation
+- [x] **THRY-03**: Bidirectional MIDI pitch ↔ note name mapping (e.g., 60 ↔ "C4", 63 ↔ "Eb4") consistent with Ableton's 0-127 range and music21's pitch representation
 
 ## Chord Tools (5)
 

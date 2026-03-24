@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: — Theory Engine
-status: planning
-stopped_at: Phase 14 context gathered
-last_updated: "2026-03-24T10:42:30.475Z"
+status: Ready to execute
+stopped_at: Completed 14-01-PLAN.md
+last_updated: "2026-03-24T11:13:42.521Z"
 progress:
   total_phases: 6
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 2
+  completed_plans: 1
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Claude composes with harmonic intelligence — chords, progressions, and voice leading flow from music theory knowledge, not brute-force pitch guessing.
-**Current focus:** Milestone planning complete, ready for Phase 14
+**Current focus:** Phase 14 — theory-foundation
 
 ## Current Position
 
-Phase: 14 (theory-foundation) — NOT STARTED
-Plan: 0 of 0
+Phase: 14 (theory-foundation) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -44,6 +44,9 @@ Plan: 0 of 0
 - [Milestone]: Theory logic server-side only — no Remote Script changes needed
 - [Milestone]: Granular tools (15-25) — individual MCP tools, not composite mega-tools
 - [Milestone]: Both analysis + generation — read existing clips AND generate new theory-informed content
+- [Phase 14]: Force sharps via accidental polarity check instead of simplifyEnharmonic (music21 prefers Eb/Bb)
+- [Phase 14]: Parenthesized negative octave format C(-1) to avoid music21 parsing ambiguity
+- [Phase 14]: Key-aware spelling via scale pitch lookup (simplifyEnharmonic keyContext not in music21 9.x)
 
 ### Roadmap Evolution
 
@@ -60,6 +63,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-24T10:42:30.470Z
-Stopped at: Phase 14 context gathered
-Resume file: .planning/phases/14-theory-foundation/14-CONTEXT.md
+Last session: 2026-03-24T11:13:42.518Z
+Stopped at: Completed 14-01-PLAN.md
+Resume file: None
