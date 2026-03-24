@@ -13,6 +13,11 @@ from MCP_Server.theory import get_chord_inversions as _get_chord_inversions
 from MCP_Server.theory import get_chord_voicings as _get_chord_voicings
 from MCP_Server.theory import identify_chord as _identify_chord
 from MCP_Server.theory import get_diatonic_chords as _get_diatonic_chords
+from MCP_Server.theory import list_scales as _list_scales
+from MCP_Server.theory import get_scale_pitches as _get_scale_pitches
+from MCP_Server.theory import check_notes_in_scale as _check_notes_in_scale
+from MCP_Server.theory import get_related_scales as _get_related_scales
+from MCP_Server.theory import detect_scales_from_notes as _detect_scales_from_notes
 
 
 @mcp.tool()
@@ -169,7 +174,7 @@ def get_diatonic_chords(ctx: Context, key_name: str, scale_type: str = "major", 
 
     Parameters:
     - key_name: Key root (e.g., "C", "G", "F#")
-    - scale_type: "major" or "minor" (natural minor)
+    - scale_type: "major", "minor" (natural minor), "harmonic_minor", or "melodic_minor"
     - octave: Base octave for chord pitches (default 4)
     """
     try:
@@ -179,5 +184,149 @@ def get_diatonic_chords(ctx: Context, key_name: str, scale_type: str = "major", 
         return format_error(
             "Failed to get diatonic chords",
             detail=str(e),
-            suggestion="Use key_name like 'C', 'G', 'F#' and scale_type 'major' or 'minor'",
+            suggestion="Use key_name like 'C', 'G', 'F#' and scale_type 'major', 'minor', 'harmonic_minor', or 'melodic_minor'",
+        )
+
+
+@mcp.tool()
+def list_scales(ctx: Context) -> str:
+    """List all available scales and modes with their interval patterns and categories.
+
+    Returns a catalog of ~38 scales organized by category (diatonic, modal, minor_variant,
+    pentatonic, blues, symmetric, bebop, world).
+    """
+    try:
+        result = _list_scales()
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to list scales",
+            detail=str(e),
+            suggestion="This tool takes no parameters",
+        )
+
+
+@mcp.tool()
+def get_scale_pitches(ctx: Context, root: str, scale_name: str, octave_start: int = 4, octave_end: int = 5) -> str:
+    """Get scale degrees as MIDI pitches for a given root, scale, and octave range.
+
+    Parameters:
+    - root: Root note name (e.g., "C", "F#", "Bb")
+    - scale_name: Scale name from the catalog (e.g., "major", "minor_pentatonic", "dorian")
+    - octave_start: Starting octave (default 4)
+    - octave_end: Ending octave (default 5)
+    """
+    try:
+        result = _get_scale_pitches(root, scale_name, octave_start, octave_end)
+        # MIDI range validation at tool boundary (D-15)
+        for note in result["pitches"]:
+            if not (0 <= note["midi"] <= 127):
+                return format_error(
+                    "Scale contains pitches outside MIDI range",
+                    detail=f"{note['name']} = MIDI {note['midi']}, outside 0-127",
+                    suggestion="Try a smaller octave range to keep all pitches within MIDI 0-127",
+                )
+        return json.dumps(result, indent=2)
+    except ValueError as e:
+        return format_error(
+            "Invalid scale parameters",
+            detail=str(e),
+            suggestion="Use list_scales to see available scale names",
+        )
+    except Exception as e:
+        return format_error(
+            "Failed to get scale pitches",
+            detail=str(e),
+            suggestion="Check root (e.g., 'C', 'F#') and scale_name (use list_scales for options)",
+        )
+
+
+@mcp.tool()
+def check_notes_in_scale(ctx: Context, midi_pitches: list[int], root: str, scale_name: str) -> str:
+    """Check whether notes belong to a given scale. Reports in-scale and out-of-scale notes.
+
+    Parameters:
+    - midi_pitches: List of MIDI pitch numbers to check (e.g., [60, 64, 67])
+    - root: Scale root note (e.g., "C", "F#")
+    - scale_name: Scale name from the catalog (e.g., "major", "dorian")
+    """
+    try:
+        # MIDI range validation at tool boundary (D-15)
+        for p in midi_pitches:
+            if not (0 <= p <= 127):
+                return format_error(
+                    "MIDI pitch out of range",
+                    detail=f"Got {p}, must be 0-127",
+                    suggestion="All MIDI pitch numbers must be between 0 and 127",
+                )
+        result = _check_notes_in_scale(midi_pitches, root, scale_name)
+        return json.dumps(result, indent=2)
+    except ValueError as e:
+        return format_error(
+            "Invalid parameters",
+            detail=str(e),
+            suggestion="Use list_scales to see available scale names",
+        )
+    except Exception as e:
+        return format_error(
+            "Failed to check notes in scale",
+            detail=str(e),
+            suggestion="Provide midi_pitches as a list of integers, root (e.g., 'C'), and scale_name",
+        )
+
+
+@mcp.tool()
+def get_related_scales(ctx: Context, root: str, scale_name: str) -> str:
+    """Get related scales: parallel (same root), relative (same key signature), and modes.
+
+    Parameters:
+    - root: Root note name (e.g., "C", "F#")
+    - scale_name: Scale name from the catalog (e.g., "major", "natural_minor")
+    """
+    try:
+        result = _get_related_scales(root, scale_name)
+        return json.dumps(result, indent=2)
+    except ValueError as e:
+        return format_error(
+            "Invalid parameters",
+            detail=str(e),
+            suggestion="Use list_scales to see available scale names",
+        )
+    except Exception as e:
+        return format_error(
+            "Failed to get related scales",
+            detail=str(e),
+            suggestion="Check root (e.g., 'C', 'F#') and scale_name (use list_scales for options)",
+        )
+
+
+@mcp.tool()
+def detect_scales_from_notes(ctx: Context, midi_pitches: list[int]) -> str:
+    """Detect which scales contain a given set of notes. Returns top 5 ranked by coverage.
+
+    Parameters:
+    - midi_pitches: List of MIDI pitch numbers (e.g., [60, 62, 64, 65, 67, 69, 71])
+    """
+    try:
+        if not midi_pitches:
+            return format_error(
+                "Need at least 1 pitch to detect scales",
+                detail="Got empty list",
+                suggestion="Provide at least one MIDI pitch number",
+            )
+        # MIDI range validation at tool boundary (D-15)
+        for p in midi_pitches:
+            if not (0 <= p <= 127):
+                return format_error(
+                    "MIDI pitch out of range",
+                    detail=f"Got {p}, must be 0-127",
+                    suggestion="All MIDI pitch numbers must be between 0 and 127",
+                )
+        result = _detect_scales_from_notes(midi_pitches)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to detect scales from notes",
+            detail=str(e),
+            suggestion="Provide a list of valid MIDI pitch numbers (e.g., [60, 62, 64])",
         )
