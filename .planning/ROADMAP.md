@@ -16,7 +16,7 @@
 |---|-------|------|-------------|
 | 14 | 2/2 | Complete    | 2026-03-24 |
 | 15 | 2/2 | Complete    | 2026-03-24 |
-| 16 | Scale & Mode Explorer | List scales/modes, generate pitch sets, validate notes against scales, find related scales | SCLE-01, SCLE-02, SCLE-03, SCLE-04, SCLE-05 |
+| 16 | 0/2 | Planned    |  |
 | 17 | Progression Engine | Genre progression templates, voice-led generation, Roman numeral analysis, next-chord suggestion | PROG-01, PROG-02, PROG-03, PROG-04 |
 | 18 | Harmonic Analysis | Key detection from clip notes, chord segmentation by time, harmonic rhythm analysis | ANLY-01, ANLY-02, ANLY-03 |
 | 19 | Voice Leading & Rhythm | Voice-led chord connections, full progression voicing, rhythm pattern templates, pattern application to chords | VOIC-01, VOIC-02, RHYM-01, RHYM-02 |
@@ -62,7 +62,7 @@ Plans:
 #### Phase 16: Scale & Mode Explorer
 **Goal:** Claude can explore all available scales/modes, generate pitch sets for composition, validate notes against scales, and discover related tonalities.
 
-**Plans:** 2 plans
+**Plans:** 0/2 plans executed
 
 Plans:
 - [ ] 16-01-PLAN.md — Scale library with SCALE_CATALOG (38 scales), 5 functions, extended diatonic chords, and unit tests

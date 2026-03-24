@@ -366,6 +366,90 @@ class TestChordLibrary:
         with pytest.raises(ValueError):
             get_diatonic_chords("C", "pentatonic", 4)
 
+    # --- Harmonic minor diatonic chords ---
+
+    def test_diatonic_harmonic_minor_triads(self):
+        """C harmonic minor diatonic triads: 7 chords."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("C", "harmonic_minor", 4)
+        assert len(result["triads"]) == 7
+
+    def test_diatonic_harmonic_minor_augmented_III(self):
+        """C harmonic minor triad degree 3 has augmented quality."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("C", "harmonic_minor", 4)
+        third = result["triads"][2]  # degree 3, index 2
+        assert "III" in third["roman"]
+        assert "augmented" in third["quality"].lower()
+
+    def test_diatonic_harmonic_minor_major_V(self):
+        """C harmonic minor triad degree 5 has major quality."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("C", "harmonic_minor", 4)
+        fifth = result["triads"][4]  # degree 5, index 4
+        assert fifth["roman"] == "V"
+        assert "major" in fifth["quality"].lower()
+
+    def test_diatonic_harmonic_minor_sevenths(self):
+        """C harmonic minor has 7 seventh chords."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("C", "harmonic_minor", 4)
+        assert len(result["sevenths"]) == 7
+
+    # --- Melodic minor diatonic chords ---
+
+    def test_diatonic_melodic_minor_triads(self):
+        """C melodic minor diatonic triads: 7 chords."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("C", "melodic_minor", 4)
+        assert len(result["triads"]) == 7
+
+    def test_diatonic_melodic_minor_major_IV(self):
+        """C melodic minor triad degree 4 has major quality."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("C", "melodic_minor", 4)
+        fourth = result["triads"][3]  # degree 4, index 3
+        assert fourth["roman"] == "IV"
+        assert "major" in fourth["quality"].lower()
+
+    def test_diatonic_melodic_minor_sevenths(self):
+        """C melodic minor has 7 seventh chords."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("C", "melodic_minor", 4)
+        assert len(result["sevenths"]) == 7
+
+    # --- Regression tests ---
+
+    def test_diatonic_major_still_works(self):
+        """get_diatonic_chords major still works after extension."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("C", "major", 4)
+        assert len(result["triads"]) == 7
+        assert result["triads"][0]["roman"] == "I"
+
+    def test_diatonic_minor_still_works(self):
+        """get_diatonic_chords minor still works after extension."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        result = get_diatonic_chords("A", "minor", 4)
+        assert len(result["triads"]) == 7
+        assert result["triads"][0]["roman"] == "i"
+
+    def test_diatonic_pentatonic_still_raises(self):
+        """get_diatonic_chords pentatonic still raises ValueError."""
+        from MCP_Server.theory.chords import get_diatonic_chords
+
+        with pytest.raises(ValueError):
+            get_diatonic_chords("C", "pentatonic", 4)
+
 
 class TestTheoryTools:
     """Integration tests: MCP tool calls via mcp_server fixture (async, no mock_connection)."""
@@ -523,3 +607,194 @@ class TestChordTools:
         data = json.loads(result[0][0].text)
         assert data["triads"][0]["roman"] == "i"
         assert len(data["triads"]) == 7
+
+
+class TestScaleLibrary:
+    """Unit tests for MCP_Server.theory.scales functions (no MCP, no mocks)."""
+
+    # --- SCLE-01: list_scales ---
+
+    def test_list_scales_returns_list_of_dicts(self):
+        from MCP_Server.theory.scales import list_scales
+
+        result = list_scales()
+        assert isinstance(result, list)
+        for entry in result:
+            assert isinstance(entry, dict)
+            assert "name" in entry
+            assert "intervals" in entry
+            assert "category" in entry
+            assert "note_count" in entry
+
+    def test_list_scales_38_entries(self):
+        from MCP_Server.theory.scales import list_scales
+
+        result = list_scales()
+        assert len(result) == 38
+
+    def test_list_scales_all_categories(self):
+        from MCP_Server.theory.scales import list_scales
+
+        result = list_scales()
+        categories = {e["category"] for e in result}
+        expected = {"diatonic", "modal", "minor_variant", "pentatonic", "blues", "symmetric", "bebop", "world"}
+        assert categories == expected
+
+    def test_major_scale_intervals_sum_to_12(self):
+        from MCP_Server.theory.scales import list_scales
+
+        result = list_scales()
+        major = [s for s in result if s["name"] == "major"][0]
+        assert sum(major["intervals"]) == 12
+
+    def test_all_intervals_sum_correctly(self):
+        from MCP_Server.theory.scales import list_scales
+
+        result = list_scales()
+        for scale in result:
+            total = sum(scale["intervals"])
+            assert total == 12, f"{scale['name']} intervals sum to {total}, expected 12"
+
+    # --- SCLE-02: get_scale_pitches ---
+
+    def test_get_scale_pitches_c_major_one_octave(self):
+        from MCP_Server.theory.scales import get_scale_pitches
+
+        result = get_scale_pitches("C", "major", 4, 4)
+        pitches = result["pitches"]
+        assert len(pitches) == 8  # C D E F G A B C
+        assert pitches[0]["midi"] == 60
+        assert pitches[-1]["midi"] == 72
+
+    def test_get_scale_pitches_c_major_two_octaves(self):
+        from MCP_Server.theory.scales import get_scale_pitches
+
+        result = get_scale_pitches("C", "major", 4, 5)
+        pitches = result["pitches"]
+        assert pitches[0]["midi"] == 60
+        assert pitches[-1]["midi"] == 72
+
+    def test_get_scale_pitches_rich_note_objects(self):
+        from MCP_Server.theory.scales import get_scale_pitches
+
+        result = get_scale_pitches("C", "major", 4, 4)
+        for p in result["pitches"]:
+            assert "midi" in p
+            assert "name" in p
+
+    def test_get_scale_pitches_minor_pentatonic(self):
+        from MCP_Server.theory.scales import get_scale_pitches
+
+        result = get_scale_pitches("C", "minor_pentatonic", 4, 4)
+        pitches = result["pitches"]
+        # C Eb F G Bb C -> 6 notes for one octave including top
+        assert len(pitches) == 6
+        # Check pitch classes: C, D#/Eb, F, G, A#/Bb, C
+        midi_values = [p["midi"] for p in pitches]
+        assert midi_values[0] == 60  # C4
+        assert midi_values[-1] == 72  # C5
+
+    def test_get_scale_pitches_invalid_scale_raises(self):
+        from MCP_Server.theory.scales import get_scale_pitches
+
+        with pytest.raises(ValueError):
+            get_scale_pitches("C", "nonexistent_scale", 4, 5)
+
+    # --- SCLE-03: check_notes_in_scale ---
+
+    def test_check_notes_all_in_scale(self):
+        from MCP_Server.theory.scales import check_notes_in_scale
+
+        result = check_notes_in_scale([60, 64, 67], "C", "major")
+        assert result["all_in_scale"] is True
+        assert len(result["in_scale"]) == 3
+        assert len(result["out_of_scale"]) == 0
+
+    def test_check_notes_some_out_of_scale(self):
+        from MCP_Server.theory.scales import check_notes_in_scale
+
+        result = check_notes_in_scale([60, 63, 67], "C", "major")
+        assert result["all_in_scale"] is False
+        # midi 63 = Eb/D# is not in C major
+        out_midis = [n["midi"] for n in result["out_of_scale"]]
+        assert 63 in out_midis
+
+    def test_check_notes_result_keys(self):
+        from MCP_Server.theory.scales import check_notes_in_scale
+
+        result = check_notes_in_scale([60, 64, 67], "C", "major")
+        assert "scale" in result
+        assert "root" in result
+        assert "in_scale" in result
+        assert "out_of_scale" in result
+        assert "all_in_scale" in result
+
+    # --- SCLE-04: get_related_scales ---
+
+    def test_get_related_scales_keys(self):
+        from MCP_Server.theory.scales import get_related_scales
+
+        result = get_related_scales("C", "major")
+        assert "parallel" in result
+        assert "relative" in result
+        assert "modes" in result
+
+    def test_get_related_scales_relative_minor(self):
+        from MCP_Server.theory.scales import get_related_scales
+
+        result = get_related_scales("C", "major")
+        relative_scales = [(r["root"], r["scale"]) for r in result["relative"]]
+        assert ("A", "natural_minor") in relative_scales
+
+    def test_get_related_scales_modes(self):
+        from MCP_Server.theory.scales import get_related_scales
+
+        result = get_related_scales("C", "major")
+        mode_scales = [(m["root"], m["scale"]) for m in result["modes"]]
+        assert len(result["modes"]) == 7
+        assert ("D", "dorian") in mode_scales
+        assert ("E", "phrygian") in mode_scales
+
+    def test_get_related_scales_parallel(self):
+        from MCP_Server.theory.scales import get_related_scales
+
+        result = get_related_scales("C", "major")
+        parallel_scales = [(p["root"], p["scale"]) for p in result["parallel"]]
+        assert ("C", "natural_minor") in parallel_scales
+        assert ("C", "harmonic_minor") in parallel_scales
+        assert ("C", "melodic_minor") in parallel_scales
+
+    # --- SCLE-05: detect_scales_from_notes ---
+
+    def test_detect_c_major(self):
+        from MCP_Server.theory.scales import detect_scales_from_notes
+
+        result = detect_scales_from_notes([60, 62, 64, 65, 67, 69, 71])
+        assert len(result) > 0
+        top = result[0]
+        assert top["root"] == "C"
+        assert top["scale"] == "major"
+        assert top["coverage"] == 1.0
+
+    def test_detect_max_5_results(self):
+        from MCP_Server.theory.scales import detect_scales_from_notes
+
+        result = detect_scales_from_notes([60, 62, 64, 65, 67, 69, 71])
+        assert len(result) <= 5
+
+    def test_detect_result_keys(self):
+        from MCP_Server.theory.scales import detect_scales_from_notes
+
+        result = detect_scales_from_notes([60, 62, 64, 65, 67, 69, 71])
+        for entry in result:
+            assert "root" in entry
+            assert "scale" in entry
+            assert "coverage" in entry
+            assert "matched_notes" in entry
+            assert "total_notes" in entry
+
+    def test_detect_empty_raises(self):
+        from MCP_Server.theory.scales import detect_scales_from_notes
+
+        with pytest.raises(ValueError):
+            detect_scales_from_notes([])

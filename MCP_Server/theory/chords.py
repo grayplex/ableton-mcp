@@ -388,7 +388,7 @@ def get_diatonic_chords(key_name, scale_type="major", octave=4):
 
     Args:
         key_name: Key root (e.g., "C", "A", "F#")
-        scale_type: "major" or "minor" (natural minor per D-14)
+        scale_type: "major", "minor", "harmonic_minor", or "melodic_minor"
         octave: Target octave (default 4)
 
     Returns:
@@ -398,23 +398,43 @@ def get_diatonic_chords(key_name, scale_type="major", octave=4):
                "sevenths": [...]}
 
     Raises:
-        ValueError: If scale_type is not "major" or "minor"
+        ValueError: If scale_type is not one of the supported types
     """
-    if scale_type not in ("major", "minor"):
-        raise ValueError(f"Unsupported scale type: '{scale_type}'. Use 'major' or 'minor'.")
+    valid_types = ("major", "minor", "harmonic_minor", "melodic_minor")
+    if scale_type not in valid_types:
+        raise ValueError(f"Unsupported scale type: '{scale_type}'. Use one of: {', '.join(valid_types)}.")
 
     key_mod = _get_key_module()
     roman_mod = _get_roman_module()
 
-    k = key_mod.Key(key_name, scale_type)
+    # For harmonic/melodic minor, use minor key as base for Roman numeral context
+    if scale_type in ("harmonic_minor", "melodic_minor"):
+        k = key_mod.Key(key_name, "minor")
+    else:
+        k = key_mod.Key(key_name, scale_type)
+
+    # Determine the scale object for pitch generation (used in _build_diatonic_chord)
+    scale_obj = None
+    if scale_type == "harmonic_minor":
+        from music21 import scale as scale_mod
+        scale_obj = scale_mod.HarmonicMinorScale(key_name)
+    elif scale_type == "melodic_minor":
+        from music21 import scale as scale_mod
+        scale_obj = scale_mod.MelodicMinorScale(key_name)
 
     # Roman numeral templates
     if scale_type == "major":
         triad_numerals = ["I", "ii", "iii", "IV", "V", "vi", "viio"]
         seventh_numerals = ["I7", "ii7", "iii7", "IV7", "V7", "vi7", "viio7"]
-    else:
+    elif scale_type == "minor":
         triad_numerals = ["i", "iio", "III", "iv", "v", "VI", "VII"]
         seventh_numerals = ["i7", "iio7", "III7", "iv7", "v7", "VI7", "VII7"]
+    elif scale_type == "harmonic_minor":
+        triad_numerals = ["i", "iio", "III+", "iv", "V", "VI", "viio"]
+        seventh_numerals = ["i7", "iio7", "III+7", "iv7", "V7", "VI7", "viio7"]
+    elif scale_type == "melodic_minor":
+        triad_numerals = ["i", "ii", "III+", "IV", "V", "vio", "viio"]
+        seventh_numerals = ["i7", "ii7", "III+7", "IV7", "V7", "vio7", "viio7"]
 
     def _build_diatonic_chord(numeral, degree_num):
         rn = roman_mod.RomanNumeral(numeral, k)
@@ -436,7 +456,7 @@ def get_diatonic_chords(key_name, scale_type="major", octave=4):
             shift = semitone_shift
         else:
             # Get the expected MIDI for this degree's root at the target octave
-            scale_pitches = list(k.getScale().pitches)
+            scale_pitches = list(scale_obj.pitches) if scale_obj else list(k.getScale().pitches)
             # degree_num is 1-based, scale_pitches[0] is degree 1
             if degree_num - 1 < len(scale_pitches):
                 scale_root = scale_pitches[degree_num - 1]

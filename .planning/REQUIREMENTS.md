@@ -19,11 +19,11 @@
 
 ## Scale & Mode Tools (5)
 
-- [ ] **SCLE-01**: User can list all available scales and modes with their interval patterns
-- [ ] **SCLE-02**: User can get scale degrees as MIDI pitches for a given root, scale, and octave range
-- [ ] **SCLE-03**: User can check whether a note or set of notes belongs to a given scale
-- [ ] **SCLE-04**: User can get related scales/modes (parallel, relative, modes of a parent scale)
-- [ ] **SCLE-05**: User can detect which scales contain a given set of notes
+- [x] **SCLE-01**: User can list all available scales and modes with their interval patterns
+- [x] **SCLE-02**: User can get scale degrees as MIDI pitches for a given root, scale, and octave range
+- [x] **SCLE-03**: User can check whether a note or set of notes belongs to a given scale
+- [x] **SCLE-04**: User can get related scales/modes (parallel, relative, modes of a parent scale)
+- [x] **SCLE-05**: User can detect which scales contain a given set of notes
 
 ## Progression Tools (4)
 
