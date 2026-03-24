@@ -942,3 +942,319 @@ class TestScaleTools:
         data = json.loads(result[0][0].text)
         assert len(data["triads"]) == 7
         assert len(data["sevenths"]) == 7
+
+
+class TestProgressionLibrary:
+    """Unit tests for MCP_Server.theory.progressions functions (no MCP, no mocks)."""
+
+    # --- PROGRESSION_CATALOG ---
+
+    def test_catalog_has_25_entries(self):
+        from MCP_Server.theory.progressions import PROGRESSION_CATALOG
+
+        assert len(PROGRESSION_CATALOG) == 25
+
+    def test_catalog_covers_7_genres(self):
+        from MCP_Server.theory.progressions import PROGRESSION_CATALOG
+
+        genres = set(p["genre"] for p in PROGRESSION_CATALOG)
+        assert len(genres) == 7
+
+    # --- get_common_progressions (PROG-01) ---
+
+    def test_get_common_progressions_returns_list_of_dicts(self):
+        from MCP_Server.theory.progressions import get_common_progressions
+
+        result = get_common_progressions("C")
+        assert isinstance(result, list)
+        assert len(result) > 0
+        for entry in result:
+            assert "name" in entry
+            assert "genre" in entry
+            assert "numerals" in entry
+            assert "chords" in entry
+
+    def test_get_common_progressions_all_25(self):
+        from MCP_Server.theory.progressions import get_common_progressions
+
+        result = get_common_progressions("C")
+        assert len(result) == 25
+
+    def test_get_common_progressions_genre_jazz(self):
+        from MCP_Server.theory.progressions import get_common_progressions
+
+        result = get_common_progressions("C", genre="jazz")
+        assert len(result) == 5
+        for entry in result:
+            assert entry["genre"] == "jazz"
+
+    def test_get_common_progressions_genre_pop(self):
+        from MCP_Server.theory.progressions import get_common_progressions
+
+        result = get_common_progressions("C", genre="pop")
+        assert len(result) == 4
+
+    def test_get_common_progressions_unified_chord_format(self):
+        from MCP_Server.theory.progressions import get_common_progressions
+
+        result = get_common_progressions("C", genre="pop")
+        for entry in result:
+            for chord in entry["chords"]:
+                assert "numeral" in chord
+                assert "root" in chord
+                assert "quality" in chord
+                assert "notes" in chord
+
+    def test_get_common_progressions_note_format(self):
+        from MCP_Server.theory.progressions import get_common_progressions
+
+        result = get_common_progressions("C", genre="pop")
+        chord = result[0]["chords"][0]
+        for note in chord["notes"]:
+            assert "midi" in note
+            assert "name" in note
+
+    def test_get_common_progressions_axis_of_awesome(self):
+        from MCP_Server.theory.progressions import get_common_progressions
+
+        result = get_common_progressions("C", genre="pop")
+        axis = result[0]
+        assert axis["name"] == "Axis of Awesome"
+        assert len(axis["chords"]) == 4
+        assert axis["numerals"] == ["I", "V", "vi", "IV"]
+
+    def test_get_common_progressions_key_g(self):
+        from MCP_Server.theory.progressions import get_common_progressions
+
+        result = get_common_progressions("G", genre="rock")
+        # Classic Rock first: I chord root should be G
+        classic = result[0]
+        first_chord = classic["chords"][0]
+        assert "G" in first_chord["root"]
+
+    def test_get_common_progressions_nonexistent_genre(self):
+        from MCP_Server.theory.progressions import get_common_progressions
+
+        result = get_common_progressions("C", genre="nonexistent")
+        assert result == []
+
+    def test_get_common_progressions_octave_3(self):
+        from MCP_Server.theory.progressions import get_common_progressions
+
+        result = get_common_progressions("C", genre="rock", octave=3)
+        # Classic Rock I chord at octave 3: root C3 = MIDI 48
+        classic = result[0]
+        first_chord = classic["chords"][0]
+        root_midi = first_chord["notes"][0]["midi"]
+        assert root_midi == 48, f"Expected C3=48, got {root_midi}"
+
+    # --- generate_progression (PROG-02) ---
+
+    def test_generate_progression_returns_dict_with_keys(self):
+        from MCP_Server.theory.progressions import generate_progression
+
+        result = generate_progression("C", ["I", "IV", "V", "I"])
+        assert "key" in result
+        assert "scale_type" in result
+        assert "chords" in result
+
+    def test_generate_progression_four_chords(self):
+        from MCP_Server.theory.progressions import generate_progression
+
+        result = generate_progression("C", ["I", "IV", "V", "I"])
+        assert len(result["chords"]) == 4
+
+    def test_generate_progression_first_chord_root_c(self):
+        from MCP_Server.theory.progressions import generate_progression
+
+        result = generate_progression("C", ["I"])
+        first = result["chords"][0]
+        assert "C" in first["root"]
+
+    def test_generate_progression_key_g(self):
+        from MCP_Server.theory.progressions import generate_progression
+
+        result = generate_progression("G", ["I", "V"])
+        first = result["chords"][0]
+        assert "G" in first["root"]
+
+    def test_generate_progression_voice_leading(self):
+        from MCP_Server.theory.progressions import generate_progression
+
+        result = generate_progression("C", ["I", "IV", "V", "I"])
+        chords = result["chords"]
+
+        # Calculate total voice movement with voice leading
+        total_vl = 0
+        for i in range(1, len(chords)):
+            prev = [n["midi"] for n in chords[i - 1]["notes"]]
+            curr = [n["midi"] for n in chords[i]["notes"]]
+            for p, c in zip(sorted(prev), sorted(curr)):
+                total_vl += abs(c - p)
+
+        # Generate without voice leading (naive close position)
+        naive = generate_progression.__wrapped__ if hasattr(generate_progression, '__wrapped__') else None
+        # Compare: voice-led should have less movement than naive root position
+        # Just verify it's reasonable (< 30 semitones for 3 transitions of triads)
+        assert total_vl < 30, f"Total voice movement {total_vl} seems too large for voice-led chords"
+
+    def test_generate_progression_dorian(self):
+        from MCP_Server.theory.progressions import generate_progression
+
+        result = generate_progression("D", ["I", "IV", "V", "I"], scale_type="dorian")
+        assert result["scale_type"] == "dorian"
+        assert len(result["chords"]) == 4
+
+    def test_generate_progression_unified_format(self):
+        from MCP_Server.theory.progressions import generate_progression
+
+        result = generate_progression("C", ["I", "IV", "V"])
+        for chord in result["chords"]:
+            assert "numeral" in chord
+            assert "root" in chord
+            assert "quality" in chord
+            assert "notes" in chord
+
+    def test_generate_progression_invalid_numeral(self):
+        from MCP_Server.theory.progressions import generate_progression
+
+        with pytest.raises(ValueError):
+            generate_progression("C", ["XYZ"])
+
+    def test_generate_progression_empty_numerals(self):
+        from MCP_Server.theory.progressions import generate_progression
+
+        with pytest.raises(ValueError):
+            generate_progression("C", [])
+
+    # --- analyze_progression (PROG-03) ---
+
+    def test_analyze_progression_c_f_g_c(self):
+        from MCP_Server.theory.progressions import analyze_progression
+
+        result = analyze_progression(["C", "F", "G", "C"], "C")
+        assert len(result) == 4
+        for chord in result:
+            assert "numeral" in chord
+
+    def test_analyze_progression_numerals_i_iv_v_i(self):
+        from MCP_Server.theory.progressions import analyze_progression
+
+        result = analyze_progression(["C", "F", "G", "C"], "C")
+        numerals = [c["numeral"] for c in result]
+        assert numerals == ["I", "IV", "V", "I"]
+
+    def test_analyze_progression_ii_v7_i(self):
+        from MCP_Server.theory.progressions import analyze_progression
+
+        result = analyze_progression(["Dm", "G7", "C"], "C")
+        numerals = [c["numeral"] for c in result]
+        assert "ii" in numerals[0].lower()
+        assert "V" in numerals[1] or "v" in numerals[1]
+        assert "I" in numerals[2] or "i" in numerals[2]
+
+    def test_analyze_progression_borrowed_chord(self):
+        from MCP_Server.theory.progressions import analyze_progression
+
+        result = analyze_progression(["C", "Bb", "F", "C"], "C")
+        numerals = [c["numeral"] for c in result]
+        # Bb in key of C should be bVII
+        assert "bVII" in numerals[1] or "VII" in numerals[1]
+
+    def test_analyze_progression_unified_format(self):
+        from MCP_Server.theory.progressions import analyze_progression
+
+        result = analyze_progression(["C", "F", "G"], "C")
+        for chord in result:
+            assert "numeral" in chord
+            assert "root" in chord
+            assert "quality" in chord
+            assert "notes" in chord
+
+    def test_analyze_progression_invalid_chord(self):
+        from MCP_Server.theory.progressions import analyze_progression
+
+        with pytest.raises(ValueError):
+            analyze_progression(["XYZ_INVALID"], "C")
+
+    def test_analyze_progression_empty_list(self):
+        from MCP_Server.theory.progressions import analyze_progression
+
+        with pytest.raises(ValueError):
+            analyze_progression([], "C")
+
+    # --- suggest_next_chord (PROG-04) ---
+
+    def test_suggest_next_chord_returns_list(self):
+        from MCP_Server.theory.progressions import suggest_next_chord
+
+        result = suggest_next_chord("C", ["V"])
+        assert isinstance(result, list)
+
+    def test_suggest_next_chord_includes_tonic_after_v(self):
+        from MCP_Server.theory.progressions import suggest_next_chord
+
+        result = suggest_next_chord("C", ["V"])
+        numerals = [s["numeral"] for s in result]
+        assert any("I" == n or "i" == n for n in numerals), f"Expected I among {numerals}"
+
+    def test_suggest_next_chord_unified_format(self):
+        from MCP_Server.theory.progressions import suggest_next_chord
+
+        result = suggest_next_chord("C", ["V"])
+        for s in result:
+            assert "numeral" in s
+            assert "root" in s
+            assert "quality" in s
+            assert "notes" in s
+            assert "reason" in s
+            assert "score" in s
+
+    def test_suggest_next_chord_3_to_5_results(self):
+        from MCP_Server.theory.progressions import suggest_next_chord
+
+        result = suggest_next_chord("C", ["V"])
+        assert 3 <= len(result) <= 5, f"Expected 3-5 results, got {len(result)}"
+
+    def test_suggest_next_chord_context_up_to_4(self):
+        from MCP_Server.theory.progressions import suggest_next_chord
+
+        # Should not raise with 4 preceding chords
+        result = suggest_next_chord("C", ["I", "V", "vi", "IV"])
+        assert len(result) >= 3
+
+    def test_suggest_next_chord_genre_filter(self):
+        from MCP_Server.theory.progressions import suggest_next_chord
+
+        result = suggest_next_chord("C", ["V"], genre="pop")
+        assert isinstance(result, list)
+        assert len(result) >= 1
+
+    def test_suggest_next_chord_nonempty_reasons(self):
+        from MCP_Server.theory.progressions import suggest_next_chord
+
+        result = suggest_next_chord("C", ["I"])
+        for s in result:
+            assert s["reason"], f"Expected non-empty reason, got '{s['reason']}'"
+
+    def test_suggest_next_chord_empty_preceding(self):
+        from MCP_Server.theory.progressions import suggest_next_chord
+
+        with pytest.raises(ValueError):
+            suggest_next_chord("C", [])
+
+    # --- _voice_lead_pair helper ---
+
+    def test_voice_lead_pair_minimizes_movement(self):
+        from MCP_Server.theory.progressions import _voice_lead_pair
+
+        prev = [60, 64, 67]  # C E G
+        next_pcs = [5, 9, 0]  # F A C (F major pitch classes)
+        result = _voice_lead_pair(prev, next_pcs)
+        # Voice-led result should have less total movement than naive [65, 69, 72]
+        naive = sorted([65, 69, 72])
+        vl_movement = sum(abs(r - p) for r, p in zip(sorted(result), sorted(prev)))
+        naive_movement = sum(abs(n - p) for n, p in zip(naive, sorted(prev)))
+        assert vl_movement <= naive_movement, (
+            f"Voice-led movement {vl_movement} should be <= naive {naive_movement}"
+        )
