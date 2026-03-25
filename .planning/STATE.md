@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: — Theory Engine
-status: Executing
-stopped_at: Phase 18 context gathered
-last_updated: "2026-03-25T12:39:06.080Z"
+status: Ready to execute
+stopped_at: Completed 18-01-PLAN.md
+last_updated: "2026-03-25T13:14:37.889Z"
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 10
+  completed_plans: 9
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Claude composes with harmonic intelligence — chords, progressions, and voice leading flow from music theory knowledge, not brute-force pitch guessing.
-**Current focus:** Phase 17 — progression-engine
+**Current focus:** Phase 18 — harmonic-analysis
 
 ## Current Position
 
-Phase: 17
-Plan: 2 of 2 complete
+Phase: 18 (harmonic-analysis) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -59,6 +59,8 @@ Plan: 2 of 2 complete
 - [Phase 17]: Modal progression resolution via parent major key rotation
 - [Phase 17]: All 4 tools follow aliased-import + json.dumps + format_error + MIDI boundary validation pattern
 - [Phase 17]: Empty input validation at tool boundary before library calls
+- [Phase 18]: Use chord root name for analyze_progression input (not full chord name like 'C-major triad')
+- [Phase 18]: Melodic patterns with tonic emphasis needed for unambiguous Krumhansl-Schmuckler key detection results
 
 ### Roadmap Evolution
 
@@ -75,6 +77,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-25T12:39:06.075Z
-Stopped at: Phase 18 context gathered
-Resume file: .planning/phases/18-harmonic-analysis/18-CONTEXT.md
+Last session: 2026-03-25T13:14:37.886Z
+Stopped at: Completed 18-01-PLAN.md
+Resume file: None

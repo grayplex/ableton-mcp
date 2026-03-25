@@ -34,9 +34,9 @@
 
 ## Harmonic Analysis Tools (3)
 
-- [ ] **ANLY-01**: User can detect the key and scale of a clip from its MIDI notes (using music21's key detection algorithms)
-- [ ] **ANLY-02**: User can segment a clip's notes into chords by time position and identify each chord
-- [ ] **ANLY-03**: User can analyze harmonic rhythm — chord change frequency, chord durations, and progression structure
+- [x] **ANLY-01**: User can detect the key and scale of a clip from its MIDI notes (using music21's key detection algorithms)
+- [x] **ANLY-02**: User can segment a clip's notes into chords by time position and identify each chord
+- [x] **ANLY-03**: User can analyze harmonic rhythm — chord change frequency, chord durations, and progression structure
 
 ## Voice Leading Tools (2)
 
