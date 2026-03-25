@@ -18,7 +18,7 @@
 | 15 | 2/2 | Complete    | 2026-03-24 |
 | 16 | 2/2 | Complete    | 2026-03-24 |
 | 17 | 2/2 | Complete    | 2026-03-24 |
-| 18 | 1/2 | In Progress|  |
+| 18 | 2/2 | Complete   | 2026-03-25 |
 | 19 | Voice Leading & Rhythm | Voice-led chord connections, full progression voicing, rhythm pattern templates, pattern application to chords | VOIC-01, VOIC-02, RHYM-01, RHYM-02 |
 
 ### Phase Details
@@ -97,11 +97,11 @@ Plans:
 #### Phase 18: Harmonic Analysis
 **Goal:** Claude can analyze existing clip content — detecting the key, identifying chords at each time position, and understanding the harmonic rhythm.
 
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 18-01-PLAN.md — Analysis library with 3 functions (detect_key, analyze_clip_chords, analyze_harmonic_rhythm) and unit tests
-- [ ] 18-02-PLAN.md — Wire 3 MCP analysis tools, update barrel exports, add integration tests
+- [x] 18-02-PLAN.md — Wire 3 MCP analysis tools, update barrel exports, add integration tests
 
 **Delivers:**
 - `detect_key` tool — MIDI notes → detected key with confidence score
