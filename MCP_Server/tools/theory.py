@@ -22,6 +22,9 @@ from MCP_Server.theory import get_common_progressions as _get_common_progression
 from MCP_Server.theory import generate_progression as _generate_progression
 from MCP_Server.theory import analyze_progression as _analyze_progression
 from MCP_Server.theory import suggest_next_chord as _suggest_next_chord
+from MCP_Server.theory import detect_key as _detect_key
+from MCP_Server.theory import analyze_clip_chords as _analyze_clip_chords
+from MCP_Server.theory import analyze_harmonic_rhythm as _analyze_harmonic_rhythm
 
 
 @mcp.tool()
@@ -483,4 +486,124 @@ def suggest_next_chord(ctx: Context, key: str, preceding: list[str], genre: str 
             "Failed to suggest next chord",
             detail=str(e),
             suggestion="Check key (e.g., 'C') and preceding (e.g., ['I', 'V', 'vi'])",
+        )
+
+
+@mcp.tool()
+def detect_key(ctx: Context, notes: list[dict]) -> str:
+    """Detect the key and scale of a passage from MIDI note data. Returns top 3 ranked candidates.
+
+    Accepts note data from get_notes output format.
+
+    Parameters:
+    - notes: List of note dicts with at least {pitch, start_time, duration} keys
+    """
+    try:
+        if not notes:
+            return format_error(
+                "No notes provided",
+                detail="notes must be a non-empty list of note dicts",
+                suggestion="Pass note data from get_notes (e.g., [{'pitch': 60, 'start_time': 0.0, 'duration': 1.0}])",
+            )
+        for n in notes:
+            p = n.get("pitch", -1)
+            if not (0 <= p <= 127):
+                return format_error(
+                    "MIDI pitch out of range",
+                    detail=f"Got pitch {p}, must be 0-127",
+                    suggestion="All note pitches must be valid MIDI numbers (0-127)",
+                )
+        result = _detect_key(notes)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to detect key",
+            detail=str(e),
+            suggestion="Provide notes as list of dicts with pitch, start_time, duration keys",
+        )
+
+
+@mcp.tool()
+def analyze_clip_chords(ctx: Context, notes: list[dict], resolution: str = "beat", beats_per_bar: int = 4) -> str:
+    """Segment clip notes into chords by time position. Identifies chord at each beat/bar.
+
+    Uses a fixed time grid with configurable resolution. Off-grid notes are quantized to nearest grid point.
+
+    Parameters:
+    - notes: List of note dicts with at least {pitch, start_time, duration} keys
+    - resolution: Time grid resolution - "beat" (default), "half_beat", or "bar"
+    - beats_per_bar: Beats per bar for bar-level resolution (default 4)
+    """
+    try:
+        if not notes:
+            return format_error(
+                "No notes provided",
+                detail="notes must be a non-empty list of note dicts",
+                suggestion="Pass note data from get_notes",
+            )
+        for n in notes:
+            p = n.get("pitch", -1)
+            if not (0 <= p <= 127):
+                return format_error(
+                    "MIDI pitch out of range",
+                    detail=f"Got pitch {p}, must be 0-127",
+                    suggestion="All note pitches must be valid MIDI numbers (0-127)",
+                )
+        if resolution not in ("beat", "half_beat", "bar"):
+            return format_error(
+                "Invalid resolution",
+                detail=f"Got '{resolution}', must be 'beat', 'half_beat', or 'bar'",
+                suggestion="Use 'beat' (default), 'half_beat', or 'bar'",
+            )
+        result = _analyze_clip_chords(notes, resolution, beats_per_bar)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to analyze clip chords",
+            detail=str(e),
+            suggestion="Provide notes as list of dicts with pitch, start_time, duration keys",
+        )
+
+
+@mcp.tool()
+def analyze_harmonic_rhythm(ctx: Context, notes: list[dict], resolution: str = "beat", beats_per_bar: int = 4, key: str | None = None) -> str:
+    """Analyze harmonic rhythm: chord changes, durations, and progression structure.
+
+    Returns a chord timeline with durations and statistics (changes per bar, most common duration).
+    When key is provided, includes Roman numeral analysis for each chord.
+
+    Parameters:
+    - notes: List of note dicts with at least {pitch, start_time, duration} keys
+    - resolution: Time grid resolution - "beat" (default), "half_beat", or "bar"
+    - beats_per_bar: Beats per bar (default 4)
+    - key: Optional key for Roman numeral analysis (e.g., "C", "G", "F#")
+    """
+    try:
+        if not notes:
+            return format_error(
+                "No notes provided",
+                detail="notes must be a non-empty list of note dicts",
+                suggestion="Pass note data from get_notes",
+            )
+        for n in notes:
+            p = n.get("pitch", -1)
+            if not (0 <= p <= 127):
+                return format_error(
+                    "MIDI pitch out of range",
+                    detail=f"Got pitch {p}, must be 0-127",
+                    suggestion="All note pitches must be valid MIDI numbers (0-127)",
+                )
+        if resolution not in ("beat", "half_beat", "bar"):
+            return format_error(
+                "Invalid resolution",
+                detail=f"Got '{resolution}', must be 'beat', 'half_beat', or 'bar'",
+                suggestion="Use 'beat' (default), 'half_beat', or 'bar'",
+            )
+        result = _analyze_harmonic_rhythm(notes, resolution, beats_per_bar, key)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to analyze harmonic rhythm",
+            detail=str(e),
+            suggestion="Provide notes as list of dicts with pitch, start_time, duration keys",
         )
