@@ -18,7 +18,7 @@ The server is production-quality with comprehensive Ableton Live 12 coverage:
 - **295 tests** (all passing)
 - **53 v1 requirements** — all complete
 
-**v1.1 Progress:** Phase 16 (Scale & Mode Explorer) complete — 5 scale tools (list, pitches, check, related, detect), extended diatonic chords for harmonic/melodic minor, 186 total MCP tools
+**v1.1 Progress:** Phase 18 (Harmonic Analysis) complete — 3 analysis tools (detect_key, analyze_clip_chords, analyze_harmonic_rhythm), 193 total MCP tools, 181 theory tests passing
 
 ### Capabilities
 
