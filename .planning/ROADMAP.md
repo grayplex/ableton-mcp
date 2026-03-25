@@ -97,6 +97,12 @@ Plans:
 #### Phase 18: Harmonic Analysis
 **Goal:** Claude can analyze existing clip content — detecting the key, identifying chords at each time position, and understanding the harmonic rhythm.
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 18-01-PLAN.md — Analysis library with 3 functions (detect_key, analyze_clip_chords, analyze_harmonic_rhythm) and unit tests
+- [ ] 18-02-PLAN.md — Wire 3 MCP analysis tools, update barrel exports, add integration tests
+
 **Delivers:**
 - `detect_key` tool — MIDI notes → detected key with confidence score
 - `analyze_clip_chords` tool — time-segmented chord identification
