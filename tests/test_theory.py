@@ -1684,3 +1684,145 @@ class TestAnalysisLibrary:
         result = analyze_harmonic_rhythm(notes)
         assert len(result["timeline"]) == 1
         assert result["timeline"][0]["duration"] == 4.0
+
+
+class TestAnalysisTools:
+    """Integration tests: harmonic analysis MCP tools via mcp_server fixture."""
+
+    @pytest.mark.asyncio
+    async def test_detect_key_tool(self, mcp_server):
+        """detect_key tool returns JSON list of key candidates for C major scale notes."""
+        notes = [
+            {"pitch": 60, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 62, "start_time": 1.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 64, "start_time": 2.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 65, "start_time": 3.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 4.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 69, "start_time": 5.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 71, "start_time": 6.0, "duration": 1.0, "velocity": 100},
+        ]
+        result = await mcp_server.call_tool("detect_key", {"notes": notes})
+        text = result[0][0].text
+        data = json.loads(text)
+        assert isinstance(data, list)
+        assert len(data) >= 1
+        assert "key" in data[0]
+        assert "mode" in data[0]
+        assert "confidence" in data[0]
+
+    @pytest.mark.asyncio
+    async def test_detect_key_tool_empty(self, mcp_server):
+        """detect_key with empty notes returns error."""
+        result = await mcp_server.call_tool("detect_key", {"notes": []})
+        text = result[0][0].text
+        assert "error" in text.lower()
+
+    @pytest.mark.asyncio
+    async def test_detect_key_tool_invalid_midi(self, mcp_server):
+        """detect_key with out-of-range pitch returns error."""
+        result = await mcp_server.call_tool(
+            "detect_key", {"notes": [{"pitch": 200, "start_time": 0.0, "duration": 1.0}]}
+        )
+        text = result[0][0].text
+        assert "error" in text.lower()
+        assert "out of range" in text.lower()
+
+    @pytest.mark.asyncio
+    async def test_analyze_clip_chords_tool(self, mcp_server):
+        """analyze_clip_chords tool returns chord segments for C and G chords."""
+        notes = [
+            # C chord at beat 0
+            {"pitch": 60, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 64, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            # G chord at beat 1
+            {"pitch": 67, "start_time": 1.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 71, "start_time": 1.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 74, "start_time": 1.0, "duration": 1.0, "velocity": 100},
+        ]
+        result = await mcp_server.call_tool("analyze_clip_chords", {"notes": notes})
+        text = result[0][0].text
+        data = json.loads(text)
+        assert isinstance(data, list)
+        assert len(data) >= 1
+        assert "beat" in data[0]
+
+    @pytest.mark.asyncio
+    async def test_analyze_clip_chords_tool_resolution(self, mcp_server):
+        """analyze_clip_chords with bar resolution returns valid JSON list."""
+        notes = [
+            {"pitch": 60, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 64, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+        ]
+        result = await mcp_server.call_tool(
+            "analyze_clip_chords", {"notes": notes, "resolution": "bar"}
+        )
+        text = result[0][0].text
+        data = json.loads(text)
+        assert isinstance(data, list)
+
+    @pytest.mark.asyncio
+    async def test_analyze_clip_chords_tool_invalid_resolution(self, mcp_server):
+        """analyze_clip_chords with invalid resolution returns error."""
+        notes = [
+            {"pitch": 60, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 64, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+        ]
+        result = await mcp_server.call_tool(
+            "analyze_clip_chords", {"notes": notes, "resolution": "invalid"}
+        )
+        text = result[0][0].text
+        assert "error" in text.lower()
+
+    @pytest.mark.asyncio
+    async def test_analyze_harmonic_rhythm_tool(self, mcp_server):
+        """analyze_harmonic_rhythm tool returns timeline and stats."""
+        notes = [
+            # C chord at beat 0
+            {"pitch": 60, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 64, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            # G chord at beat 2
+            {"pitch": 67, "start_time": 2.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 71, "start_time": 2.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 74, "start_time": 2.0, "duration": 1.0, "velocity": 100},
+        ]
+        result = await mcp_server.call_tool("analyze_harmonic_rhythm", {"notes": notes})
+        text = result[0][0].text
+        data = json.loads(text)
+        assert "timeline" in data
+        assert "stats" in data
+        assert "total_chords" in data["stats"]
+        assert "average_changes_per_bar" in data["stats"]
+        assert "most_common_duration" in data["stats"]
+
+    @pytest.mark.asyncio
+    async def test_analyze_harmonic_rhythm_tool_with_key(self, mcp_server):
+        """analyze_harmonic_rhythm with key includes Roman numeral analysis."""
+        notes = [
+            # C chord at beat 0
+            {"pitch": 60, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 64, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            # G chord at beat 2
+            {"pitch": 67, "start_time": 2.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 71, "start_time": 2.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 74, "start_time": 2.0, "duration": 1.0, "velocity": 100},
+        ]
+        result = await mcp_server.call_tool(
+            "analyze_harmonic_rhythm", {"notes": notes, "key": "C"}
+        )
+        text = result[0][0].text
+        data = json.loads(text)
+        # At least one timeline entry should have a numeral when key is provided
+        numerals = [t.get("numeral") for t in data["timeline"] if "numeral" in t]
+        assert len(numerals) >= 1, f"Expected at least one numeral in timeline, got {data['timeline']}"
+
+    @pytest.mark.asyncio
+    async def test_analyze_harmonic_rhythm_tool_empty(self, mcp_server):
+        """analyze_harmonic_rhythm with empty notes returns error."""
+        result = await mcp_server.call_tool("analyze_harmonic_rhythm", {"notes": []})
+        text = result[0][0].text
+        assert "error" in text.lower()
