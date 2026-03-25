@@ -200,6 +200,9 @@ def analyze_harmonic_rhythm(notes, resolution='beat', beats_per_bar=4, key=None)
                 "start_beat": seg["beat"],
                 "duration": grid_size,
             }
+            # Carry root for progression analysis (root is a simple note name like "C")
+            if "root" in seg:
+                entry["root"] = seg["root"]
             # Carry single_note through if present
             if "single_note" in seg:
                 entry["single_note"] = seg["single_note"]
@@ -207,10 +210,11 @@ def analyze_harmonic_rhythm(notes, resolution='beat', beats_per_bar=4, key=None)
 
     # Step 3: Optional Roman numeral analysis
     if key and timeline:
-        # Extract chord names from timeline entries that have non-null chords
+        # Extract chord root names from timeline entries that have non-null chords
+        # Use root (e.g., "C") for analyze_progression, not full chord name (e.g., "C-major triad")
         chord_entries = [(i, t) for i, t in enumerate(timeline) if t["chord"] is not None]
         if chord_entries:
-            chord_names = [t["chord"] for _, t in chord_entries]
+            chord_names = [t.get("root", t["chord"]) for _, t in chord_entries]
             try:
                 roman_analysis = analyze_progression(chord_names, key)
                 # Merge Roman numerals back into timeline entries

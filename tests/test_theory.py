@@ -1473,3 +1473,214 @@ class TestProgressionTools:
         )
         text = result[0][0].text
         assert "Error" in text
+
+
+# ---------------------------------------------------------------------------
+# Harmonic Analysis Library Tests (Phase 18, Plan 01)
+# ---------------------------------------------------------------------------
+
+from MCP_Server.theory.analysis import detect_key, analyze_clip_chords, analyze_harmonic_rhythm
+
+
+def _make_notes(pitches, start_time=0.0, duration=1.0, spacing=0.0):
+    """Build note dicts for testing. If spacing > 0, each pitch starts spacing beats apart."""
+    notes = []
+    for i, p in enumerate(pitches):
+        notes.append({
+            "pitch": p,
+            "start_time": start_time + (i * spacing if spacing else 0),
+            "duration": duration,
+            "velocity": 100,
+        })
+    return notes
+
+
+class TestAnalysisLibrary:
+    """Unit tests for MCP_Server.theory.analysis functions (no MCP, no mocks)."""
+
+    # --- detect_key tests (ANLY-01) ---
+
+    def test_detect_key_c_major(self):
+        """C major melodic pattern should detect as C major with proper structure."""
+        # C major triad + leading tone pattern (strongly implies C major, not A minor)
+        notes = _make_notes([60, 64, 67, 60, 65, 67, 71, 60], spacing=1.0)
+        result = detect_key(notes)
+        assert isinstance(result, list)
+        assert 1 <= len(result) <= 3
+        first = result[0]
+        assert first["key"] == "C"
+        assert first["mode"] == "major"
+        for c in result:
+            assert "key" in c
+            assert "mode" in c
+            assert "confidence" in c
+            assert isinstance(c["confidence"], float)
+            assert 0 <= c["confidence"] <= 1
+
+    def test_detect_key_minor(self):
+        """A minor notes should produce a minor candidate in top 3."""
+        # A minor triad emphasis to strongly imply A minor
+        notes = _make_notes([57, 60, 64, 57, 62, 64, 67, 57], spacing=1.0)
+        result = detect_key(notes)
+        modes = [(c["key"], c["mode"]) for c in result]
+        assert any(m == "minor" for _, m in modes), f"No minor candidate in {modes}"
+
+    def test_detect_key_empty_raises(self):
+        """Empty notes list should raise ValueError."""
+        with pytest.raises(ValueError, match="No notes"):
+            detect_key([])
+
+    def test_detect_key_confidence_range(self):
+        """All candidates should have confidence between 0 and 1."""
+        notes = _make_notes([60, 64, 67, 60, 65, 67, 71, 60], spacing=1.0)
+        result = detect_key(notes)
+        for c in result:
+            assert 0 <= c["confidence"] <= 1, f"Confidence out of range: {c['confidence']}"
+
+    def test_detect_key_three_candidates(self):
+        """Full C major scale should produce 3 distinct candidates."""
+        notes = _make_notes([60, 64, 67, 60, 65, 67, 71, 60], spacing=1.0)
+        result = detect_key(notes)
+        assert len(result) == 3
+        tuples = [(c["key"], c["mode"]) for c in result]
+        assert len(set(tuples)) == 3, f"Duplicate candidates: {tuples}"
+
+    # --- analyze_clip_chords tests (ANLY-02) ---
+
+    def test_chord_segmentation_beat(self):
+        """Two chords at different beats should produce 2 segments."""
+        # C major at beat 0, G major at beat 1
+        notes = [
+            {"pitch": 60, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 64, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 1.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 71, "start_time": 1.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 74, "start_time": 1.0, "duration": 1.0, "velocity": 100},
+        ]
+        result = analyze_clip_chords(notes)
+        assert len(result) == 2
+        assert result[0]["beat"] == 0.0
+        assert "C" in result[0]["chord"] or "C" in result[0]["root"]
+        assert result[1]["beat"] == 1.0
+        assert "G" in result[1]["chord"] or "G" in result[1]["root"]
+
+    def test_chord_segmentation_resolution(self):
+        """Bar resolution should merge beats into one segment."""
+        notes = [
+            {"pitch": 60, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 64, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 1.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 71, "start_time": 1.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 74, "start_time": 1.0, "duration": 1.0, "velocity": 100},
+        ]
+        result = analyze_clip_chords(notes, resolution='bar', beats_per_bar=4)
+        assert len(result) == 1  # Both chords collapsed into bar 0
+
+    def test_quantization_window(self):
+        """Note slightly before beat 1 should snap to that beat's segment."""
+        notes = [
+            {"pitch": 60, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 64, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 71, "start_time": 0.95, "duration": 1.0, "velocity": 100},
+            {"pitch": 74, "start_time": 1.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 1.0, "duration": 1.0, "velocity": 100},
+        ]
+        result = analyze_clip_chords(notes)
+        # The note at 0.95 should snap to beat 1 (nearest grid point = 1.0)
+        # So we should have 2 segments, with beat-1 segment having 3 pitches
+        beat_1_segs = [s for s in result if s["beat"] == 1.0]
+        assert len(beat_1_segs) == 1
+        seg = beat_1_segs[0]
+        # Should be a chord (2+ pitches), not a single note
+        assert seg.get("chord") is not None or "notes" in seg
+
+    def test_single_note_segment(self):
+        """A single note should produce a segment with chord=None and single_note."""
+        notes = [{"pitch": 60, "start_time": 0.0, "duration": 1.0, "velocity": 100}]
+        result = analyze_clip_chords(notes)
+        assert len(result) == 1
+        seg = result[0]
+        assert seg["chord"] is None
+        assert "single_note" in seg
+        assert seg["single_note"]["midi"] == 60
+
+    def test_empty_notes_raises(self):
+        """Empty notes list should raise ValueError."""
+        with pytest.raises(ValueError):
+            analyze_clip_chords([])
+
+    # --- analyze_harmonic_rhythm tests (ANLY-03) ---
+
+    def test_harmonic_rhythm_stats(self):
+        """Harmonic rhythm returns timeline and stats with correct structure."""
+        # C chord at beats 0-1, G chord at beats 2-3
+        notes = [
+            {"pitch": 60, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 64, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 60, "start_time": 1.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 64, "start_time": 1.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 1.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 2.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 71, "start_time": 2.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 74, "start_time": 2.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 3.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 71, "start_time": 3.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 74, "start_time": 3.0, "duration": 1.0, "velocity": 100},
+        ]
+        result = analyze_harmonic_rhythm(notes)
+        assert "timeline" in result
+        assert "stats" in result
+        assert result["stats"]["total_chords"] == 2
+        assert isinstance(result["stats"]["average_changes_per_bar"], float)
+        assert isinstance(result["stats"]["most_common_duration"], float)
+
+    def test_harmonic_rhythm_roman(self):
+        """With key provided, timeline entries should have Roman numerals."""
+        notes = [
+            {"pitch": 60, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 64, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 2.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 71, "start_time": 2.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 74, "start_time": 2.0, "duration": 1.0, "velocity": 100},
+        ]
+        result = analyze_harmonic_rhythm(notes, key="C")
+        chord_entries = [t for t in result["timeline"] if t["chord"] is not None]
+        assert len(chord_entries) >= 1
+        assert any("numeral" in t for t in chord_entries)
+        # Check for expected Roman numerals
+        numerals = [t.get("numeral", "") for t in chord_entries]
+        assert any("I" in n for n in numerals), f"Expected I numeral, got {numerals}"
+        assert any("V" in n for n in numerals), f"Expected V numeral, got {numerals}"
+
+    def test_harmonic_rhythm_no_key(self):
+        """Without key, no timeline entry should have a numeral field."""
+        notes = [
+            {"pitch": 60, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 64, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 0.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 67, "start_time": 2.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 71, "start_time": 2.0, "duration": 1.0, "velocity": 100},
+            {"pitch": 74, "start_time": 2.0, "duration": 1.0, "velocity": 100},
+        ]
+        result = analyze_harmonic_rhythm(notes)
+        for t in result["timeline"]:
+            assert "numeral" not in t, f"Found numeral without key: {t}"
+
+    def test_harmonic_rhythm_merged_durations(self):
+        """Same chord repeated across 4 beats should merge into one timeline entry."""
+        # C chord repeated at beats 0, 1, 2, 3
+        notes = []
+        for beat in [0.0, 1.0, 2.0, 3.0]:
+            notes.extend([
+                {"pitch": 60, "start_time": beat, "duration": 1.0, "velocity": 100},
+                {"pitch": 64, "start_time": beat, "duration": 1.0, "velocity": 100},
+                {"pitch": 67, "start_time": beat, "duration": 1.0, "velocity": 100},
+            ])
+        result = analyze_harmonic_rhythm(notes)
+        assert len(result["timeline"]) == 1
+        assert result["timeline"][0]["duration"] == 4.0
