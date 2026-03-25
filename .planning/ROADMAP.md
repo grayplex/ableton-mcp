@@ -18,7 +18,7 @@
 | 15 | 2/2 | Complete    | 2026-03-24 |
 | 16 | 2/2 | Complete    | 2026-03-24 |
 | 17 | 2/2 | Complete    | 2026-03-24 |
-| 18 | 2/2 | Complete   | 2026-03-25 |
+| 18 | 2/2 | Complete    | 2026-03-25 |
 | 19 | Voice Leading & Rhythm | Voice-led chord connections, full progression voicing, rhythm pattern templates, pattern application to chords | VOIC-01, VOIC-02, RHYM-01, RHYM-02 |
 
 ### Phase Details
