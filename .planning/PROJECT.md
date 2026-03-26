@@ -18,7 +18,7 @@ The server is production-quality with comprehensive Ableton Live 12 coverage:
 - **295 tests** (all passing)
 - **53 v1 requirements** — all complete
 
-**v1.1 Progress:** Phase 18 (Harmonic Analysis) complete — 3 analysis tools (detect_key, analyze_clip_chords, analyze_harmonic_rhythm), 193 total MCP tools, 181 theory tests passing
+**v1.1 Complete:** All 19 phases delivered — 24 theory requirements fulfilled, 197 total MCP tools, 224 theory tests passing. Voice leading, rhythm patterns, harmonic analysis, chord/scale/progression tools all shipped.
 
 ### Capabilities
 
@@ -79,9 +79,9 @@ Add a comprehensive music theory intelligence layer powered by music21 so Claude
 | Mixin class pattern for handlers | Domain isolation + single inheritance chain | Validated — scales to 15 modules cleanly |
 | Length-prefix framing protocol | Eliminates JSON-completeness parsing bugs | Validated — zero framing errors |
 | Comprehensive LOM coverage | Users want full production capability | Validated — 178 commands covering most LOM |
-| music21 as theory engine | Deep, battle-tested music theory library; avoids reinventing chord/scale/analysis logic | Pending — v1.1 |
-| Theory logic server-side only | No Remote Script changes needed; theory is computation, not Ableton API | Pending — v1.1 |
-| Granular theory tools | 15-25 individual tools vs. composite mega-tools; better AI tool selection | Pending — v1.1 |
+| music21 as theory engine | Deep, battle-tested music theory library; avoids reinventing chord/scale/analysis logic | Validated — v1.1 complete |
+| Theory logic server-side only | No Remote Script changes needed; theory is computation, not Ableton API | Validated — v1.1 complete |
+| Granular theory tools | 15-25 individual tools vs. composite mega-tools; better AI tool selection | Validated — 24 tools across 7 modules |
 
 ## Context
 
@@ -89,4 +89,4 @@ A codebase map exists at `.planning/codebase/` with architecture, stack, and con
 v1.0 milestone archived at `.planning/milestones/` with full roadmap and requirements history.
 
 ---
-*Last updated: 2026-03-24 — Phase 16 complete, v1.1 in progress*
+*Last updated: 2026-03-25 — Phase 19 complete, v1.1 Theory Engine milestone complete*
