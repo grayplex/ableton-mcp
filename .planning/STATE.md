@@ -1,36 +1,38 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Theory Engine
-status: complete
-stopped_at: Milestone v1.1 archived
-last_updated: "2026-03-26T04:00:00.000Z"
+milestone: v1.2
+milestone_name: Genre/Style Blueprints
+status: active
+stopped_at: Defining requirements
+last_updated: "2026-03-25T00:00:00.000Z"
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 12
-  completed_plans: 12
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-26)
+See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** An AI assistant can produce actual music in Ableton — with harmonic intelligence.
-**Current focus:** Planning next milestone
+**Current focus:** v1.2 Genre/Style Blueprints
 
 ## Current Position
 
-Milestone v1.1 Theory Engine — SHIPPED 2026-03-26
-All 6 phases (14-19), 12 plans complete. 24/24 requirements satisfied.
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-25 — Milestone v1.2 started
 
 ## Accumulated Context
 
 ### Decisions
 
-(Cleared — v1.1 decisions archived in milestones/v1.1-ROADMAP.md and PROJECT.md Key Decisions table)
+(None yet)
 
 ### Roadmap Evolution
 
@@ -48,6 +50,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-26
-Stopped at: Milestone v1.1 archived
+Last session: 2026-03-25
+Stopped at: Defining requirements for v1.2
 Resume file: None

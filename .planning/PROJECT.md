@@ -23,7 +23,7 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 
 ### Active
 
-(None — define in next milestone via `/gsd:new-milestone`)
+(Defined in v1.2 — see REQUIREMENTS.md)
 
 ### Out of Scope
 
@@ -31,6 +31,16 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - Audio generation/synthesis — Ableton handles audio; MCP handles control
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
+
+## Current Milestone: v1.2 Genre/Style Blueprints
+
+**Goal:** Curated genre reference documents that give Claude consistent knowledge of electronic music conventions — instrumentation, harmony, rhythm, arrangement, and mixing — delivered via the MCP server.
+
+**Target features:**
+- Genre blueprint documents covering major electronic genres
+- Blueprint structure informed by research (instrumentation, harmonic conventions, rhythmic patterns, arrangement structure, mixing conventions)
+- MCP server delivery mechanism for genre context injection
+- Genre detection or explicit genre tool for blueprint retrieval
 
 ## Current State
 
@@ -101,4 +111,4 @@ Two-tier: MCP server (FastMCP/Python 3) ↔ TCP socket (length-prefix framing) �
 - Codebase map at `.planning/codebase/`
 
 ---
-*Last updated: 2026-03-26 after v1.1 milestone*
+*Last updated: 2026-03-25 after v1.2 milestone start*
