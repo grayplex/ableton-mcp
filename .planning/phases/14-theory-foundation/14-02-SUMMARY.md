@@ -19,6 +19,7 @@ key_files:
 decisions:
   - "MIDI range validation at tool layer (0-127) returning format_error, not at library layer"
   - "Alias imports (_midi_to_note, _note_to_midi) to avoid name collision with tool function names"
+requirements_completed: [THRY-01, THRY-02, THRY-03]
 metrics:
   duration: 83s
   completed: "2026-03-24T11:18:12Z"

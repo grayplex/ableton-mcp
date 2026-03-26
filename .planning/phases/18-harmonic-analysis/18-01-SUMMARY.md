@@ -16,6 +16,7 @@ key_files:
 decisions:
   - "Use chord root name (not full name) for analyze_progression input in harmonic rhythm"
   - "Melodic patterns with tonic emphasis needed for unambiguous Krumhansl-Schmuckler results"
+requirements_completed: [ANLY-01, ANLY-02, ANLY-03]
 metrics:
   duration: 346s
   completed: "2026-03-25T13:13:31Z"

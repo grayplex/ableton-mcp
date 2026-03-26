@@ -19,6 +19,7 @@ decisions:
   - All 4 tools follow established aliased-import + json.dumps + format_error pattern
   - MIDI range validation at tool boundary for tools returning chord notes
   - Empty input validation (numerals, chord_names, preceding) at tool layer before library call
+requirements_completed: [PROG-01, PROG-02, PROG-03, PROG-04]
 metrics:
   duration: 120s
   completed: "2026-03-24T21:25:00Z"

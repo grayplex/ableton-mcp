@@ -20,6 +20,7 @@ decisions:
   - "Aliased imports (_build_chord) to avoid name collision between tool function and library function"
   - "MIDI range validation at tool boundary for build_chord output and identify_chord input"
   - "Minimum 2 pitches validation for identify_chord at tool layer"
+requirements_completed: [CHRD-01, CHRD-02, CHRD-03, CHRD-04, CHRD-05]
 metrics:
   duration: "120s"
   completed: "2026-03-24"

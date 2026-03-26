@@ -20,6 +20,7 @@ decisions:
   - "Force sharps for black keys by checking accidental polarity rather than relying on simplifyEnharmonic, which prefers Eb/Bb"
   - "Use parenthesized negative octave format C(-1) to avoid music21 parsing ambiguity where C-1 is read as C-flat-1"
   - "Key-aware spelling via scale pitch lookup rather than simplifyEnharmonic(keyContext=) which is not available in music21 9.x"
+requirements_completed: [THRY-01, THRY-02, THRY-03]
 metrics:
   duration: 209s
   completed: "2026-03-24T11:12:44Z"

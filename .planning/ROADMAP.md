@@ -117,8 +117,8 @@ Plans:
 **Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 19-01-PLAN.md — Voice leading library (voicing.py) + rhythm library (rhythm.py) + unit tests
-- [ ] 19-02-PLAN.md — Wire 4 MCP tools, update barrel exports, add integration tests
+- [x] 19-01-PLAN.md — Voice leading library (voicing.py) + rhythm library (rhythm.py) + unit tests
+- [x] 19-02-PLAN.md — Wire 4 MCP tools, update barrel exports, add integration tests
 
 **Delivers:**
 - `voice_lead_chords` tool — connect two chords with minimal movement

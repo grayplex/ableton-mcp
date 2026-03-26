@@ -22,6 +22,7 @@ decisions:
   - "Pitch class set comparison for scale detection (456 comparisons, trivially fast)"
   - "Mode rotation derived from major scale intervals with root transposition"
   - "music21.scale.HarmonicMinorScale/MelodicMinorScale for diatonic chord pitch context"
+requirements_completed: [SCLE-01, SCLE-02, SCLE-03, SCLE-04, SCLE-05]
 metrics:
   duration: 8min
   completed: "2026-03-24T16:04:49Z"

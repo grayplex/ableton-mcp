@@ -21,6 +21,7 @@ decisions:
   - Chord name normalization converts user "b" flat notation to music21 "-" format
   - Modal progressions resolve via parent major key rotation from SCALE_CATALOG intervals
   - Catalog genre for R&B/Soul stored as "rnb" (lowercase, no special chars)
+requirements_completed: [PROG-01, PROG-02, PROG-03, PROG-04]
 metrics:
   duration: 315s
   completed: "2026-03-24T21:19:46Z"

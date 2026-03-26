@@ -23,6 +23,7 @@ metrics:
   completed: "2026-03-25T13:19:48Z"
   tasks_completed: 2
   files_modified: 3
+requirements_completed: [ANLY-01, ANLY-02, ANLY-03]
 ---
 
 # Phase 18 Plan 02: Wire Analysis MCP Tools Summary

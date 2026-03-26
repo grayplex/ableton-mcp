@@ -19,6 +19,7 @@ decisions:
   - "Root-based octave transposition: octave param places chord root at that scientific pitch octave (C4=60, G4=67, A3=57)"
   - "26-entry quality map covering triads, 7ths, extended, sus, add, and altered chord types"
   - "Confidence scoring: root position=1.0, inversions penalized by 0.05 per inversion level, reinterpretations capped at 0.75"
+requirements_completed: [CHRD-01, CHRD-02, CHRD-03, CHRD-04, CHRD-05]
 metrics:
   duration: "296s"
   completed: "2026-03-24"
