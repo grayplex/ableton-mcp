@@ -17,8 +17,8 @@ Requirements for Genre/Style Blueprints milestone. Each maps to roadmap phases.
 
 ### Tools
 
-- [ ] **TOOL-01**: `list_genre_blueprints` returns all available genres with metadata (name, BPM range, subgenres)
-- [ ] **TOOL-02**: `get_genre_blueprint` returns full or section-filtered blueprint for a genre/subgenre
+- [x] **TOOL-01**: `list_genre_blueprints` returns all available genres with metadata (name, BPM range, subgenres)
+- [x] **TOOL-02**: `get_genre_blueprint` returns full or section-filtered blueprint for a genre/subgenre
 - [ ] **TOOL-03**: `get_genre_palette` returns key-resolved chords, scales, and progressions by bridging blueprint harmony to theory engine
 
 ### Genre Content — P0
@@ -74,8 +74,8 @@ Requirements for Genre/Style Blueprints milestone. Each maps to roadmap phases.
 | INFR-03 | Phase 20 | Complete |
 | INFR-04 | Phase 20 | Complete |
 | INFR-05 | Phase 20 | Complete |
-| TOOL-01 | Phase 21 | Pending |
-| TOOL-02 | Phase 21 | Pending |
+| TOOL-01 | Phase 21 | Complete |
+| TOOL-02 | Phase 21 | Complete |
 | TOOL-03 | Phase 24 | Pending |
 | GENR-01 | Phase 20 | Complete |
 | GENR-02 | Phase 22 | Pending |
