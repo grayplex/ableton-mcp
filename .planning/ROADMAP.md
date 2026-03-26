@@ -33,7 +33,7 @@ Music theory intelligence layer: 24 requirements, 23 MCP tools, 224 tests → [a
 
 **Milestone Goal:** Curated genre reference documents that give Claude consistent knowledge of electronic music conventions — instrumentation, harmony, rhythm, arrangement, and mixing — delivered via the MCP server.
 
-- [ ] **Phase 20: Blueprint Infrastructure** - Schema, catalog, validation, and house genre as canonical example
+- [x] **Phase 20: Blueprint Infrastructure** - Schema, catalog, validation, and house genre as canonical example (completed 2026-03-26)
 - [ ] **Phase 21: Blueprint Tools** - MCP tool wrappers for genre listing and blueprint retrieval
 - [ ] **Phase 22: Core Genre Library** - P0 remaining (techno, hip-hop/trap, ambient) + P1 genres (DnB, dubstep, trance, neo-soul)
 - [ ] **Phase 23: Extended Genre Library** - P2 genres (synthwave, lo-fi, future bass, disco/funk)
@@ -54,7 +54,7 @@ Music theory intelligence layer: 24 requirements, 23 MCP tools, 224 tests → [a
 **Plans**: 2 plans
 Plans:
 - [x] 20-01-PLAN.md — Schema definitions (TypedDict) and validate_blueprint() function
-- [ ] 20-02-PLAN.md — Catalog auto-discovery, alias resolution, subgenre merge, and house blueprint
+- [x] 20-02-PLAN.md — Catalog auto-discovery, alias resolution, subgenre merge, and house blueprint
 
 ### Phase 21: Blueprint Tools
 **Goal**: Claude can discover available genres and retrieve full or section-filtered blueprints through MCP tools
@@ -67,7 +67,7 @@ Plans:
   4. Calling `get_genre_blueprint` with a subgenre returns merged parent+subgenre data
 **Plans**: 2 plans
 Plans:
-- [ ] 20-01-PLAN.md — Schema definitions (TypedDict) and validate_blueprint() function
+- [x] 20-01-PLAN.md — Schema definitions (TypedDict) and validate_blueprint() function
 - [ ] 20-02-PLAN.md — Catalog auto-discovery, alias resolution, subgenre merge, and house blueprint
 
 ### Phase 22: Core Genre Library
@@ -121,7 +121,7 @@ Phases execute in numeric order: 20 → 21 → 22 → 23 → 24
 |-------|-----------|---------------|--------|-----------|
 | 1-13 | v1.0 | 33/33 | Complete | 2026-03-23 |
 | 14-19 | v1.1 | 12/12 | Complete | 2026-03-25 |
-| 20. Blueprint Infrastructure | v1.2 | 1/2 | In Progress|  |
+| 20. Blueprint Infrastructure | v1.2 | 2/2 | Complete   | 2026-03-26 |
 | 21. Blueprint Tools | v1.2 | 0/? | Not started | - |
 | 22. Core Genre Library | v1.2 | 0/? | Not started | - |
 | 23. Extended Genre Library | v1.2 | 0/? | Not started | - |
