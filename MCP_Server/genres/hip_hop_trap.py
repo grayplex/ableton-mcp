@@ -1,6 +1,6 @@
 """Hip-hop/Trap genre blueprint: instrumentation, harmony, rhythm, arrangement, mixing, tips.
 
-Hip-hop/Trap with three subgenres: boom bap, trap, and lo-fi hip-hop.
+Hip-hop/Trap with two subgenres: boom bap and trap.
 
 Per D-01: Pure Python dicts (no classes).
 Per D-02: Data only (no helper functions).
@@ -155,55 +155,6 @@ SUBGENRES = {
                 "hi-hat rolls too repetitive",
                 "melodies too busy competing with vocals",
                 "clipping from excessive 808 levels",
-            ],
-        },
-    },
-    "lo_fi_hip_hop": {
-        "name": "Lo-fi Hip-hop",
-        "bpm_range": [70, 90],
-        "aliases": ["lo-fi hip hop", "lofi", "lo_fi", "lo-fi hip-hop", "chillhop"],
-        "instrumentation": {
-            "roles": [
-                "kick", "snare", "hi-hats", "bass", "piano",
-                "guitar", "pad", "sample", "fx", "vinyl_noise",
-            ]
-        },
-        "harmony": {
-            "scales": ["dorian", "natural_minor", "mixolydian", "major"],
-            "chord_types": ["min7", "maj7", "min9", "maj9", "dom7", "add9"],
-            "common_progressions": [
-                ["ii", "V", "I"],
-                ["i", "iv", "bVII"],
-                ["vi", "ii", "V", "I"],
-                ["I", "vi", "IV", "V"],
-            ],
-        },
-        "rhythm": {
-            "time_signature": "4/4",
-            "bpm_range": [70, 90],
-            "swing": "heavy",
-            "note_values": ["1/4", "1/8", "1/16"],
-            "drum_pattern": "lazy kick and snare, gentle hi-hats with swing, subtle percussion",
-        },
-        "mixing": {
-            "frequency_focus": "warm bass 60-120Hz, mellow mids 300-1kHz, rolled-off highs above 12kHz",
-            "stereo_field": "mono bass, wide ambient textures, centered drums",
-            "common_effects": ["vinyl crackle", "tape saturation", "reverb", "chorus", "bitcrusher"],
-            "compression_style": "gentle compression, analog warmth, no aggressive limiting",
-        },
-        "production_tips": {
-            "techniques": [
-                "use jazz and soul samples with heavy processing",
-                "add vinyl crackle, tape hiss, and environmental sounds",
-                "detune samples slightly for nostalgic warmth",
-                "use sidechain compression subtly for gentle pump",
-                "roll off highs with low-pass filter for warmth",
-            ],
-            "pitfalls": [
-                "too much vinyl noise becoming distracting",
-                "drums too polished for the lo-fi aesthetic",
-                "low-end too boomy from uncontrolled bass",
-                "over-detuning making it sound broken rather than warm",
             ],
         },
     },
