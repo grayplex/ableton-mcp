@@ -80,7 +80,7 @@ Plans:
   4. Every genre's aliases resolve correctly (e.g., "dnb" to drum_and_bass, "hiphop" to hip_hop_trap)
 **Plans**: 2 plans
 Plans:
-- [ ] 22-01-PLAN.md — [To be planned]
+- [x] 22-01-PLAN.md — [To be planned]
 - [ ] 22-02-PLAN.md — [To be planned]
 
 ### Phase 23: Extended Genre Library
@@ -122,6 +122,6 @@ Phases execute in numeric order: 20 → 21 → 22 → 23 → 24
 | 14-19 | v1.1 | 12/12 | Complete | 2026-03-25 |
 | 20. Blueprint Infrastructure | v1.2 | 2/2 | Complete    | 2026-03-26 |
 | 21. Blueprint Tools | v1.2 | 1/1 | Complete    | 2026-03-26 |
-| 22. Core Genre Library | v1.2 | 0/? | Not started | - |
+| 22. Core Genre Library | v1.2 | 1/2 | In Progress|  |
 | 23. Extended Genre Library | v1.2 | 0/? | Not started | - |
 | 24. Palette Bridge & Quality Gate | v1.2 | 0/? | Not started | - |

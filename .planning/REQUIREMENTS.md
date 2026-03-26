@@ -24,9 +24,9 @@ Requirements for Genre/Style Blueprints milestone. Each maps to roadmap phases.
 ### Genre Content — P0
 
 - [x] **GENR-01**: House blueprint with subgenres (deep, tech, progressive, acid)
-- [ ] **GENR-02**: Techno blueprint with subgenres (minimal, industrial, melodic, Detroit)
-- [ ] **GENR-03**: Hip-hop/Trap blueprint with subgenres (boom bap, trap, lo-fi hip-hop)
-- [ ] **GENR-04**: Ambient blueprint with subgenres (dark ambient, drone, cinematic)
+- [x] **GENR-02**: Techno blueprint with subgenres (minimal, industrial, melodic, Detroit)
+- [x] **GENR-03**: Hip-hop/Trap blueprint with subgenres (boom bap, trap, lo-fi hip-hop)
+- [x] **GENR-04**: Ambient blueprint with subgenres (dark ambient, drone, cinematic)
 
 ### Genre Content — P1
 
@@ -78,9 +78,9 @@ Requirements for Genre/Style Blueprints milestone. Each maps to roadmap phases.
 | TOOL-02 | Phase 21 | Complete |
 | TOOL-03 | Phase 24 | Pending |
 | GENR-01 | Phase 20 | Complete |
-| GENR-02 | Phase 22 | Pending |
-| GENR-03 | Phase 22 | Pending |
-| GENR-04 | Phase 22 | Pending |
+| GENR-02 | Phase 22 | Complete |
+| GENR-03 | Phase 22 | Complete |
+| GENR-04 | Phase 22 | Complete |
 | GENR-05 | Phase 22 | Pending |
 | GENR-06 | Phase 22 | Pending |
 | GENR-07 | Phase 22 | Pending |
