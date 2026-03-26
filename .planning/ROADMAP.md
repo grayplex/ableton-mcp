@@ -33,9 +33,9 @@ Music theory intelligence layer: 24 requirements, 23 MCP tools, 224 tests → [a
 
 **Milestone Goal:** Curated genre reference documents that give Claude consistent knowledge of electronic music conventions — instrumentation, harmony, rhythm, arrangement, and mixing — delivered via the MCP server.
 
-- [ ] **Phase 20: Blueprint Infrastructure** - Schema, catalog, validation, and house genre as canonical example
-- [ ] **Phase 21: Blueprint Tools** - MCP tool wrappers for genre listing and blueprint retrieval
-- [ ] **Phase 22: Core Genre Library** - P0 remaining (techno, hip-hop/trap, ambient) + P1 genres (DnB, dubstep, trance, neo-soul)
+- [x] **Phase 20: Blueprint Infrastructure** - Schema, catalog, validation, and house genre as canonical example (completed 2026-03-26)
+- [x] **Phase 21: Blueprint Tools** - MCP tool wrappers for genre listing and blueprint retrieval (completed 2026-03-26)
+- [x] **Phase 22: Core Genre Library** - P0 remaining (techno, hip-hop/trap, ambient) + P1 genres (DnB, dubstep, trance, neo-soul) (completed 2026-03-26)
 - [ ] **Phase 23: Extended Genre Library** - P2 genres (synthwave, lo-fi, future bass, disco/funk)
 - [ ] **Phase 24: Palette Bridge & Quality Gate** - Theory engine bridge tool + cross-validation + full test suite
 
@@ -51,7 +51,10 @@ Music theory intelligence layer: 24 requirements, 23 MCP tools, 224 tests → [a
   3. Common aliases (e.g., "deep house", "deep_house") resolve to the correct genre/subgenre
   4. Subgenre data merges with parent genre data, with subgenre values overriding parent values
   5. A malformed genre dict (missing required keys) causes an import-time error, not a silent runtime failure
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [x] 20-01-PLAN.md — Schema definitions (TypedDict) and validate_blueprint() function
+- [x] 20-02-PLAN.md — Catalog auto-discovery, alias resolution, subgenre merge, and house blueprint
 
 ### Phase 21: Blueprint Tools
 **Goal**: Claude can discover available genres and retrieve full or section-filtered blueprints through MCP tools
@@ -62,7 +65,9 @@ Music theory intelligence layer: 24 requirements, 23 MCP tools, 224 tests → [a
   2. Calling `get_genre_blueprint` with a genre name returns the full blueprint as structured data
   3. Calling `get_genre_blueprint` with a `sections` filter returns only the requested dimensions (e.g., just harmony and rhythm)
   4. Calling `get_genre_blueprint` with a subgenre returns merged parent+subgenre data
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [x] 21-01-PLAN.md — Genre MCP tools (list_genre_blueprints + get_genre_blueprint) with TDD
 
 ### Phase 22: Core Genre Library
 **Goal**: The 8 most-used electronic genres are available as complete blueprints (P0 + P1 tiers)
@@ -73,7 +78,10 @@ Music theory intelligence layer: 24 requirements, 23 MCP tools, 224 tests → [a
   2. DnB, dubstep, trance, and neo-soul/R&B blueprints each pass schema validation and include all defined subgenres
   3. All 7 new genres appear in `list_genre_blueprints` output alongside house
   4. Every genre's aliases resolve correctly (e.g., "dnb" to drum_and_bass, "hiphop" to hip_hop_trap)
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [x] 22-01-PLAN.md — [To be planned]
+- [x] 22-02-PLAN.md — [To be planned]
 
 ### Phase 23: Extended Genre Library
 **Goal**: The full 12-genre catalog is complete (P2 tier)
@@ -83,7 +91,10 @@ Music theory intelligence layer: 24 requirements, 23 MCP tools, 224 tests → [a
   1. Synthwave, lo-fi, future bass, and disco/funk blueprints each pass schema validation and include all defined subgenres
   2. All 12 genres appear in `list_genre_blueprints` output
   3. Every P2 genre's aliases resolve correctly
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 23-01-PLAN.md — [To be planned]
+- [ ] 23-02-PLAN.md — [To be planned]
 
 ### Phase 24: Palette Bridge & Quality Gate
 **Goal**: Claude can get key-resolved chords, scales, and progressions from any genre, and all blueprints meet quality standards
@@ -94,7 +105,10 @@ Music theory intelligence layer: 24 requirements, 23 MCP tools, 224 tests → [a
   2. Every blueprint across all 12 genres stays within the 800-1200 token budget (measured, not estimated)
   3. Every chord_type and scale name referenced in any blueprint is validated against the theory engine's supported types
   4. Test suite covers schema validation, tool output format, section filtering, palette bridge correctness, and theory-name cross-reference
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 24-01-PLAN.md — [To be planned]
+- [ ] 24-02-PLAN.md — [To be planned]
 
 ## Progress
 
@@ -106,8 +120,8 @@ Phases execute in numeric order: 20 → 21 → 22 → 23 → 24
 |-------|-----------|---------------|--------|-----------|
 | 1-13 | v1.0 | 33/33 | Complete | 2026-03-23 |
 | 14-19 | v1.1 | 12/12 | Complete | 2026-03-25 |
-| 20. Blueprint Infrastructure | v1.2 | 0/? | Not started | - |
-| 21. Blueprint Tools | v1.2 | 0/? | Not started | - |
-| 22. Core Genre Library | v1.2 | 0/? | Not started | - |
+| 20. Blueprint Infrastructure | v1.2 | 2/2 | Complete    | 2026-03-26 |
+| 21. Blueprint Tools | v1.2 | 1/1 | Complete    | 2026-03-26 |
+| 22. Core Genre Library | v1.2 | 2/2 | Complete    | 2026-03-26 |
 | 23. Extended Genre Library | v1.2 | 0/? | Not started | - |
 | 24. Palette Bridge & Quality Gate | v1.2 | 0/? | Not started | - |

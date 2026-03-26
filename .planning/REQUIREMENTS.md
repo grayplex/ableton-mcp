@@ -9,31 +9,31 @@ Requirements for Genre/Style Blueprints milestone. Each maps to roadmap phases.
 
 ### Infrastructure
 
-- [ ] **INFR-01**: Blueprint schema defines all genre dimensions (instrumentation, harmony, rhythm, arrangement, mixing, production tips)
-- [ ] **INFR-02**: Catalog registry discovers and indexes all genre modules at import time
-- [ ] **INFR-03**: Alias resolution maps common name variants to canonical genre IDs (e.g., "dnb" → "drum_and_bass")
-- [ ] **INFR-04**: Subgenre merge combines parent genre base with subgenre overrides via shallow merge
-- [ ] **INFR-05**: Schema validation runs at import time, rejecting malformed genre data before server starts
+- [x] **INFR-01**: Blueprint schema defines all genre dimensions (instrumentation, harmony, rhythm, arrangement, mixing, production tips)
+- [x] **INFR-02**: Catalog registry discovers and indexes all genre modules at import time
+- [x] **INFR-03**: Alias resolution maps common name variants to canonical genre IDs (e.g., "dnb" → "drum_and_bass")
+- [x] **INFR-04**: Subgenre merge combines parent genre base with subgenre overrides via shallow merge
+- [x] **INFR-05**: Schema validation runs at import time, rejecting malformed genre data before server starts
 
 ### Tools
 
-- [ ] **TOOL-01**: `list_genre_blueprints` returns all available genres with metadata (name, BPM range, subgenres)
-- [ ] **TOOL-02**: `get_genre_blueprint` returns full or section-filtered blueprint for a genre/subgenre
+- [x] **TOOL-01**: `list_genre_blueprints` returns all available genres with metadata (name, BPM range, subgenres)
+- [x] **TOOL-02**: `get_genre_blueprint` returns full or section-filtered blueprint for a genre/subgenre
 - [ ] **TOOL-03**: `get_genre_palette` returns key-resolved chords, scales, and progressions by bridging blueprint harmony to theory engine
 
 ### Genre Content — P0
 
-- [ ] **GENR-01**: House blueprint with subgenres (deep, tech, progressive, acid)
-- [ ] **GENR-02**: Techno blueprint with subgenres (minimal, industrial, melodic, Detroit)
-- [ ] **GENR-03**: Hip-hop/Trap blueprint with subgenres (boom bap, trap, lo-fi hip-hop)
-- [ ] **GENR-04**: Ambient blueprint with subgenres (dark ambient, drone, cinematic)
+- [x] **GENR-01**: House blueprint with subgenres (deep, tech, progressive, acid)
+- [x] **GENR-02**: Techno blueprint with subgenres (minimal, industrial, melodic, Detroit)
+- [x] **GENR-03**: Hip-hop/Trap blueprint with subgenres (boom bap, trap, lo-fi hip-hop)
+- [x] **GENR-04**: Ambient blueprint with subgenres (dark ambient, drone, cinematic)
 
 ### Genre Content — P1
 
-- [ ] **GENR-05**: Drum & Bass blueprint with subgenres (liquid, neurofunk, jungle)
-- [ ] **GENR-06**: Dubstep blueprint with subgenres (brostep, riddim, melodic)
-- [ ] **GENR-07**: Trance blueprint with subgenres (progressive, uplifting, psytrance)
-- [ ] **GENR-08**: Neo-soul/R&B blueprint with subgenres (neo-soul, contemporary R&B)
+- [x] **GENR-05**: Drum & Bass blueprint with subgenres (liquid, neurofunk, jungle)
+- [x] **GENR-06**: Dubstep blueprint with subgenres (brostep, riddim, melodic)
+- [x] **GENR-07**: Trance blueprint with subgenres (progressive, uplifting, psytrance)
+- [x] **GENR-08**: Neo-soul/R&B blueprint with subgenres (neo-soul, contemporary R&B)
 
 ### Genre Content — P2
 
@@ -69,22 +69,22 @@ Requirements for Genre/Style Blueprints milestone. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFR-01 | Phase 20 | Pending |
-| INFR-02 | Phase 20 | Pending |
-| INFR-03 | Phase 20 | Pending |
-| INFR-04 | Phase 20 | Pending |
-| INFR-05 | Phase 20 | Pending |
-| TOOL-01 | Phase 21 | Pending |
-| TOOL-02 | Phase 21 | Pending |
+| INFR-01 | Phase 20 | Complete |
+| INFR-02 | Phase 20 | Complete |
+| INFR-03 | Phase 20 | Complete |
+| INFR-04 | Phase 20 | Complete |
+| INFR-05 | Phase 20 | Complete |
+| TOOL-01 | Phase 21 | Complete |
+| TOOL-02 | Phase 21 | Complete |
 | TOOL-03 | Phase 24 | Pending |
-| GENR-01 | Phase 20 | Pending |
-| GENR-02 | Phase 22 | Pending |
-| GENR-03 | Phase 22 | Pending |
-| GENR-04 | Phase 22 | Pending |
-| GENR-05 | Phase 22 | Pending |
-| GENR-06 | Phase 22 | Pending |
-| GENR-07 | Phase 22 | Pending |
-| GENR-08 | Phase 22 | Pending |
+| GENR-01 | Phase 20 | Complete |
+| GENR-02 | Phase 22 | Complete |
+| GENR-03 | Phase 22 | Complete |
+| GENR-04 | Phase 22 | Complete |
+| GENR-05 | Phase 22 | Complete |
+| GENR-06 | Phase 22 | Complete |
+| GENR-07 | Phase 22 | Complete |
+| GENR-08 | Phase 22 | Complete |
 | GENR-09 | Phase 23 | Pending |
 | GENR-10 | Phase 23 | Pending |
 | GENR-11 | Phase 23 | Pending |
