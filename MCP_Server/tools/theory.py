@@ -25,6 +25,10 @@ from MCP_Server.theory import suggest_next_chord as _suggest_next_chord
 from MCP_Server.theory import detect_key as _detect_key
 from MCP_Server.theory import analyze_clip_chords as _analyze_clip_chords
 from MCP_Server.theory import analyze_harmonic_rhythm as _analyze_harmonic_rhythm
+from MCP_Server.theory import voice_lead_chords as _voice_lead_chords
+from MCP_Server.theory import voice_lead_progression as _voice_lead_progression
+from MCP_Server.theory import get_rhythm_patterns as _get_rhythm_patterns
+from MCP_Server.theory import apply_rhythm_pattern as _apply_rhythm_pattern
 
 
 @mcp.tool()
@@ -606,4 +610,145 @@ def analyze_harmonic_rhythm(ctx: Context, notes: list[dict], resolution: str = "
             "Failed to analyze harmonic rhythm",
             detail=str(e),
             suggestion="Provide notes as list of dicts with pitch, start_time, duration keys",
+        )
+
+
+@mcp.tool()
+def voice_lead_chords(ctx: Context, source_midis: list[int], target_midis: list[int]) -> str:
+    """Connect two chords with smooth voice leading, minimizing pitch movement
+    and avoiding parallel 5ths/octaves.
+
+    Parameters:
+    - source_midis: MIDI pitches of the source/current chord (e.g., [60, 64, 67])
+    - target_midis: MIDI pitches of the target/next chord (e.g., [65, 69, 72])
+    """
+    try:
+        if not source_midis or not target_midis:
+            return format_error(
+                "Empty chord input",
+                detail="Both source_midis and target_midis must be non-empty lists",
+                suggestion="Provide MIDI pitches from build_chord output",
+            )
+        for midis, label in [(source_midis, "source"), (target_midis, "target")]:
+            for m in midis:
+                if not (0 <= m <= 127):
+                    return format_error(
+                        f"MIDI pitch out of range in {label}",
+                        detail=f"Got {m}, must be 0-127",
+                        suggestion="All MIDI pitches must be between 0 and 127",
+                    )
+        result = _voice_lead_chords(source_midis, target_midis)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to voice lead chords",
+            detail=str(e),
+            suggestion="Provide two lists of MIDI pitches (e.g., from build_chord)",
+        )
+
+
+@mcp.tool()
+def voice_lead_progression(ctx: Context, key: str, numerals: list[str], scale_type: str = "major", octave: int = 4) -> str:
+    """Generate a voice-led chord progression from Roman numeral input, with parallel
+    5ths/octaves avoidance applied across all chord transitions.
+
+    Parameters:
+    - key: Key root (e.g., "C", "G", "Bb")
+    - numerals: List of Roman numerals (e.g., ["I", "IV", "V", "I"])
+    - scale_type: Scale context (default "major")
+    - octave: Base octave for chord pitches (default 4)
+    """
+    try:
+        if not numerals:
+            return format_error(
+                "Empty numerals list",
+                detail="numerals must be a non-empty list of Roman numeral strings",
+                suggestion="Provide at least one Roman numeral (e.g., ['I', 'IV', 'V', 'I'])",
+            )
+        result = _voice_lead_progression(key, numerals, scale_type, octave)
+        # MIDI range validation at tool boundary
+        for chord in result["chords"]:
+            for note in chord["notes"]:
+                if not (0 <= note["midi"] <= 127):
+                    return format_error(
+                        "Progression contains notes outside MIDI range",
+                        detail=f"{note['name']} = MIDI {note['midi']}, outside 0-127",
+                        suggestion="Try a different octave to keep all notes within MIDI 0-127",
+                    )
+        return json.dumps(result, indent=2)
+    except ValueError as e:
+        return format_error(
+            "Invalid parameters for voice_lead_progression",
+            detail=str(e),
+            suggestion="Check key, numerals (e.g., ['I', 'IV', 'V']), and scale_type",
+        )
+    except Exception as e:
+        return format_error(
+            "Failed to generate voice-led progression",
+            detail=str(e),
+            suggestion="Check key (e.g., 'C') and numerals (e.g., ['I', 'IV', 'V', 'I'])",
+        )
+
+
+@mcp.tool()
+def get_rhythm_patterns(ctx: Context, category: str | None = None, style: str | None = None) -> str:
+    """Get rhythm pattern templates for composing. Returns pattern metadata with optional filtering.
+
+    Categories: arpeggio, bass, comping, strumming.
+    Use apply_rhythm_pattern to apply a pattern to a chord.
+
+    Parameters:
+    - category: Optional filter by category (e.g., "arpeggio", "bass", "comping", "strumming")
+    - style: Optional filter by style (e.g., "basic", "jazz", "pop")
+    """
+    try:
+        result = _get_rhythm_patterns(category, style)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to get rhythm patterns",
+            detail=str(e),
+            suggestion="Check category and style filter values",
+        )
+
+
+@mcp.tool()
+def apply_rhythm_pattern(ctx: Context, chord_midis: list[int], pattern_name: str, start_beat: float = 0.0, duration: float = 4.0) -> str:
+    """Apply a rhythm pattern to a chord, producing time-positioned MIDI notes
+    ready for add_notes_to_clip. Call once per chord; use different start_beat
+    offsets for each chord in a progression.
+
+    Parameters:
+    - chord_midis: MIDI pitches for the chord (e.g., [60, 64, 67])
+    - pattern_name: Pattern name from get_rhythm_patterns (e.g., "arpeggio_up")
+    - start_beat: Starting beat position in clip timeline (default 0.0)
+    - duration: Duration in beats for the pattern (default 4.0)
+    """
+    try:
+        if not chord_midis:
+            return format_error(
+                "Empty chord input",
+                detail="chord_midis must be a non-empty list of MIDI pitches",
+                suggestion="Provide MIDI pitches from build_chord output",
+            )
+        for m in chord_midis:
+            if not (0 <= m <= 127):
+                return format_error(
+                    "MIDI pitch out of range",
+                    detail=f"Got {m}, must be 0-127",
+                    suggestion="All MIDI pitches must be between 0 and 127",
+                )
+        result = _apply_rhythm_pattern(chord_midis, pattern_name, start_beat, duration)
+        return json.dumps(result, indent=2)
+    except ValueError as e:
+        return format_error(
+            "Invalid parameters for apply_rhythm_pattern",
+            detail=str(e),
+            suggestion="Check pattern_name (use get_rhythm_patterns to see available patterns)",
+        )
+    except Exception as e:
+        return format_error(
+            "Failed to apply rhythm pattern",
+            detail=str(e),
+            suggestion="Check chord_midis and pattern_name (use get_rhythm_patterns for options)",
         )
