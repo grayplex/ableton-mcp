@@ -1,7 +1,8 @@
-"""Tests for genre blueprint schema and validation."""
+"""Tests for genre blueprint schema, catalog, alias resolution, subgenre merge, and house genre."""
 
 import pytest
 
+from MCP_Server.genres import get_blueprint, list_genres, resolve_alias
 from MCP_Server.genres.schema import (
     GenreBlueprint,
     validate_blueprint,
@@ -82,3 +83,118 @@ class TestSchema:
         bp["instrumentation"]["roles"] = []
         with pytest.raises(ValueError):
             validate_blueprint(bp)
+
+
+class TestCatalog:
+    """INFR-02: Auto-discovery tests."""
+
+    def test_house_discovered(self):
+        """House genre is auto-discovered without manual registration."""
+        genres = list_genres()
+        genre_ids = [g["id"] for g in genres]
+        assert "house" in genre_ids
+
+    def test_list_genres_metadata(self):
+        """list_genres returns id, name, bpm_range, subgenres for each genre."""
+        genres = list_genres()
+        house = [g for g in genres if g["id"] == "house"][0]
+        assert house["name"] == "House"
+        assert house["bpm_range"] == [120, 130]
+        assert "deep_house" in house["subgenres"]
+
+    def test_get_blueprint_returns_full(self):
+        """get_blueprint returns all 6 dimensions."""
+        bp = get_blueprint("house")
+        for dim in ["instrumentation", "harmony", "rhythm", "arrangement", "mixing", "production_tips"]:
+            assert dim in bp, f"Missing dimension: {dim}"
+
+
+class TestAliasResolution:
+    """INFR-03: Alias resolution tests."""
+
+    def test_canonical_id(self):
+        result = resolve_alias("house")
+        assert result is not None
+        assert result["genre_id"] == "house"
+
+    def test_alias_with_space(self):
+        result = resolve_alias("deep house")
+        assert result is not None
+        assert result["genre_id"] == "house"
+        assert result["subgenre_id"] == "deep_house"
+
+    def test_alias_with_underscore(self):
+        result = resolve_alias("deep_house")
+        assert result is not None
+        assert result["genre_id"] == "house"
+
+    def test_alias_case_insensitive(self):
+        result = resolve_alias("Deep House")
+        assert result is not None
+        assert result["genre_id"] == "house"
+
+    def test_unknown_alias_returns_none(self):
+        result = resolve_alias("nonexistent_genre")
+        assert result is None
+
+
+class TestSubgenreMerge:
+    """INFR-04: Subgenre merge tests."""
+
+    def test_deep_house_overrides_bpm(self):
+        bp = get_blueprint("house", subgenre="deep_house")
+        assert bp["bpm_range"] == [118, 124]
+
+    def test_deep_house_inherits_instrumentation(self):
+        """Deep house has no instrumentation override, so inherits from house base."""
+        bp = get_blueprint("house", subgenre="deep_house")
+        assert "kick" in bp["instrumentation"]["roles"]
+
+    def test_deep_house_overrides_harmony(self):
+        bp = get_blueprint("house", subgenre="deep_house")
+        assert "maj9" in bp["harmony"]["chord_types"]
+
+    def test_subgenre_via_alias(self):
+        """Calling get_blueprint('deep_house') resolves via alias."""
+        bp = get_blueprint("deep_house")
+        assert bp is not None
+        assert bp["bpm_range"] == [118, 124]
+
+    def test_nonexistent_subgenre_returns_base(self):
+        """Unknown subgenre falls back to base genre."""
+        bp = get_blueprint("house", subgenre="imaginary_house")
+        assert bp["bpm_range"] == [120, 130]
+
+
+class TestHouseBlueprint:
+    """GENR-01: House blueprint completeness."""
+
+    def test_all_dimensions_present(self):
+        bp = get_blueprint("house")
+        for dim in ["instrumentation", "harmony", "rhythm", "arrangement", "mixing", "production_tips"]:
+            assert dim in bp
+
+    def test_four_subgenres(self):
+        genres = list_genres()
+        house = [g for g in genres if g["id"] == "house"][0]
+        assert set(house["subgenres"]) == {"deep_house", "tech_house", "progressive_house", "acid_house"}
+
+    def test_all_subgenres_pass_validation(self):
+        """Each subgenre merged result passes schema validation."""
+        for sub_id in ["deep_house", "tech_house", "progressive_house", "acid_house"]:
+            bp = get_blueprint("house", subgenre=sub_id)
+            validate_blueprint(bp)  # should not raise
+
+    def test_harmony_uses_valid_scale_names(self):
+        """All scale names in house blueprint exist in SCALE_CATALOG."""
+        from MCP_Server.theory.scales import SCALE_CATALOG
+        bp = get_blueprint("house")
+        for scale in bp["harmony"]["scales"]:
+            assert scale in SCALE_CATALOG, f"Unknown scale: {scale}"
+
+    def test_harmony_uses_valid_chord_types(self):
+        """All chord_types in house blueprint exist in theory engine's quality map."""
+        from MCP_Server.theory.chords import _QUALITY_MAP
+        bp = get_blueprint("house")
+        for ct in bp["harmony"]["chord_types"]:
+            assert ct in _QUALITY_MAP, f"Unknown chord_type: {ct}"
