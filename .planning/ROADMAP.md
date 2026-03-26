@@ -65,10 +65,9 @@ Plans:
   2. Calling `get_genre_blueprint` with a genre name returns the full blueprint as structured data
   3. Calling `get_genre_blueprint` with a `sections` filter returns only the requested dimensions (e.g., just harmony and rhythm)
   4. Calling `get_genre_blueprint` with a subgenre returns merged parent+subgenre data
-**Plans**: 2 plans
+**Plans**: 1 plan
 Plans:
-- [x] 20-01-PLAN.md — Schema definitions (TypedDict) and validate_blueprint() function
-- [ ] 20-02-PLAN.md — Catalog auto-discovery, alias resolution, subgenre merge, and house blueprint
+- [ ] 21-01-PLAN.md — Genre MCP tools (list_genre_blueprints + get_genre_blueprint) with TDD
 
 ### Phase 22: Core Genre Library
 **Goal**: The 8 most-used electronic genres are available as complete blueprints (P0 + P1 tiers)
@@ -81,8 +80,8 @@ Plans:
   4. Every genre's aliases resolve correctly (e.g., "dnb" to drum_and_bass, "hiphop" to hip_hop_trap)
 **Plans**: 2 plans
 Plans:
-- [ ] 20-01-PLAN.md — Schema definitions (TypedDict) and validate_blueprint() function
-- [ ] 20-02-PLAN.md — Catalog auto-discovery, alias resolution, subgenre merge, and house blueprint
+- [ ] 22-01-PLAN.md — [To be planned]
+- [ ] 22-02-PLAN.md — [To be planned]
 
 ### Phase 23: Extended Genre Library
 **Goal**: The full 12-genre catalog is complete (P2 tier)
@@ -94,8 +93,8 @@ Plans:
   3. Every P2 genre's aliases resolve correctly
 **Plans**: 2 plans
 Plans:
-- [ ] 20-01-PLAN.md — Schema definitions (TypedDict) and validate_blueprint() function
-- [ ] 20-02-PLAN.md — Catalog auto-discovery, alias resolution, subgenre merge, and house blueprint
+- [ ] 23-01-PLAN.md — [To be planned]
+- [ ] 23-02-PLAN.md — [To be planned]
 
 ### Phase 24: Palette Bridge & Quality Gate
 **Goal**: Claude can get key-resolved chords, scales, and progressions from any genre, and all blueprints meet quality standards
@@ -108,8 +107,8 @@ Plans:
   4. Test suite covers schema validation, tool output format, section filtering, palette bridge correctness, and theory-name cross-reference
 **Plans**: 2 plans
 Plans:
-- [ ] 20-01-PLAN.md — Schema definitions (TypedDict) and validate_blueprint() function
-- [ ] 20-02-PLAN.md — Catalog auto-discovery, alias resolution, subgenre merge, and house blueprint
+- [ ] 24-01-PLAN.md — [To be planned]
+- [ ] 24-02-PLAN.md — [To be planned]
 
 ## Progress
 
@@ -122,7 +121,7 @@ Phases execute in numeric order: 20 → 21 → 22 → 23 → 24
 | 1-13 | v1.0 | 33/33 | Complete | 2026-03-23 |
 | 14-19 | v1.1 | 12/12 | Complete | 2026-03-25 |
 | 20. Blueprint Infrastructure | v1.2 | 2/2 | Complete    | 2026-03-26 |
-| 21. Blueprint Tools | v1.2 | 0/? | Not started | - |
+| 21. Blueprint Tools | v1.2 | 0/1 | Not started | - |
 | 22. Core Genre Library | v1.2 | 0/? | Not started | - |
 | 23. Extended Genre Library | v1.2 | 0/? | Not started | - |
 | 24. Palette Bridge & Quality Gate | v1.2 | 0/? | Not started | - |
