@@ -35,7 +35,7 @@ Music theory intelligence layer: 24 requirements, 23 MCP tools, 224 tests → [a
 
 - [x] **Phase 20: Blueprint Infrastructure** - Schema, catalog, validation, and house genre as canonical example (completed 2026-03-26)
 - [x] **Phase 21: Blueprint Tools** - MCP tool wrappers for genre listing and blueprint retrieval (completed 2026-03-26)
-- [ ] **Phase 22: Core Genre Library** - P0 remaining (techno, hip-hop/trap, ambient) + P1 genres (DnB, dubstep, trance, neo-soul)
+- [x] **Phase 22: Core Genre Library** - P0 remaining (techno, hip-hop/trap, ambient) + P1 genres (DnB, dubstep, trance, neo-soul) (completed 2026-03-26)
 - [ ] **Phase 23: Extended Genre Library** - P2 genres (synthwave, lo-fi, future bass, disco/funk)
 - [ ] **Phase 24: Palette Bridge & Quality Gate** - Theory engine bridge tool + cross-validation + full test suite
 
@@ -81,7 +81,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 22-01-PLAN.md — [To be planned]
-- [ ] 22-02-PLAN.md — [To be planned]
+- [x] 22-02-PLAN.md — [To be planned]
 
 ### Phase 23: Extended Genre Library
 **Goal**: The full 12-genre catalog is complete (P2 tier)
@@ -122,6 +122,6 @@ Phases execute in numeric order: 20 → 21 → 22 → 23 → 24
 | 14-19 | v1.1 | 12/12 | Complete | 2026-03-25 |
 | 20. Blueprint Infrastructure | v1.2 | 2/2 | Complete    | 2026-03-26 |
 | 21. Blueprint Tools | v1.2 | 1/1 | Complete    | 2026-03-26 |
-| 22. Core Genre Library | v1.2 | 1/2 | In Progress|  |
+| 22. Core Genre Library | v1.2 | 2/2 | Complete   | 2026-03-26 |
 | 23. Extended Genre Library | v1.2 | 0/? | Not started | - |
 | 24. Palette Bridge & Quality Gate | v1.2 | 0/? | Not started | - |

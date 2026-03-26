@@ -30,10 +30,10 @@ Requirements for Genre/Style Blueprints milestone. Each maps to roadmap phases.
 
 ### Genre Content — P1
 
-- [ ] **GENR-05**: Drum & Bass blueprint with subgenres (liquid, neurofunk, jungle)
-- [ ] **GENR-06**: Dubstep blueprint with subgenres (brostep, riddim, melodic)
-- [ ] **GENR-07**: Trance blueprint with subgenres (progressive, uplifting, psytrance)
-- [ ] **GENR-08**: Neo-soul/R&B blueprint with subgenres (neo-soul, contemporary R&B)
+- [x] **GENR-05**: Drum & Bass blueprint with subgenres (liquid, neurofunk, jungle)
+- [x] **GENR-06**: Dubstep blueprint with subgenres (brostep, riddim, melodic)
+- [x] **GENR-07**: Trance blueprint with subgenres (progressive, uplifting, psytrance)
+- [x] **GENR-08**: Neo-soul/R&B blueprint with subgenres (neo-soul, contemporary R&B)
 
 ### Genre Content — P2
 
@@ -81,10 +81,10 @@ Requirements for Genre/Style Blueprints milestone. Each maps to roadmap phases.
 | GENR-02 | Phase 22 | Complete |
 | GENR-03 | Phase 22 | Complete |
 | GENR-04 | Phase 22 | Complete |
-| GENR-05 | Phase 22 | Pending |
-| GENR-06 | Phase 22 | Pending |
-| GENR-07 | Phase 22 | Pending |
-| GENR-08 | Phase 22 | Pending |
+| GENR-05 | Phase 22 | Complete |
+| GENR-06 | Phase 22 | Complete |
+| GENR-07 | Phase 22 | Complete |
+| GENR-08 | Phase 22 | Complete |
 | GENR-09 | Phase 23 | Pending |
 | GENR-10 | Phase 23 | Pending |
 | GENR-11 | Phase 23 | Pending |
