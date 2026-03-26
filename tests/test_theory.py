@@ -2059,3 +2059,220 @@ class TestRhythmLibrary:
         chord = [60, 64, 67]  # C major triad (no 7th)
         result = _resolve_chord_tone("7th", chord)
         assert result == 67, f"Expected fallback to last tone (67), got {result}"
+
+
+class TestVoiceLeadingTools:
+    """Integration tests for voice_lead_chords and voice_lead_progression MCP tools."""
+
+    @pytest.mark.asyncio
+    async def test_voice_lead_tools_registered(self, mcp_server):
+        """Both voice leading tools are registered in MCP."""
+        tool_names = [t.name for t in mcp_server._tool_manager.list_tools()]
+        assert "voice_lead_chords" in tool_names
+        assert "voice_lead_progression" in tool_names
+
+    @pytest.mark.asyncio
+    async def test_voice_lead_chords_tool(self, mcp_server):
+        """voice_lead_chords returns list of note dicts with midi and name keys."""
+        result = await mcp_server.call_tool(
+            "voice_lead_chords",
+            {"source_midis": [60, 64, 67], "target_midis": [65, 69, 72]},
+        )
+        text = result[0][0].text
+        data = json.loads(text)
+        assert isinstance(data, list)
+        assert len(data) > 0
+        for note in data:
+            assert "midi" in note
+            assert "name" in note
+
+    @pytest.mark.asyncio
+    async def test_voice_lead_chords_tool_format(self, mcp_server):
+        """Each voiced note has int midi and str name."""
+        result = await mcp_server.call_tool(
+            "voice_lead_chords",
+            {"source_midis": [60, 64, 67], "target_midis": [65, 69, 72]},
+        )
+        data = json.loads(result[0][0].text)
+        for note in data:
+            assert isinstance(note["midi"], int)
+            assert isinstance(note["name"], str)
+
+    @pytest.mark.asyncio
+    async def test_voice_lead_chords_tool_empty_source(self, mcp_server):
+        """Empty source_midis returns error."""
+        result = await mcp_server.call_tool(
+            "voice_lead_chords",
+            {"source_midis": [], "target_midis": [60, 64, 67]},
+        )
+        text = result[0][0].text
+        assert "error" in text.lower()
+
+    @pytest.mark.asyncio
+    async def test_voice_lead_chords_tool_invalid_midi(self, mcp_server):
+        """MIDI pitch > 127 returns out-of-range error."""
+        result = await mcp_server.call_tool(
+            "voice_lead_chords",
+            {"source_midis": [200], "target_midis": [60]},
+        )
+        text = result[0][0].text
+        assert "out of range" in text.lower()
+
+    @pytest.mark.asyncio
+    async def test_voice_lead_progression_tool(self, mcp_server):
+        """voice_lead_progression returns key, scale_type, and chords with expected structure."""
+        result = await mcp_server.call_tool(
+            "voice_lead_progression",
+            {"key": "C", "numerals": ["I", "IV", "V", "I"]},
+        )
+        data = json.loads(result[0][0].text)
+        assert "key" in data
+        assert "scale_type" in data
+        assert "chords" in data
+        assert len(data["chords"]) == 4
+        for chord in data["chords"]:
+            assert "numeral" in chord
+            assert "root" in chord
+            assert "quality" in chord
+            assert "notes" in chord
+
+    @pytest.mark.asyncio
+    async def test_voice_lead_progression_tool_format(self, mcp_server):
+        """Each note in each chord has int midi and str name."""
+        result = await mcp_server.call_tool(
+            "voice_lead_progression",
+            {"key": "C", "numerals": ["I", "IV", "V", "I"]},
+        )
+        data = json.loads(result[0][0].text)
+        for chord in data["chords"]:
+            for note in chord["notes"]:
+                assert isinstance(note["midi"], int)
+                assert isinstance(note["name"], str)
+
+    @pytest.mark.asyncio
+    async def test_voice_lead_progression_tool_empty_numerals(self, mcp_server):
+        """Empty numerals list returns error."""
+        result = await mcp_server.call_tool(
+            "voice_lead_progression",
+            {"key": "C", "numerals": []},
+        )
+        text = result[0][0].text
+        assert "error" in text.lower()
+
+    @pytest.mark.asyncio
+    async def test_voice_lead_progression_tool_minor(self, mcp_server):
+        """Minor scale progression returns 4 chords."""
+        result = await mcp_server.call_tool(
+            "voice_lead_progression",
+            {"key": "A", "numerals": ["i", "iv", "V", "i"], "scale_type": "minor"},
+        )
+        data = json.loads(result[0][0].text)
+        assert len(data["chords"]) == 4
+
+
+class TestRhythmTools:
+    """Integration tests for get_rhythm_patterns and apply_rhythm_pattern MCP tools."""
+
+    @pytest.mark.asyncio
+    async def test_rhythm_tools_registered(self, mcp_server):
+        """Both rhythm tools are registered in MCP."""
+        tool_names = [t.name for t in mcp_server._tool_manager.list_tools()]
+        assert "get_rhythm_patterns" in tool_names
+        assert "apply_rhythm_pattern" in tool_names
+
+    @pytest.mark.asyncio
+    async def test_get_rhythm_patterns_tool(self, mcp_server):
+        """get_rhythm_patterns returns a list of at least 15 patterns."""
+        result = await mcp_server.call_tool("get_rhythm_patterns", {})
+        data = json.loads(result[0][0].text)
+        assert isinstance(data, list)
+        assert len(data) >= 15
+
+    @pytest.mark.asyncio
+    async def test_get_rhythm_patterns_tool_filter_category(self, mcp_server):
+        """Filtering by category returns only matching patterns."""
+        result = await mcp_server.call_tool(
+            "get_rhythm_patterns", {"category": "arpeggio"}
+        )
+        data = json.loads(result[0][0].text)
+        assert len(data) > 0
+        for item in data:
+            assert item["category"] == "arpeggio"
+
+    @pytest.mark.asyncio
+    async def test_get_rhythm_patterns_tool_format(self, mcp_server):
+        """Each pattern has expected metadata keys and no 'steps' key."""
+        result = await mcp_server.call_tool("get_rhythm_patterns", {})
+        data = json.loads(result[0][0].text)
+        expected_keys = {"name", "category", "style", "description", "time_signature", "step_count"}
+        for item in data:
+            assert set(item.keys()) == expected_keys
+            assert "steps" not in item
+
+    @pytest.mark.asyncio
+    async def test_apply_rhythm_pattern_tool(self, mcp_server):
+        """apply_rhythm_pattern returns a non-empty list of notes."""
+        result = await mcp_server.call_tool(
+            "apply_rhythm_pattern",
+            {"chord_midis": [60, 64, 67], "pattern_name": "arpeggio_up"},
+        )
+        data = json.loads(result[0][0].text)
+        assert isinstance(data, list)
+        assert len(data) > 0
+
+    @pytest.mark.asyncio
+    async def test_apply_rhythm_pattern_tool_format(self, mcp_server):
+        """Each note has exactly pitch, start_time, duration, velocity keys."""
+        result = await mcp_server.call_tool(
+            "apply_rhythm_pattern",
+            {"chord_midis": [60, 64, 67], "pattern_name": "arpeggio_up"},
+        )
+        data = json.loads(result[0][0].text)
+        expected_keys = {"pitch", "start_time", "duration", "velocity"}
+        for note in data:
+            assert set(note.keys()) == expected_keys
+            assert isinstance(note["pitch"], int)
+            assert isinstance(note["start_time"], (int, float))
+            assert isinstance(note["duration"], (int, float))
+            assert isinstance(note["velocity"], int)
+
+    @pytest.mark.asyncio
+    async def test_apply_rhythm_pattern_tool_start_beat(self, mcp_server):
+        """start_beat offsets all note start_time values."""
+        result = await mcp_server.call_tool(
+            "apply_rhythm_pattern",
+            {"chord_midis": [60, 64, 67], "pattern_name": "arpeggio_up", "start_beat": 4.0},
+        )
+        data = json.loads(result[0][0].text)
+        for note in data:
+            assert note["start_time"] >= 4.0
+
+    @pytest.mark.asyncio
+    async def test_apply_rhythm_pattern_tool_empty_chord(self, mcp_server):
+        """Empty chord_midis returns error."""
+        result = await mcp_server.call_tool(
+            "apply_rhythm_pattern",
+            {"chord_midis": [], "pattern_name": "arpeggio_up"},
+        )
+        text = result[0][0].text
+        assert "error" in text.lower()
+
+    @pytest.mark.asyncio
+    async def test_apply_rhythm_pattern_tool_invalid_pattern(self, mcp_server):
+        """Unknown pattern name returns error."""
+        result = await mcp_server.call_tool(
+            "apply_rhythm_pattern",
+            {"chord_midis": [60, 64, 67], "pattern_name": "nonexistent"},
+        )
+        text = result[0][0].text
+        assert "error" in text.lower()
+
+    @pytest.mark.asyncio
+    async def test_apply_rhythm_pattern_tool_invalid_midi(self, mcp_server):
+        """MIDI pitch > 127 returns out-of-range error."""
+        result = await mcp_server.call_tool(
+            "apply_rhythm_pattern",
+            {"chord_midis": [200], "pattern_name": "arpeggio_up"},
+        )
+        text = result[0][0].text
+        assert "out of range" in text.lower()
