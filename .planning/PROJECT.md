@@ -45,13 +45,14 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 ## Current State
 
 **Shipped: v1.1 Theory Engine** (2026-03-26)
+**In Progress: v1.2 Genre/Style Blueprints** — Phase 20 complete
 
 - **197 MCP tools** across 17 tool modules
 - **178 Remote Script handler commands** across 15 domain modules
 - **23 theory functions** in 6 library modules (pitch, chords, scales, progressions, analysis, voicing/rhythm)
-- **428 tests** (204 v1.0 + 224 theory) — all passing
-- **77 requirements** complete (53 v1.0 + 24 v1.1)
-- **5,704 lines** of theory code (library + tools + tests)
+- **452 tests** (204 v1.0 + 224 theory + 24 genres) — all passing
+- **77 requirements** complete (53 v1.0 + 24 v1.1), 6 v1.2 requirements validated (INFR-01..05, GENR-01)
+- **Genre blueprint infrastructure**: schema (8 TypedDicts), catalog (auto-discovery, alias resolution, subgenre merge), house genre with 4 subgenres
 
 ### Capabilities
 
@@ -78,6 +79,7 @@ Two-tier: MCP server (FastMCP/Python 3) ↔ TCP socket (length-prefix framing) �
 - Remote Script uses mixin classes with `@command` decorator registry
 - MCP server uses domain-organized tool modules
 - Theory engine: `MCP_Server/theory/` library with music21 backend
+- Genre blueprints: `MCP_Server/genres/` package with auto-discovery catalog
 - Thread-safe connection with `threading.Lock`
 - Dict-based command dispatch (no if/elif chains)
 
@@ -111,4 +113,4 @@ Two-tier: MCP server (FastMCP/Python 3) ↔ TCP socket (length-prefix framing) �
 - Codebase map at `.planning/codebase/`
 
 ---
-*Last updated: 2026-03-25 after v1.2 milestone start*
+*Last updated: 2026-03-26 after Phase 20 completion*
