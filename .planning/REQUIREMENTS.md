@@ -9,11 +9,11 @@ Requirements for Genre/Style Blueprints milestone. Each maps to roadmap phases.
 
 ### Infrastructure
 
-- [ ] **INFR-01**: Blueprint schema defines all genre dimensions (instrumentation, harmony, rhythm, arrangement, mixing, production tips)
+- [x] **INFR-01**: Blueprint schema defines all genre dimensions (instrumentation, harmony, rhythm, arrangement, mixing, production tips)
 - [ ] **INFR-02**: Catalog registry discovers and indexes all genre modules at import time
 - [ ] **INFR-03**: Alias resolution maps common name variants to canonical genre IDs (e.g., "dnb" → "drum_and_bass")
 - [ ] **INFR-04**: Subgenre merge combines parent genre base with subgenre overrides via shallow merge
-- [ ] **INFR-05**: Schema validation runs at import time, rejecting malformed genre data before server starts
+- [x] **INFR-05**: Schema validation runs at import time, rejecting malformed genre data before server starts
 
 ### Tools
 
@@ -69,11 +69,11 @@ Requirements for Genre/Style Blueprints milestone. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFR-01 | Phase 20 | Pending |
+| INFR-01 | Phase 20 | Complete |
 | INFR-02 | Phase 20 | Pending |
 | INFR-03 | Phase 20 | Pending |
 | INFR-04 | Phase 20 | Pending |
-| INFR-05 | Phase 20 | Pending |
+| INFR-05 | Phase 20 | Complete |
 | TOOL-01 | Phase 21 | Pending |
 | TOOL-02 | Phase 21 | Pending |
 | TOOL-03 | Phase 24 | Pending |
