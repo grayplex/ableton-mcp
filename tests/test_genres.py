@@ -198,3 +198,137 @@ class TestHouseBlueprint:
         bp = get_blueprint("house")
         for ct in bp["harmony"]["chord_types"]:
             assert ct in _QUALITY_MAP, f"Unknown chord_type: {ct}"
+
+
+class TestTechnoBlueprint:
+    """GENR-02: Techno blueprint completeness."""
+
+    def test_schema_valid(self):
+        from MCP_Server.genres.techno import GENRE
+        validate_blueprint(GENRE)
+
+    def test_all_dimensions(self):
+        from MCP_Server.genres.techno import GENRE
+        for dim in ["instrumentation", "harmony", "rhythm", "arrangement", "mixing", "production_tips"]:
+            assert dim in GENRE, f"Missing dimension: {dim}"
+
+    def test_subgenre_count(self):
+        from MCP_Server.genres.techno import SUBGENRES
+        assert len(SUBGENRES) == 5
+
+    def test_chord_types_valid(self):
+        from MCP_Server.genres.techno import GENRE
+        from MCP_Server.theory.chords import _QUALITY_MAP
+        for ct in GENRE["harmony"]["chord_types"]:
+            assert ct in _QUALITY_MAP, f"Invalid chord type: {ct}"
+
+    def test_scale_names_valid(self):
+        from MCP_Server.genres.techno import GENRE
+        from MCP_Server.theory.scales import SCALE_CATALOG
+        for s in GENRE["harmony"]["scales"]:
+            assert s in SCALE_CATALOG, f"Invalid scale: {s}"
+
+    def test_aliases_resolve(self):
+        assert resolve_alias("techno") is not None
+        assert resolve_alias("techno music") is not None
+
+    def test_subgenres_discovered(self):
+        genres = list_genres()
+        techno = [g for g in genres if g["id"] == "techno"][0]
+        assert set(techno["subgenres"]) == {
+            "minimal", "industrial", "melodic", "detroit", "peaktime_driving",
+        }
+
+    def test_all_subgenres_pass_validation(self):
+        for sub_id in ["minimal", "industrial", "melodic", "detroit", "peaktime_driving"]:
+            bp = get_blueprint("techno", subgenre=sub_id)
+            validate_blueprint(bp)
+
+
+class TestHipHopTrapBlueprint:
+    """GENR-03: Hip-hop/Trap blueprint completeness."""
+
+    def test_schema_valid(self):
+        from MCP_Server.genres.hip_hop_trap import GENRE
+        validate_blueprint(GENRE)
+
+    def test_all_dimensions(self):
+        from MCP_Server.genres.hip_hop_trap import GENRE
+        for dim in ["instrumentation", "harmony", "rhythm", "arrangement", "mixing", "production_tips"]:
+            assert dim in GENRE, f"Missing dimension: {dim}"
+
+    def test_subgenre_count(self):
+        from MCP_Server.genres.hip_hop_trap import SUBGENRES
+        assert len(SUBGENRES) == 3
+
+    def test_chord_types_valid(self):
+        from MCP_Server.genres.hip_hop_trap import GENRE
+        from MCP_Server.theory.chords import _QUALITY_MAP
+        for ct in GENRE["harmony"]["chord_types"]:
+            assert ct in _QUALITY_MAP, f"Invalid chord type: {ct}"
+
+    def test_scale_names_valid(self):
+        from MCP_Server.genres.hip_hop_trap import GENRE
+        from MCP_Server.theory.scales import SCALE_CATALOG
+        for s in GENRE["harmony"]["scales"]:
+            assert s in SCALE_CATALOG, f"Invalid scale: {s}"
+
+    def test_aliases_resolve(self):
+        assert resolve_alias("hip_hop_trap") is not None
+        assert resolve_alias("hip hop") is not None
+        assert resolve_alias("trap") is not None
+        assert resolve_alias("rap") is not None
+
+    def test_subgenres_discovered(self):
+        genres = list_genres()
+        hip_hop = [g for g in genres if g["id"] == "hip_hop_trap"][0]
+        assert set(hip_hop["subgenres"]) == {"boom_bap", "trap", "lo_fi_hip_hop"}
+
+    def test_all_subgenres_pass_validation(self):
+        for sub_id in ["boom_bap", "trap", "lo_fi_hip_hop"]:
+            bp = get_blueprint("hip_hop_trap", subgenre=sub_id)
+            validate_blueprint(bp)
+
+
+class TestAmbientBlueprint:
+    """GENR-04: Ambient blueprint completeness."""
+
+    def test_schema_valid(self):
+        from MCP_Server.genres.ambient import GENRE
+        validate_blueprint(GENRE)
+
+    def test_all_dimensions(self):
+        from MCP_Server.genres.ambient import GENRE
+        for dim in ["instrumentation", "harmony", "rhythm", "arrangement", "mixing", "production_tips"]:
+            assert dim in GENRE, f"Missing dimension: {dim}"
+
+    def test_subgenre_count(self):
+        from MCP_Server.genres.ambient import SUBGENRES
+        assert len(SUBGENRES) == 3
+
+    def test_chord_types_valid(self):
+        from MCP_Server.genres.ambient import GENRE
+        from MCP_Server.theory.chords import _QUALITY_MAP
+        for ct in GENRE["harmony"]["chord_types"]:
+            assert ct in _QUALITY_MAP, f"Invalid chord type: {ct}"
+
+    def test_scale_names_valid(self):
+        from MCP_Server.genres.ambient import GENRE
+        from MCP_Server.theory.scales import SCALE_CATALOG
+        for s in GENRE["harmony"]["scales"]:
+            assert s in SCALE_CATALOG, f"Invalid scale: {s}"
+
+    def test_aliases_resolve(self):
+        assert resolve_alias("ambient") is not None
+        assert resolve_alias("ambient music") is not None
+        assert resolve_alias("atmospheric") is not None
+
+    def test_subgenres_discovered(self):
+        genres = list_genres()
+        ambient = [g for g in genres if g["id"] == "ambient"][0]
+        assert set(ambient["subgenres"]) == {"dark_ambient", "drone", "cinematic"}
+
+    def test_all_subgenres_pass_validation(self):
+        for sub_id in ["dark_ambient", "drone", "cinematic"]:
+            bp = get_blueprint("ambient", subgenre=sub_id)
+            validate_blueprint(bp)
