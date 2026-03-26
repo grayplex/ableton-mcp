@@ -40,13 +40,13 @@
 
 ## Voice Leading Tools (2)
 
-- [ ] **VOIC-01**: User can get voice-led connection between two chords (minimal movement voicing)
-- [ ] **VOIC-02**: User can generate a full voice-led chord progression from a Roman numeral sequence
+- [x] **VOIC-01**: User can get voice-led connection between two chords (minimal movement voicing)
+- [x] **VOIC-02**: User can generate a full voice-led chord progression from a Roman numeral sequence
 
 ## Rhythm Pattern Tools (2)
 
-- [ ] **RHYM-01**: User can retrieve rhythm pattern templates (arpeggios, bass lines, comping patterns, strumming) by style
-- [ ] **RHYM-02**: User can apply a rhythm pattern to a chord or progression to get time-positioned MIDI notes ready for `add_notes_to_clip`
+- [x] **RHYM-01**: User can retrieve rhythm pattern templates (arpeggios, bass lines, comping patterns, strumming) by style
+- [x] **RHYM-02**: User can apply a rhythm pattern to a chord or progression to get time-positioned MIDI notes ready for `add_notes_to_clip`
 
 ## Summary
 
