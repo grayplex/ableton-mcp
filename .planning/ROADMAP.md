@@ -4,6 +4,7 @@
 
 - ✅ **v1.0 MVP** — Phases 1-13 (shipped 2026-03-23)
 - ✅ **v1.1 Theory Engine** — Phases 14-19 (shipped 2026-03-26)
+- 🚧 **v1.2 Genre/Style Blueprints** — Phases 20-24 (in progress)
 
 ## Phases
 
@@ -28,14 +29,85 @@ Music theory intelligence layer: 24 requirements, 23 MCP tools, 224 tests → [a
 
 </details>
 
+### v1.2 Genre/Style Blueprints (In Progress)
+
+**Milestone Goal:** Curated genre reference documents that give Claude consistent knowledge of electronic music conventions — instrumentation, harmony, rhythm, arrangement, and mixing — delivered via the MCP server.
+
+- [ ] **Phase 20: Blueprint Infrastructure** - Schema, catalog, validation, and house genre as canonical example
+- [ ] **Phase 21: Blueprint Tools** - MCP tool wrappers for genre listing and blueprint retrieval
+- [ ] **Phase 22: Core Genre Library** - P0 remaining (techno, hip-hop/trap, ambient) + P1 genres (DnB, dubstep, trance, neo-soul)
+- [ ] **Phase 23: Extended Genre Library** - P2 genres (synthwave, lo-fi, future bass, disco/funk)
+- [ ] **Phase 24: Palette Bridge & Quality Gate** - Theory engine bridge tool + cross-validation + full test suite
+
+## Phase Details
+
+### Phase 20: Blueprint Infrastructure
+**Goal**: A validated schema and catalog system exists, proven end-to-end with a complete house genre blueprint
+**Depends on**: Nothing (first phase of v1.2; builds on existing codebase)
+**Requirements**: INFR-01, INFR-02, INFR-03, INFR-04, INFR-05, GENR-01
+**Success Criteria** (what must be TRUE):
+  1. A house genre blueprint can be imported and contains all six dimensions (instrumentation, harmony, rhythm, arrangement, mixing, production tips)
+  2. The catalog discovers and indexes genre modules at import time without manual registration
+  3. Common aliases (e.g., "deep house", "deep_house") resolve to the correct genre/subgenre
+  4. Subgenre data merges with parent genre data, with subgenre values overriding parent values
+  5. A malformed genre dict (missing required keys) causes an import-time error, not a silent runtime failure
+**Plans**: TBD
+
+### Phase 21: Blueprint Tools
+**Goal**: Claude can discover available genres and retrieve full or section-filtered blueprints through MCP tools
+**Depends on**: Phase 20
+**Requirements**: TOOL-01, TOOL-02
+**Success Criteria** (what must be TRUE):
+  1. Calling `list_genre_blueprints` returns all registered genres with name, BPM range, and available subgenres
+  2. Calling `get_genre_blueprint` with a genre name returns the full blueprint as structured data
+  3. Calling `get_genre_blueprint` with a `sections` filter returns only the requested dimensions (e.g., just harmony and rhythm)
+  4. Calling `get_genre_blueprint` with a subgenre returns merged parent+subgenre data
+**Plans**: TBD
+
+### Phase 22: Core Genre Library
+**Goal**: The 8 most-used electronic genres are available as complete blueprints (P0 + P1 tiers)
+**Depends on**: Phase 20
+**Requirements**: GENR-02, GENR-03, GENR-04, GENR-05, GENR-06, GENR-07, GENR-08
+**Success Criteria** (what must be TRUE):
+  1. Techno, hip-hop/trap, and ambient blueprints each pass schema validation and include all defined subgenres
+  2. DnB, dubstep, trance, and neo-soul/R&B blueprints each pass schema validation and include all defined subgenres
+  3. All 7 new genres appear in `list_genre_blueprints` output alongside house
+  4. Every genre's aliases resolve correctly (e.g., "dnb" to drum_and_bass, "hiphop" to hip_hop_trap)
+**Plans**: TBD
+
+### Phase 23: Extended Genre Library
+**Goal**: The full 12-genre catalog is complete (P2 tier)
+**Depends on**: Phase 20
+**Requirements**: GENR-09, GENR-10, GENR-11, GENR-12
+**Success Criteria** (what must be TRUE):
+  1. Synthwave, lo-fi, future bass, and disco/funk blueprints each pass schema validation and include all defined subgenres
+  2. All 12 genres appear in `list_genre_blueprints` output
+  3. Every P2 genre's aliases resolve correctly
+**Plans**: TBD
+
+### Phase 24: Palette Bridge & Quality Gate
+**Goal**: Claude can get key-resolved chords, scales, and progressions from any genre, and all blueprints meet quality standards
+**Depends on**: Phase 21, Phase 22, Phase 23
+**Requirements**: TOOL-03, QUAL-01, QUAL-02, QUAL-03
+**Success Criteria** (what must be TRUE):
+  1. Calling `get_genre_palette` with a genre and key returns concrete chords, scales, and progressions resolved by the theory engine
+  2. Every blueprint across all 12 genres stays within the 800-1200 token budget (measured, not estimated)
+  3. Every chord_type and scale name referenced in any blueprint is validated against the theory engine's supported types
+  4. Test suite covers schema validation, tool output format, section filtering, palette bridge correctness, and theory-name cross-reference
+**Plans**: TBD
+
 ## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 20 → 21 → 22 → 23 → 24
+(Phases 22 and 23 can execute in parallel after Phase 20; Phase 24 requires all prior phases.)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|---------------|--------|-----------|
 | 1-13 | v1.0 | 33/33 | Complete | 2026-03-23 |
-| 14. Theory Foundation | v1.1 | 2/2 | Complete | 2026-03-24 |
-| 15. Chord Engine | v1.1 | 2/2 | Complete | 2026-03-24 |
-| 16. Scale & Mode Explorer | v1.1 | 2/2 | Complete | 2026-03-24 |
-| 17. Progression Engine | v1.1 | 2/2 | Complete | 2026-03-24 |
-| 18. Harmonic Analysis | v1.1 | 2/2 | Complete | 2026-03-25 |
-| 19. Voice Leading & Rhythm | v1.1 | 2/2 | Complete | 2026-03-25 |
+| 14-19 | v1.1 | 12/12 | Complete | 2026-03-25 |
+| 20. Blueprint Infrastructure | v1.2 | 0/? | Not started | - |
+| 21. Blueprint Tools | v1.2 | 0/? | Not started | - |
+| 22. Core Genre Library | v1.2 | 0/? | Not started | - |
+| 23. Extended Genre Library | v1.2 | 0/? | Not started | - |
+| 24. Palette Bridge & Quality Gate | v1.2 | 0/? | Not started | - |

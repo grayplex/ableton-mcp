@@ -61,7 +61,7 @@ Requirements for Genre/Style Blueprints milestone. Each maps to roadmap phases.
 | Auto-genre detection from Ableton session | Fragile — requires analyzing session state; asking the user is better UX |
 | Blueprint editing/creation tools | Blueprints are curated reference data, not user-editable content |
 | Real-time blueprint updates from web | Introduces network dependency and data trust issues |
-| Genre-specific operation tools (e.g., `create_house_track`) | Combinatorial explosion (12 genres × N operations); generic tools + context is correct |
+| Genre-specific operation tools (e.g., `create_house_track`) | Combinatorial explosion (12 genres x N operations); generic tools + context is correct |
 | MIDI pattern generation from blueprints | Blueprint scope is reference/guidance; theory engine + Claude generate MIDI |
 | Audio analysis for genre classification | MCP is control layer, not audio pipeline |
 
@@ -69,35 +69,35 @@ Requirements for Genre/Style Blueprints milestone. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFR-01 | — | Pending |
-| INFR-02 | — | Pending |
-| INFR-03 | — | Pending |
-| INFR-04 | — | Pending |
-| INFR-05 | — | Pending |
-| TOOL-01 | — | Pending |
-| TOOL-02 | — | Pending |
-| TOOL-03 | — | Pending |
-| GENR-01 | — | Pending |
-| GENR-02 | — | Pending |
-| GENR-03 | — | Pending |
-| GENR-04 | — | Pending |
-| GENR-05 | — | Pending |
-| GENR-06 | — | Pending |
-| GENR-07 | — | Pending |
-| GENR-08 | — | Pending |
-| GENR-09 | — | Pending |
-| GENR-10 | — | Pending |
-| GENR-11 | — | Pending |
-| GENR-12 | — | Pending |
-| QUAL-01 | — | Pending |
-| QUAL-02 | — | Pending |
-| QUAL-03 | — | Pending |
+| INFR-01 | Phase 20 | Pending |
+| INFR-02 | Phase 20 | Pending |
+| INFR-03 | Phase 20 | Pending |
+| INFR-04 | Phase 20 | Pending |
+| INFR-05 | Phase 20 | Pending |
+| TOOL-01 | Phase 21 | Pending |
+| TOOL-02 | Phase 21 | Pending |
+| TOOL-03 | Phase 24 | Pending |
+| GENR-01 | Phase 20 | Pending |
+| GENR-02 | Phase 22 | Pending |
+| GENR-03 | Phase 22 | Pending |
+| GENR-04 | Phase 22 | Pending |
+| GENR-05 | Phase 22 | Pending |
+| GENR-06 | Phase 22 | Pending |
+| GENR-07 | Phase 22 | Pending |
+| GENR-08 | Phase 22 | Pending |
+| GENR-09 | Phase 23 | Pending |
+| GENR-10 | Phase 23 | Pending |
+| GENR-11 | Phase 23 | Pending |
+| GENR-12 | Phase 23 | Pending |
+| QUAL-01 | Phase 24 | Pending |
+| QUAL-02 | Phase 24 | Pending |
+| QUAL-03 | Phase 24 | Pending |
 
 **Coverage:**
 - v1.2 requirements: 23 total
-- Mapped to phases: 0
-- Unmapped: 23 ⚠️
+- Mapped to phases: 23
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-25*
-*Last updated: 2026-03-25 after initial definition*
+*Last updated: 2026-03-25 after roadmap creation*
