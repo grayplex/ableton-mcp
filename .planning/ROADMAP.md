@@ -114,6 +114,12 @@ Plans:
 #### Phase 19: Voice Leading & Rhythm
 **Goal:** Claude can connect chords with smooth voice leading and apply rhythm patterns to turn chord progressions into playable MIDI note sequences.
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 19-01-PLAN.md — Voice leading library (voicing.py) + rhythm library (rhythm.py) + unit tests
+- [ ] 19-02-PLAN.md — Wire 4 MCP tools, update barrel exports, add integration tests
+
 **Delivers:**
 - `voice_lead_chords` tool — connect two chords with minimal movement
 - `voice_lead_progression` tool — full progression with voice leading applied
