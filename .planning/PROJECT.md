@@ -2,23 +2,46 @@
 
 ## What This Is
 
-A comprehensive MCP (Model Context Protocol) server that gives AI assistants full control over Ableton Live 12. It bridges Claude (or any MCP-compatible client) to Ableton via a socket-based Remote Script, enabling AI-driven music production — from composing and arranging to mixing and mastering.
+A comprehensive MCP (Model Context Protocol) server that gives AI assistants full control over Ableton Live 12 — including music theory intelligence. It bridges Claude (or any MCP-compatible client) to Ableton via a socket-based Remote Script, enabling AI-driven music production with harmonic awareness: composing, arranging, analyzing, mixing, and mastering.
 
 ## Core Value
 
-An AI assistant can produce actual music in Ableton — instruments load, notes play, effects shape sound, and the mix comes together. If the tools exist but nothing plays, the whole thing is worthless.
+An AI assistant can produce actual music in Ableton — instruments load, notes play, effects shape sound, and the mix comes together. Theory tools ensure compositions are harmonically informed, not brute-force guessing.
+
+## Requirements
+
+### Validated
+
+- ✓ 53 v1.0 requirements — full Ableton Live 12 LOM coverage (tracks, clips, devices, MIDI, audio, routing, automation, scenes, transport, grooves) — v1.0
+- ✓ THRY-01..03: music21 integration, theory module structure, MIDI ↔ note mapping — v1.1
+- ✓ CHRD-01..05: Chord build/identify/invert/voice/diatonic (26 qualities) — v1.1
+- ✓ SCLE-01..05: Scale catalog (38 scales), pitches, validation, detection, relationships — v1.1
+- ✓ PROG-01..04: Progression catalog (25 genres), generation, Roman numeral analysis, suggestions — v1.1
+- ✓ ANLY-01..03: Key detection, chord segmentation, harmonic rhythm analysis — v1.1
+- ✓ VOIC-01..02: Voice-led chord connections and progression generation — v1.1
+- ✓ RHYM-01..02: Rhythm pattern templates and chord-to-MIDI application — v1.1
+
+### Active
+
+(None — define in next milestone via `/gsd:new-milestone`)
+
+### Out of Scope
+
+- Mobile app — desktop DAW integration only
+- Audio generation/synthesis — Ableton handles audio; MCP handles control
+- Real-time audio streaming — MCP is command/response, not audio pipeline
+- Non-Ableton DAWs — Ableton Remote Script API is the foundation
 
 ## Current State
 
-**Shipped: v1.0** (2026-03-23)
+**Shipped: v1.1 Theory Engine** (2026-03-26)
 
-The server is production-quality with comprehensive Ableton Live 12 coverage:
+- **197 MCP tools** across 17 tool modules
 - **178 Remote Script handler commands** across 15 domain modules
-- **186 MCP tools** across 16 tool modules (174 v1.0 + 2 pitch + 5 chord + 5 scale)
-- **295 tests** (all passing)
-- **53 v1 requirements** — all complete
-
-**v1.1 Complete:** All 19 phases delivered — 24 theory requirements fulfilled, 197 total MCP tools, 224 theory tests passing. Voice leading, rhythm patterns, harmonic analysis, chord/scale/progression tools all shipped.
+- **23 theory functions** in 6 library modules (pitch, chords, scales, progressions, analysis, voicing/rhythm)
+- **428 tests** (204 v1.0 + 224 theory) — all passing
+- **77 requirements** complete (53 v1.0 + 24 v1.1)
+- **5,704 lines** of theory code (library + tools + tests)
 
 ### Capabilities
 
@@ -36,6 +59,7 @@ The server is production-quality with comprehensive Ableton Live 12 coverage:
 | Arrangement | 4 | MIDI/audio clip creation, listing, session-to-arrangement |
 | Groove Pool | 3 | List, parameters, clip association |
 | Session | 10+ | Scale/key, capture, metronome, recording, session state |
+| Theory | 23 | Chords, scales, progressions, analysis, voice leading, rhythm |
 
 ### Architecture
 
@@ -43,24 +67,9 @@ Two-tier: MCP server (FastMCP/Python 3) ↔ TCP socket (length-prefix framing) �
 
 - Remote Script uses mixin classes with `@command` decorator registry
 - MCP server uses domain-organized tool modules
+- Theory engine: `MCP_Server/theory/` library with music21 backend
 - Thread-safe connection with `threading.Lock`
 - Dict-based command dispatch (no if/elif chains)
-
-## Next Milestone Goals
-
-**v1.1 — Theory Engine**
-
-Add a comprehensive music theory intelligence layer powered by music21 so Claude can compose with harmonic awareness — building chords, generating progressions, analyzing existing clips, and applying voice leading rules. All theory logic lives server-side in MCP_Server; no Remote Script changes needed.
-
-**Goals:**
-- Chord building: triads, 7ths, extended, altered, inversions, voicings (close/open/drop-2)
-- Scale & mode exploration: all scales/modes, degree generation, scale detection from notes
-- Progression engine: common templates by genre, Roman numeral analysis, next-chord suggestion
-- Harmonic analysis: key detection from clip notes, chord segmentation, harmonic rhythm analysis
-- Voice leading: smooth chord connections, voice-led progression generation
-- Rhythm patterns: arpeggios, bass lines, comping patterns applied to chord progressions
-- Deep music21 integration as the core theory engine
-- 15-25 new granular MCP tools in a dedicated theory module
 
 ## Constraints
 
@@ -74,19 +83,22 @@ Add a comprehensive music theory intelligence layer powered by music21 so Claude
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Extend existing codebase rather than rebuild | Architecture is sound; rebuilding wastes effort | Validated — 13 phases built on foundation |
-| Python 3 only, strip all Py2 compat | Ableton Live 12 = Python 3.11 | Validated — cleaner code, modern idioms |
-| Mixin class pattern for handlers | Domain isolation + single inheritance chain | Validated — scales to 15 modules cleanly |
-| Length-prefix framing protocol | Eliminates JSON-completeness parsing bugs | Validated — zero framing errors |
-| Comprehensive LOM coverage | Users want full production capability | Validated — 178 commands covering most LOM |
-| music21 as theory engine | Deep, battle-tested music theory library; avoids reinventing chord/scale/analysis logic | Validated — v1.1 complete |
-| Theory logic server-side only | No Remote Script changes needed; theory is computation, not Ableton API | Validated — v1.1 complete |
-| Granular theory tools | 15-25 individual tools vs. composite mega-tools; better AI tool selection | Validated — 24 tools across 7 modules |
+| Extend existing codebase rather than rebuild | Architecture is sound; rebuilding wastes effort | ✓ Good — 19 phases built on foundation |
+| Python 3 only, strip all Py2 compat | Ableton Live 12 = Python 3.11 | ✓ Good — cleaner code, modern idioms |
+| Mixin class pattern for handlers | Domain isolation + single inheritance chain | ✓ Good — scales to 15 modules cleanly |
+| Length-prefix framing protocol | Eliminates JSON-completeness parsing bugs | ✓ Good — zero framing errors |
+| Comprehensive LOM coverage | Users want full production capability | ✓ Good — 178 commands covering most LOM |
+| music21 as theory engine | Deep, battle-tested music theory library; avoids reinventing chord/scale/analysis logic | ✓ Good — 23 functions, all validated |
+| Theory logic server-side only | No Remote Script changes needed; theory is computation, not Ableton API | ✓ Good — zero Remote Script modifications |
+| Granular theory tools (23) | Individual tools vs. composite mega-tools; better AI tool selection | ✓ Good — clean separation of concerns |
+| Interval-based scale construction | No music21 class dependency for scales; pitch class set comparison | ✓ Good — 38 scales, fast detection |
+| Permutation-based voice leading | O(n!) but n≤5 notes; simpler than constraint solver | ✓ Good — real-time performance |
 
 ## Context
 
-A codebase map exists at `.planning/codebase/` with architecture, stack, and convention analysis.
-v1.0 milestone archived at `.planning/milestones/` with full roadmap and requirements history.
+- v1.0 milestone archived at `.planning/milestones/v1.0-ROADMAP.md`
+- v1.1 milestone archived at `.planning/milestones/v1.1-ROADMAP.md`
+- Codebase map at `.planning/codebase/`
 
 ---
-*Last updated: 2026-03-25 — Phase 19 complete, v1.1 Theory Engine milestone complete*
+*Last updated: 2026-03-26 after v1.1 milestone*
