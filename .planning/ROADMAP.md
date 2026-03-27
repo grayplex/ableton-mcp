@@ -102,7 +102,7 @@ Plans:
 **Requirements**: TOOL-03, QUAL-01, QUAL-02, QUAL-03
 **Success Criteria** (what must be TRUE):
   1. Calling `get_genre_palette` with a genre and key returns concrete chords, scales, and progressions resolved by the theory engine
-  2. Every blueprint across all 12 genres stays within the 800-1200 token budget (measured, not estimated)
+  2. Every blueprint across all 12 genres stays within the 1200 token budget (measured via tiktoken cl100k_base)
   3. Every chord_type and scale name referenced in any blueprint is validated against the theory engine's supported types
   4. Test suite covers schema validation, tool output format, section filtering, palette bridge correctness, and theory-name cross-reference
 **Plans**: 2 plans

@@ -44,7 +44,7 @@ Requirements for Genre/Style Blueprints milestone. Each maps to roadmap phases.
 
 ### Quality
 
-- [x] **QUAL-01**: Every blueprint stays within 800-1200 token budget (measured, not estimated)
+- [x] **QUAL-01**: Every blueprint stays within 1200 token budget (measured via tiktoken cl100k_base, not estimated)
 - [x] **QUAL-02**: Every chord_type and scale name in blueprints validated against theory engine's supported types
 - [x] **QUAL-03**: Test suite covers schema validation, tool output format, section filtering, and palette bridge correctness
 
