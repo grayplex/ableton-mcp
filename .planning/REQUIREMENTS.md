@@ -39,8 +39,8 @@ Requirements for Genre/Style Blueprints milestone. Each maps to roadmap phases.
 
 - [x] **GENR-09**: Synthwave blueprint with subgenres (retrowave, darksynth, outrun)
 - [x] **GENR-10**: Lo-fi blueprint with subgenres (lo-fi hip-hop, chillhop)
-- [ ] **GENR-11**: Future Bass blueprint with subgenres (future bass, kawaii future)
-- [ ] **GENR-12**: Disco/Funk blueprint with subgenres (nu-disco, funk, boogie)
+- [x] **GENR-11**: Future Bass blueprint with subgenres (future bass, kawaii future)
+- [x] **GENR-12**: Disco/Funk blueprint with subgenres (nu-disco, funk, boogie)
 
 ### Quality
 
@@ -87,8 +87,8 @@ Requirements for Genre/Style Blueprints milestone. Each maps to roadmap phases.
 | GENR-08 | Phase 22 | Complete |
 | GENR-09 | Phase 23 | Complete |
 | GENR-10 | Phase 23 | Complete |
-| GENR-11 | Phase 23 | Pending |
-| GENR-12 | Phase 23 | Pending |
+| GENR-11 | Phase 23 | Complete |
+| GENR-12 | Phase 23 | Complete |
 | QUAL-01 | Phase 24 | Pending |
 | QUAL-02 | Phase 24 | Pending |
 | QUAL-03 | Phase 24 | Pending |
