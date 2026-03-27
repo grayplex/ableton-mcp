@@ -33,15 +33,9 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
 
-## Current Milestone: v1.2 Genre/Style Blueprints
+## Completed Milestone: v1.2 Genre/Style Blueprints (shipped 2026-03-27)
 
-**Goal:** Curated genre reference documents that give Claude consistent knowledge of electronic music conventions — instrumentation, harmony, rhythm, arrangement, and mixing — delivered via the MCP server.
-
-**Target features:**
-- Genre blueprint documents covering major electronic genres
-- Blueprint structure informed by research (instrumentation, harmonic conventions, rhythmic patterns, arrangement structure, mixing conventions)
-- MCP server delivery mechanism for genre context injection
-- Genre detection or explicit genre tool for blueprint retrieval
+Curated genre reference documents giving Claude consistent knowledge of 12 electronic music genres — instrumentation, harmony, rhythm, arrangement, and mixing — delivered via MCP server with theory engine integration.
 
 ## Current State
 
@@ -107,12 +101,17 @@ Two-tier: MCP server (FastMCP/Python 3) ↔ TCP socket (length-prefix framing) �
 | Granular theory tools (23) | Individual tools vs. composite mega-tools; better AI tool selection | ✓ Good — clean separation of concerns |
 | Interval-based scale construction | No music21 class dependency for scales; pitch class set comparison | ✓ Good — 38 scales, fast detection |
 | Permutation-based voice leading | O(n!) but n≤5 notes; simpler than constraint solver | ✓ Good — real-time performance |
+| Genre blueprints as Python dicts | Matches existing data patterns (scales.py, progressions.py); auto-discovery via pkgutil | ✓ Good — 12 genres, zero registration code |
+| One file per genre with subgenres | Genre + subgenres co-located; catalog handles merge | ✓ Good — scales to 12 genres cleanly |
+| Palette bridge returns names only | Claude has existing tools for MIDI resolution; keeps palette output lightweight | ✓ Good — clean separation of concerns |
+| tiktoken for token budget measurement | Standard LLM tokenizer; reproducible counts; dev-only dependency | ✓ Good — all blueprints 537-670 tokens |
 
 ## Context
 
 - v1.0 milestone archived at `.planning/milestones/v1.0-ROADMAP.md`
 - v1.1 milestone archived at `.planning/milestones/v1.1-ROADMAP.md`
+- v1.2 milestone archived at `.planning/milestones/v1.2-ROADMAP.md`
 - Codebase map at `.planning/codebase/`
 
 ---
-*Last updated: 2026-03-27 after Phase 24 completion (v1.2 milestone complete)*
+*Last updated: 2026-03-27 after v1.2 milestone completion*
