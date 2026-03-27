@@ -4,6 +4,7 @@
 
 - ✅ **v1.0 MVP** — Phases 1-13 (shipped 2026-03-23)
 - ✅ **v1.1 Theory Engine** — Phases 14-19 (shipped 2026-03-26)
+- ✅ **v1.2 Genre/Style Blueprints** — Phases 20-24 (shipped 2026-03-27)
 
 ## Phases
 
@@ -17,25 +18,27 @@ Production-quality Ableton Live 12 MCP bridge: 13 phases, 33 plans, 178 handler 
 <details>
 <summary>✅ v1.1 Theory Engine (Phases 14-19) — SHIPPED 2026-03-26</summary>
 
-- [x] Phase 14: Theory Foundation (2/2 plans) — completed 2026-03-24
-- [x] Phase 15: Chord Engine (2/2 plans) — completed 2026-03-24
-- [x] Phase 16: Scale & Mode Explorer (2/2 plans) — completed 2026-03-24
-- [x] Phase 17: Progression Engine (2/2 plans) — completed 2026-03-24
-- [x] Phase 18: Harmonic Analysis (2/2 plans) — completed 2026-03-25
-- [x] Phase 19: Voice Leading & Rhythm (2/2 plans) — completed 2026-03-25
+Music theory intelligence layer: 6 phases, 12 plans, 24 requirements, 23 MCP tools, 224 tests → [archived](milestones/v1.1-ROADMAP.md)
 
-Music theory intelligence layer: 24 requirements, 23 MCP tools, 224 tests → [archived](milestones/v1.1-ROADMAP.md)
+</details>
+
+<details>
+<summary>✅ v1.2 Genre/Style Blueprints (Phases 20-24) — SHIPPED 2026-03-27</summary>
+
+- [x] Phase 20: Blueprint Infrastructure (2/2 plans) — completed 2026-03-26
+- [x] Phase 21: Blueprint Tools (1/1 plans) — completed 2026-03-26
+- [x] Phase 22: Core Genre Library (2/2 plans) — completed 2026-03-26
+- [x] Phase 23: Extended Genre Library (2/2 plans) — completed 2026-03-27
+- [x] Phase 24: Palette Bridge & Quality Gate (2/2 plans) — completed 2026-03-27
+
+Genre blueprint system: 5 phases, 9 plans, 23 requirements, 12 genres, 3 MCP tools, 148 tests → [archived](milestones/v1.2-ROADMAP.md)
 
 </details>
 
 ## Progress
 
-| Phase | Milestone | Plans Complete | Status | Completed |
-|-------|-----------|---------------|--------|-----------|
-| 1-13 | v1.0 | 33/33 | Complete | 2026-03-23 |
-| 14. Theory Foundation | v1.1 | 2/2 | Complete | 2026-03-24 |
-| 15. Chord Engine | v1.1 | 2/2 | Complete | 2026-03-24 |
-| 16. Scale & Mode Explorer | v1.1 | 2/2 | Complete | 2026-03-24 |
-| 17. Progression Engine | v1.1 | 2/2 | Complete | 2026-03-24 |
-| 18. Harmonic Analysis | v1.1 | 2/2 | Complete | 2026-03-25 |
-| 19. Voice Leading & Rhythm | v1.1 | 2/2 | Complete | 2026-03-25 |
+| Milestone | Phases | Plans | Requirements | Status | Shipped |
+|-----------|--------|-------|-------------|--------|---------|
+| v1.0 MVP | 1-13 | 33 | 53 | Complete | 2026-03-23 |
+| v1.1 Theory Engine | 14-19 | 12 | 24 | Complete | 2026-03-26 |
+| v1.2 Genre/Style Blueprints | 20-24 | 9 | 23 | Complete | 2026-03-27 |

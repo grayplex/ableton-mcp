@@ -20,10 +20,11 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - ✓ ANLY-01..03: Key detection, chord segmentation, harmonic rhythm analysis — v1.1
 - ✓ VOIC-01..02: Voice-led chord connections and progression generation — v1.1
 - ✓ RHYM-01..02: Rhythm pattern templates and chord-to-MIDI application — v1.1
+- ✓ 23 v1.2 requirements — genre blueprint infrastructure, tools, 12 genres, palette bridge, quality gate — v1.2
 
 ### Active
 
-(None — define in next milestone via `/gsd:new-milestone`)
+(No active requirements — v1.2 complete)
 
 ### Out of Scope
 
@@ -32,16 +33,22 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
 
+## Completed Milestone: v1.2 Genre/Style Blueprints (shipped 2026-03-27)
+
+Curated genre reference documents giving Claude consistent knowledge of 12 electronic music genres — instrumentation, harmony, rhythm, arrangement, and mixing — delivered via MCP server with theory engine integration.
+
 ## Current State
 
 **Shipped: v1.1 Theory Engine** (2026-03-26)
+**Shipped: v1.2 Genre/Style Blueprints** (2026-03-27) — Phases 20-24 complete
 
-- **197 MCP tools** across 17 tool modules
+- **200 MCP tools** across 18 tool modules (added `list_genre_blueprints`, `get_genre_blueprint`, `get_genre_palette`)
 - **178 Remote Script handler commands** across 15 domain modules
 - **23 theory functions** in 6 library modules (pitch, chords, scales, progressions, analysis, voicing/rhythm)
-- **428 tests** (204 v1.0 + 224 theory) — all passing
-- **77 requirements** complete (53 v1.0 + 24 v1.1)
-- **5,704 lines** of theory code (library + tools + tests)
+- **12-genre catalog complete** — all genres validated against theory engine
+- **148 genre tests** (palette bridge + quality gate) + 204 v1.0 + 224 theory — all passing
+- **100 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2)
+- **12 genre blueprints**: house, techno, hip-hop/trap, ambient, DnB, dubstep, trance, neo-soul/R&B, synthwave, lo-fi, future bass, disco/funk
 
 ### Capabilities
 
@@ -68,6 +75,7 @@ Two-tier: MCP server (FastMCP/Python 3) ↔ TCP socket (length-prefix framing) �
 - Remote Script uses mixin classes with `@command` decorator registry
 - MCP server uses domain-organized tool modules
 - Theory engine: `MCP_Server/theory/` library with music21 backend
+- Genre blueprints: `MCP_Server/genres/` package with auto-discovery catalog
 - Thread-safe connection with `threading.Lock`
 - Dict-based command dispatch (no if/elif chains)
 
@@ -93,12 +101,17 @@ Two-tier: MCP server (FastMCP/Python 3) ↔ TCP socket (length-prefix framing) �
 | Granular theory tools (23) | Individual tools vs. composite mega-tools; better AI tool selection | ✓ Good — clean separation of concerns |
 | Interval-based scale construction | No music21 class dependency for scales; pitch class set comparison | ✓ Good — 38 scales, fast detection |
 | Permutation-based voice leading | O(n!) but n≤5 notes; simpler than constraint solver | ✓ Good — real-time performance |
+| Genre blueprints as Python dicts | Matches existing data patterns (scales.py, progressions.py); auto-discovery via pkgutil | ✓ Good — 12 genres, zero registration code |
+| One file per genre with subgenres | Genre + subgenres co-located; catalog handles merge | ✓ Good — scales to 12 genres cleanly |
+| Palette bridge returns names only | Claude has existing tools for MIDI resolution; keeps palette output lightweight | ✓ Good — clean separation of concerns |
+| tiktoken for token budget measurement | Standard LLM tokenizer; reproducible counts; dev-only dependency | ✓ Good — all blueprints 537-670 tokens |
 
 ## Context
 
 - v1.0 milestone archived at `.planning/milestones/v1.0-ROADMAP.md`
 - v1.1 milestone archived at `.planning/milestones/v1.1-ROADMAP.md`
+- v1.2 milestone archived at `.planning/milestones/v1.2-ROADMAP.md`
 - Codebase map at `.planning/codebase/`
 
 ---
-*Last updated: 2026-03-26 after v1.1 milestone*
+*Last updated: 2026-03-27 after v1.2 milestone completion*
