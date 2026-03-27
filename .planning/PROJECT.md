@@ -45,12 +45,13 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 ## Current State
 
 **Shipped: v1.1 Theory Engine** (2026-03-26)
-**In Progress: v1.2 Genre/Style Blueprints** — Phases 20-22 complete
+**In Progress: v1.2 Genre/Style Blueprints** — Phases 20-23 complete
 
 - **199 MCP tools** across 18 tool modules (added `list_genre_blueprints`, `get_genre_blueprint`)
 - **178 Remote Script handler commands** across 15 domain modules
 - **23 theory functions** in 6 library modules (pitch, chords, scales, progressions, analysis, voicing/rhythm)
-- **94+ genre tests** + 204 v1.0 + 224 theory — all passing
+- **12-genre catalog complete** — synthwave, lo-fi, future bass, disco/funk added in Phase 23
+- **128 genre tests** + 204 v1.0 + 224 theory — all passing
 - **77 requirements** complete (53 v1.0 + 24 v1.1), 15 v1.2 requirements validated (INFR-01..05, GENR-01..08, TOOL-01..02)
 - **8 genre blueprints**: house, techno, hip-hop/trap, ambient, DnB, dubstep, trance, neo-soul/R&B with 25 subgenres total
 
@@ -113,4 +114,4 @@ Two-tier: MCP server (FastMCP/Python 3) ↔ TCP socket (length-prefix framing) �
 - Codebase map at `.planning/codebase/`
 
 ---
-*Last updated: 2026-03-26 after Phase 22 completion*
+*Last updated: 2026-03-27 after Phase 23 completion*
