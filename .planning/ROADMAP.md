@@ -107,8 +107,8 @@ Plans:
   4. Test suite covers schema validation, tool output format, section filtering, palette bridge correctness, and theory-name cross-reference
 **Plans**: 2 plans
 Plans:
-- [ ] 24-01-PLAN.md — [To be planned]
-- [ ] 24-02-PLAN.md — [To be planned]
+- [ ] 24-01-PLAN.md — Palette bridge tool (get_genre_palette) + integration tests
+- [ ] 24-02-PLAN.md — Token budget measurement + centralized cross-validation quality gate
 
 ## Progress
 
@@ -124,4 +124,4 @@ Phases execute in numeric order: 20 → 21 → 22 → 23 → 24
 | 21. Blueprint Tools | v1.2 | 1/1 | Complete    | 2026-03-26 |
 | 22. Core Genre Library | v1.2 | 2/2 | Complete    | 2026-03-26 |
 | 23. Extended Genre Library | 2/2 | Complete    | 2026-03-27 | - |
-| 24. Palette Bridge & Quality Gate | v1.2 | 0/? | Not started | - |
+| 24. Palette Bridge & Quality Gate | v1.2 | 0/2 | Not started | - |
