@@ -44,9 +44,9 @@ Requirements for Genre/Style Blueprints milestone. Each maps to roadmap phases.
 
 ### Quality
 
-- [ ] **QUAL-01**: Every blueprint stays within 800-1200 token budget (measured, not estimated)
-- [ ] **QUAL-02**: Every chord_type and scale name in blueprints validated against theory engine's supported types
-- [ ] **QUAL-03**: Test suite covers schema validation, tool output format, section filtering, and palette bridge correctness
+- [x] **QUAL-01**: Every blueprint stays within 800-1200 token budget (measured, not estimated)
+- [x] **QUAL-02**: Every chord_type and scale name in blueprints validated against theory engine's supported types
+- [x] **QUAL-03**: Test suite covers schema validation, tool output format, section filtering, and palette bridge correctness
 
 ## Future Requirements
 
@@ -89,9 +89,9 @@ Requirements for Genre/Style Blueprints milestone. Each maps to roadmap phases.
 | GENR-10 | Phase 23 | Complete |
 | GENR-11 | Phase 23 | Complete |
 | GENR-12 | Phase 23 | Complete |
-| QUAL-01 | Phase 24 | Pending |
-| QUAL-02 | Phase 24 | Pending |
-| QUAL-03 | Phase 24 | Pending |
+| QUAL-01 | Phase 24 | Complete |
+| QUAL-02 | Phase 24 | Complete |
+| QUAL-03 | Phase 24 | Complete |
 
 **Coverage:**
 - v1.2 requirements: 23 total
