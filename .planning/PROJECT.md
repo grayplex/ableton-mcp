@@ -23,6 +23,7 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - ✓ 23 v1.2 requirements — genre blueprint infrastructure, tools, 12 genres, palette bridge, quality gate — v1.2
 - ✓ ARNG-01..03: ArrangementEntry schema extended with optional energy/roles/transition_in; all 12 genres + 4 subgenres fully authored — v1.3 Phase 25
 - ✓ PLAN-01..03: generate_production_plan and generate_section_plan MCP tools with override support (resize/add/remove sections) — v1.3 Phase 26
+- ✓ SCAF-01..02: scaffold_arrangement (writes locators + MIDI tracks to Arrangement view) and get_arrangement_overview (reads back arrangement state) MCP tools — v1.3 Phase 27
 
 ### Active
 
