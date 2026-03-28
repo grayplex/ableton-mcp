@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Arrangement Intelligence
 status: in-progress
-stopped_at: Completed 25-01-PLAN.md
-last_updated: "2026-03-28T01:49:19.000Z"
+stopped_at: Completed 25-02-PLAN.md
+last_updated: "2026-03-28T02:15:00.000Z"
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -24,15 +24,15 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 25
-Plan: 01 (complete), 02 (next)
+Plan: 02 (complete)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 1
-- Average duration: 3 min
-- Total execution time: 3 min
+- Total plans completed: 2
+- Average duration: 12 min
+- Total execution time: 25 min
 
 ## Accumulated Context
 
@@ -59,13 +59,17 @@ Plan: 01 (complete), 02 (next)
 - [Phase 25-01]: Intro/first section omits transition_in entirely (D-04 convention) — absence, not empty string
 - [Phase 25-01]: House energy curve: intro=2, buildup=5/6, drop=9, breakdown=3-4, outro=2-3 (reference for Plan 02)
 - [Phase 25-01]: progressive_house subgenre fully re-authored (not inherited) — bar counts differ, energy/roles authored directly
+- [Phase 25-02]: Energy curves are genre-specific: ambient peaks at 5 (no drops), dubstep/future_bass peak at 10
+- [Phase 25-02]: Trance uses climax/climax2 vocabulary (not drop) — genre arrangement structure preserved
+- [Phase 25-02]: Lo-fi uses loop_a/loop_b structure; hip-hop uses verse/hook — non-EDM genres have distinct song forms
+- [Phase 25-02]: Subgenre overrides authored: melodic techno (long intro 32 bars, melodic energy 2-9), peaktime_driving (intense 4-10)
 
 ### Roadmap Evolution
 
 - v1.0: Phases 1-13 (shipped 2026-03-23)
 - v1.1: Phases 14-19 (shipped 2026-03-26)
 - v1.2: Phases 20-24 (shipped 2026-03-27)
-- v1.3: Phase 25 (in progress — Plan 01 complete)
+- v1.3: Phase 25 (in progress — Plan 01 and 02 complete)
 
 ### Pending Todos
 
@@ -77,6 +81,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-28T01:49:19.000Z
-Stopped at: Completed 25-01-PLAN.md
+Last session: 2026-03-28T02:15:00.000Z
+Stopped at: Completed 25-02-PLAN.md
 Resume file: None
