@@ -2,7 +2,7 @@
 
 - [x] **Phase 25: Blueprint Arrangement Extension** - Schema extension + arrangement data for all 12 genres + 4 subgenres
 - [x] **Phase 26: Production Plan Builder** - MCP tools to generate full-track and single-section production plans with override support
-- [x] **Phase 27: Locator and Scaffolding Commands** - Atomic locator creation and batch scaffold command writing the plan into Ableton Arrangement view (completed 2026-03-28)
+- [x] **Phase 27: Locator and Scaffolding Commands** - Atomic locator creation and batch scaffold command writing the plan into Ableton Arrangement view (completed 2026-03-28)
 - [ ] **Phase 28: Section Execution and Quality Gate** - Per-section execution checklists and arrangement progress checking for methodical, complete production
 
 ## Phase Details
@@ -55,14 +55,17 @@ Plans:
 **Goal**: Users can execute sections methodically with checklist guidance and verify that no scaffolded tracks were left empty -- nothing is skipped under context pressure
 **Depends on**: Phase 27
 **Requirements**: EXEC-01, EXEC-02
+**Plans:** 2 plans
 **Success Criteria** (what must be TRUE):
   1. User can call get_section_checklist for a named section and receive the list of pending instrument roles to be produced in that section
   2. User can call an arrangement progress check and see which scaffolded MIDI tracks have no instrument loaded, preventing silent empty tracks
   3. End-to-end workflow succeeds: genre blueprint to production plan to scaffolded Ableton session to section-by-section execution with checklist tracking
 
 Plans:
-- [ ] 28-01: TBD
-- [ ] 28-02: TBD
+- [ ] 28-01-PLAN.md — Extend get_arrangement_state with device presence + create execution.py with get_section_checklist and get_arrangement_progress + full test coverage
+- [ ] 28-02-PLAN.md — Live Ableton end-to-end verification checkpoint
+
+**UI hint**: yes
 
 ## Progress
 
@@ -74,4 +77,4 @@ Phases execute in numeric order: 25 -> 26 -> 27 -> 28
 | v1.0 MVP | 1-13 | 33 | 53 | Complete | 2026-03-23 |
 | v1.1 Theory Engine | 14-19 | 12 | 24 | Complete | 2026-03-26 |
 | v1.2 Genre/Style Blueprints | 20-24 | 9 | 23 | Complete | 2026-03-27 |
-| v1.3 Arrangement Intelligence | 25-28 | TBD | 10 | In Progress | - |
+| v1.3 Arrangement Intelligence | 25-28 | 8 | 10 | In Progress | - |
