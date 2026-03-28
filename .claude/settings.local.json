@@ -23,7 +23,8 @@
       "Bash(node:*)",
       "Bash(cd:*)",
       "Read",
-      "Bash(pip show:*)"
+      "Bash(pip show:*)",
+      "Skill(gsd:discuss-phase)"
     ]
   }
 }
