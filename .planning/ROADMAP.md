@@ -35,7 +35,7 @@
 **Plans**: 2 plans
 
 Plans:
-- [ ] 29-01-PLAN.md -- Devices package, catalog data, MCP tools, and tests
+- [x] 29-01-PLAN.md -- Devices package, catalog data, MCP tools, and tests
 - [ ] 29-02-PLAN.md -- Bootstrap script and live Ableton catalog verification
 
 ### Phase 30: Core Mix Recipes
@@ -147,7 +147,7 @@ Phases execute in numeric order: 29 -> 30 -> 31 -> 32 -> 33 -> 34
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 29. Device Parameter Catalog and Role Taxonomy | 0/2 | Not started | - |
+| 29. Device Parameter Catalog and Role Taxonomy | 1/2 | In Progress|  |
 | 30. Core Mix Recipes | 0/TBD | Not started | - |
 | 31. Apply Recipe and Batch Parameter Tools | 0/TBD | Not started | - |
 | 32. Device State Reader and Gain Staging | 0/TBD | Not started | - |
