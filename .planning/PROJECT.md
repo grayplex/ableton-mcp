@@ -21,10 +21,11 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - ✓ VOIC-01..02: Voice-led chord connections and progression generation — v1.1
 - ✓ RHYM-01..02: Rhythm pattern templates and chord-to-MIDI application — v1.1
 - ✓ 23 v1.2 requirements — genre blueprint infrastructure, tools, 12 genres, palette bridge, quality gate — v1.2
+- ✓ ARNG-01..03: ArrangementEntry schema extended with optional energy/roles/transition_in; all 12 genres + 4 subgenres fully authored — v1.3 Phase 25
 
 ### Active
 
-(v1.3 requirements being defined — see REQUIREMENTS.md)
+(v1.3 complete — see REQUIREMENTS.md for full traceability)
 
 ### Out of Scope
 
