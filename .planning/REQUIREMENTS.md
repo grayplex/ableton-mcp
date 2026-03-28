@@ -14,8 +14,8 @@
 
 ### Production Planning
 
-- [ ] **PLAN-01**: User can generate a full production plan from genre + key + BPM + vibe — returns all sections with calculated beat positions and per-section checklists in under 400 tokens
-- [ ] **PLAN-02**: User can generate a targeted plan for a single section without planning the full track
+- [x] **PLAN-01**: User can generate a full production plan from genre + key + BPM + vibe — returns all sections with calculated beat positions and per-section checklists in under 400 tokens
+- [x] **PLAN-02**: User can generate a targeted plan for a single section without planning the full track
 - [ ] **PLAN-03**: User can customize a plan with overrides — shorter/longer sections, add/remove bridge, change section bar counts
 
 ### Session Scaffolding

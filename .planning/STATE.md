@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Arrangement Intelligence
-status: Milestone complete
-stopped_at: Completed 25-02-PLAN.md
-last_updated: "2026-03-28T02:05:25.417Z"
+status: Ready to execute
+stopped_at: Completed 26-01-PLAN.md
+last_updated: "2026-03-28T04:00:09.585Z"
 progress:
-  total_phases: 25
-  completed_phases: 25
-  total_plans: 56
-  completed_plans: 56
+  total_phases: 4
+  completed_phases: 1
+  total_plans: 4
+  completed_plans: 3
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** An AI assistant can produce actual music in Ableton — with harmonic intelligence and genre-aware conventions.
-**Current focus:** Phase 25 — blueprint-arrangement-extension
+**Current focus:** Phase 26 — production-plan-builder
 
 ## Current Position
 
-Phase: 25
-Plan: Not started
+Phase: 26 (production-plan-builder) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -63,6 +63,9 @@ Plan: Not started
 - [Phase 25-02]: Trance uses climax/climax2 vocabulary (not drop) — genre arrangement structure preserved
 - [Phase 25-02]: Lo-fi uses loop_a/loop_b structure; hip-hop uses verse/hook — non-EDM genres have distinct song forms
 - [Phase 25-02]: Subgenre overrides authored: melodic techno (long intro 32 bars, melodic energy 2-9), peaktime_driving (intense 4-10)
+- [Phase 26-production-plan-builder]: bar_start is 1-based and cumulative: intro=1, buildup=17, drop=25 for house arrangement
+- [Phase 26-production-plan-builder]: Deep copy blueprint sections before adding bar_start prevents registry mutation
+- [Phase 26-production-plan-builder]: Vibe field conditional: include in output only when caller provides non-None value
 
 ### Roadmap Evolution
 
@@ -81,6 +84,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-28T02:15:00.000Z
-Stopped at: Completed 25-02-PLAN.md
+Last session: 2026-03-28T04:00:09.582Z
+Stopped at: Completed 26-01-PLAN.md
 Resume file: None

@@ -69,7 +69,7 @@ Plans:
 **Goal**: Users can generate concrete, token-efficient production plans from genre conventions and personal preferences -- full track or single section, with customizable overrides
 **Depends on**: Phase 25
 **Requirements**: PLAN-01, PLAN-02, PLAN-03
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 **Success Criteria** (what must be TRUE):
   1. User can call generate_production_plan with genre, key, BPM, and vibe and receive a flat production plan with all sections, calculated beat positions, and per-section checklists in under 400 tokens
   2. User can call generate_section_plan for a single section name and receive a targeted plan without generating the full track plan
@@ -77,7 +77,7 @@ Plans:
   4. Production plan output includes beat positions calculated from the session's time signature (not hardcoded to 4/4)
 
 Plans:
-- [ ] 26-01-PLAN.md — Core plan builder with generate_production_plan and generate_section_plan tools
+- [x] 26-01-PLAN.md — Core plan builder with generate_production_plan and generate_section_plan tools
 - [ ] 26-02-PLAN.md — Override support (resize, add, remove sections) with validation warnings
 
 ### Phase 27: Locator and Scaffolding Commands
