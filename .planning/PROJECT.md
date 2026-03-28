@@ -27,10 +27,11 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - ✓ EXEC-01..02: get_section_checklist (per-role instrument status for a named section) and get_arrangement_progress (tracks with no instrument loaded) MCP tools — v1.3 Phase 28
 - ✓ CATL-01: Device parameter catalog — 12 built-in Ableton devices with 327 real parameters from live session; get_device_catalog MCP tool — v1.4 Phase 29
 - ✓ ROLE-01: Role taxonomy — 9 canonical mixing roles; get_role_taxonomy MCP tool — v1.4 Phase 29
+- ✓ RECIP-01: Core mix recipes — 4 genres × 9 roles, natural-unit parameter values for EQ/compression/reverb/panning/dynamics; get_mix_recipe MCP tool with alias support; pkgutil auto-discovery — v1.4 Phase 30
 
 ### Active
 
-(v1.4 in progress — Phase 29 complete — see REQUIREMENTS.md for full traceability)
+(v1.4 in progress — Phase 30 complete — see REQUIREMENTS.md for full traceability)
 
 ### Out of Scope
 
@@ -164,4 +165,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-28 — v1.4 Mix/Master Intelligence milestone started*
+*Last updated: 2026-03-28
