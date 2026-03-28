@@ -1,147 +1,189 @@
 # Project Research Summary
 
-**Project:** Ableton MCP v1.2 — Genre/Style Blueprints
-**Domain:** Static reference system for AI-assisted music production (MCP server extension)
-**Researched:** 2026-03-25
+**Project:** Ableton MCP v1.3 Arrangement Intelligence
+**Domain:** AI-assisted arrangement planning and session scaffolding for a DAW MCP server
+**Researched:** 2026-03-27
 **Confidence:** HIGH
 
 ## Executive Summary
 
-v1.2 adds a genre blueprint system to an existing, mature MCP server (197 tools, proven architecture). The feature is a static reference layer: curated Python dicts describing production conventions for 12 electronic music genres, served through 3 new MCP tools. This is an additive, low-risk extension — zero new external dependencies, no protocol changes, no modifications to the Remote Script or any of the 17 existing tool modules. The critical architectural decision is delivery via MCP tools (model-controlled) rather than MCP resources (application-controlled), which allows Claude to autonomously fetch genre context when a user mentions a style, without requiring manual client-side setup.
+v1.3 adds an arrangement intelligence layer to an existing, well-understood MCP server codebase. The work falls cleanly into three concerns: (1) enriching the 12 existing genre blueprints with per-section energy levels, instrument role lists, and transition descriptors; (2) a server-side plan builder that combines that enriched data with user-supplied genre/key/vibe parameters to produce a concrete, flat, checklist-driven production plan; and (3) Remote Script commands that write the plan into Ableton as named locators and named tracks. No new external dependencies are required. The stack is pure Python logic sitting on top of the existing FastMCP/TCP/Ableton LOM infrastructure established in v1.0–v1.2.
 
-The recommended build order is infrastructure-first, content-second: define the schema and catalog, validate end-to-end with one genre (house), then write the remaining 11 genre files. The `get_genre_palette` bridge tool — which calls the theory engine to resolve genre harmony conventions into key-specific chords and scales — is built last because it depends on both the blueprint library and theory engine being stable. This sequencing matches the existing codebase's own growth pattern (theory engine infrastructure preceded content expansion) and limits rework risk.
+The recommended approach is a strict three-step workflow: generate plan (server-side, no Ableton), scaffold arrangement (locators + tracks in Ableton via a single atomic batch command), then execute section-by-section using existing tools guided by per-section checklists. The plan is returned as data to Claude rather than persisted server-side, because MCP is stateless and Claude is the natural state holder. The critical design insight is that the "session IS the plan" — locator names and track names in Ableton serve as persistent external memory that survives context pressure at tool call 30+.
 
-The primary risks are content quality (genre inaccuracy erodes user trust faster than code bugs) and context window bloat (verbose blueprints degrade Claude's reasoning on long production sessions). Both have clear mitigations: target 800-1200 tokens per full blueprint using concise structured dicts, and expose section filtering so Claude can request only the relevant portion. Architectural risks — circular imports and schema drift across 12 genre files — are eliminated at the infrastructure phase through strict import boundaries and import-time schema validation.
+The most significant implementation risk is the Ableton LOM's locator creation API: there is no `create_cue_at(time, name)` method. Creating a named locator requires a three-step Remote Script sequence (seek to position, toggle cue, set name) that MUST be atomic in a single handler. Exposing this as multiple MCP tool calls would cause race conditions and partial-failure states. This constraint, along with the need for optional-only schema extensions to avoid breaking 148 existing tests, must be settled in the first phase before any plan builder or scaffold logic is written.
 
 ## Key Findings
 
 ### Recommended Stack
 
-v1.2 requires zero new external packages. The entire feature is built on Python stdlib and existing dependencies (music21 for the palette bridge's theory calls, mcp[cli] for tool registration). The only configuration changes are two `pyproject.toml` package entries (`MCP_Server.blueprints`, `MCP_Server.blueprints.genres`) and one import line in `tools/__init__.py`.
+v1.3 requires zero new pip packages. All arrangement intelligence is pure Python computation (template data in dicts, plan builder functions, checklist generators) served through existing FastMCP tools and backed by existing Ableton LOM commands over the established localhost:9877 TCP socket. The existing `mcp[cli] >=1.3.0`, `music21 >=9.0` (used by theory engine but not directly by v1.3), `pytest >=8.3`, and `ruff >=0.15.6` stack is entirely unchanged.
+
+One new internal package is needed: `MCP_Server/production/` (mirroring the existing `MCP_Server/theory/` pattern) with `planner.py` (pure functions, fully unit-testable) and `scaffold.py` (uses `connection.send_command()`, requires Ableton for integration tests). The `pyproject.toml` packages list gains one entry: `MCP_Server.production`.
 
 **Core technologies:**
-- Python dicts: blueprint data format — matches existing PROGRESSION_CATALOG/RHYTHM_CATALOG patterns; no runtime file I/O; malformed Python fails loudly at import, not silently at runtime
-- FastMCP `@mcp.tool()`: delivery mechanism — model-controlled (Claude decides when to fetch); consistent with all 197 existing tools; universally supported across MCP clients; no new primitive types introduced
-- music21 (existing): palette bridge backend — existing theory functions resolve blueprint harmony names (e.g., `"min7"`, `"dorian"`) to key-specific MIDI data; no new dependency needed
+- Python stdlib only: arrangement templates — no Jinja2, no Pydantic; existing TypedDict + runtime validation pattern is sufficient
+- Existing FastMCP tools: plan and scaffold exposed as 4 new MCP tools (generate_production_plan, generate_section_plan, scaffold_arrangement, get_section_checklist)
+- Ableton LOM via existing TCP socket: 4 new Remote Script commands (create_locator, delete_locator, scaffold_arrangement batch, get_arrangement_overview)
+- Existing theory engine (MCP_Server/theory/): plan builder references key/scale names only; Claude resolves harmony per-section on demand using existing tools
 
 ### Expected Features
 
 **Must have (table stakes):**
-- `list_genre_blueprints()` — Claude needs genre discovery before fetching; zero external dependencies
-- `get_genre_blueprint(genre, subgenre, sections)` — core value proposition; `sections` parameter is required to avoid context bloat (full blueprints are 2000+ tokens without filtering)
-- Instrumentation, harmony, rhythm, arrangement, mixing sections — users expect all five; each maps to existing MCP tool categories
-- Minimum 8 genres: house, techno, hip-hop/trap, ambient (P0) + DnB, dubstep, trance, neo-soul (P1) — covers maximum electronic music territory
-- Subgenre support with shallow merge — deep_house vs. tech_house conventions differ substantially; merge behavior must be predictable
+- Per-section energy level (int 1–10) in all 12 genre blueprints — quantifies the energy curve that defines arrangement flow
+- Per-section instrument roles list in blueprints — this IS the execution checklist; tells Claude exactly which elements belong in each section
+- Per-section transition descriptor string in blueprints — tells Claude how to connect sections (riser, filter sweep, impact hit)
+- Production plan builder tool — `generate_production_plan(genre, key, bpm, vibe)` returning a flat, terse plan dict with per-section checklists and calculated beat positions
+- Named locator creation (atomic Remote Script command) — single `create_locator(time, name)` handler that performs seek/toggle/name internally
+- Session scaffolding tool — `scaffold_arrangement(plan)` creating all locators and named tracks in one batch Remote Script call
+- Section checklist tool — `get_section_checklist(plan, section_name)` returning pending elements for a section
 
-**Should have (differentiators):**
-- `get_genre_palette(genre, key, subgenre)` — bridges blueprints to theory engine; returns key-resolved chords, scales, progressions ready for use with existing production tools
-- Ableton-specific tips section — maps genre conventions to named Ableton instruments/effects
-- Genre aliases (e.g., `"dnb"` maps to `"drum_and_bass"`) — prevents tool call failures from naming mismatches
-- BPM range per genre — immediately actionable parameter for `set_tempo`
+**Should have (competitive):**
+- Transition descriptors between sections — `transition_in` field connecting arrangement to existing automation tools contextually
+- Single-section mode — `generate_section_plan` for targeted work on one section without planning the whole track
+- Context-aware plan modification — plan builder accepts override parameters (shorter breakdown, add bridge)
+- `get_arrangement_overview` Remote Script command — composite read of locators + track names + session length for Claude to re-orient during long workflows
 
-**Defer (v2+):**
-- Auto-genre detection from Ableton session state — fragile, error-prone; asking the user is better UX and easier to implement correctly
-- Blueprint editing/creation tools — blueprints are curated reference data, not user-managed content
-- Real-time web updates — introduces network dependency and data trust issues; static curated data is more reliable
-- Genre-specific operation tools (e.g., `create_house_track`) — combinatorial explosion (12 genres × N operations); generic tools + blueprint context is the correct abstraction
+**Defer to post-v1.3:**
+- Arrangement analysis of existing tracks — different domain (stem separation, structural segmentation), different milestone
+- Empty arrangement clip pre-creation — locators provide sufficient visual guidance; clips created during execution
+- Default instrument loading on scaffold tracks — better UX but higher complexity; v1.3.1 candidate
+- Vibe-to-energy preset library — Claude interprets vibes contextually without a lookup table
+- Section reordering support — requires delete-and-rebuild locator workflow; document as known limitation for v1.3
 
 ### Architecture Approach
 
-The blueprint system is structurally parallel to the existing theory engine: a library package (`MCP_Server/blueprints/`) holds schema, catalog, and one Python module per genre; a tool module (`MCP_Server/tools/blueprints.py`) wraps the library with `@mcp.tool()` decorators following the identical pattern as `tools/theory.py`. The two systems are intentionally decoupled — blueprint modules store convention names as strings (e.g., `"chord_types": ["min7", "dom9"]`), never importing theory functions. Only the `get_genre_palette` tool bridges the gap at runtime, eliminating circular dependency risk.
+v1.3 extends the existing two-tier architecture (MCP Server / Remote Script) without adding tiers, protocols, or external services. The new `MCP_Server/production/` package follows the identical pattern as `MCP_Server/theory/`: a pure library module (`planner.py`) that is fully unit-testable without Ableton, an orchestration module (`scaffold.py`) that uses `connection.send_command()`, and thin tool wrappers in `tools/production.py`. Genre blueprint extensions flow through the existing catalog auto-discovery and subgenre merge without catalog changes. The Remote Script gains new commands in the existing `handlers/arrangement.py`.
 
 **Major components:**
-1. `blueprints/genres/*.py` (12 files) — individual genre data as Python dicts; one file per genre; 80-120 lines each; no imports from theory
-2. `blueprints/catalog.py` — registry, lookup by genre/subgenre, alias resolution, shallow merge logic for subgenres; central coordinator
-3. `blueprints/schema.py` — canonical schema definition + import-time validation function; ensures all 12 genres are structurally consistent; catches drift immediately at startup
-4. `blueprints/__init__.py` — clean public API (`get_blueprint`, `list_genres`); only surface imported by tool layer
-5. `tools/blueprints.py` — 3 MCP tool wrappers (`list_genre_blueprints`, `get_genre_blueprint`, `get_genre_palette`); the only file that imports from both `blueprints/` and `theory/`
-6. `tests/test_blueprints.py` — schema validation across all genres; tool output format; palette bridge correctness; theory-compatibility cross-reference
+1. `MCP_Server/production/planner.py` — pure computation: blueprint data + user params to flat ProductionPlan dict with beat positions and per-section checklists; no Ableton dependency; reads via `genres.get_blueprint()`
+2. `MCP_Server/production/scaffold.py` — orchestration: sends `scaffold_arrangement` batch command to Remote Script; handles locator + track creation; returns creation summary
+3. `AbletonMCP_Remote_Script/handlers/arrangement.py` (extended) — new atomic locator creation handler and batch scaffold command; enforces seek/toggle/name atomicity and idempotency; handles time-signature-aware beat positioning
 
 ### Critical Pitfalls
 
-1. **Blueprint-theory circular imports** — blueprint modules must never contain `from MCP_Server.theory import ...`; only `tools/blueprints.py` crosses the boundary at runtime. Enforced by code review; detectable by grep.
-2. **Context window bloat from verbose blueprints** — target 800-1200 tokens per full blueprint; use `sections` parameter to let Claude request only what it needs; keep `notes` fields to one sentence maximum; measure token counts in tests and fail any blueprint over 1500 tokens.
-3. **Genre data inaccuracy** — wrong BPM ranges or chord conventions cause "this doesn't sound like techno" failures that are harder to diagnose than code bugs; cross-reference multiple production sources per genre; use ranges not single values; include a `sources` field per blueprint for traceability.
-4. **Schema drift across genre files** — run `schema.py` validation at import time (not just in tests) so any structural inconsistency fails loudly at startup rather than silently during a production session.
-5. **Palette tool failures on unsupported chord/scale names** — validate every blueprint `chord_type` and `scale` name against the theory engine's supported types before shipping; use try/except in the palette tool to skip unsupported qualities gracefully rather than returning an error.
+1. **Locator creation is not atomic by default** — `Song.set_or_delete_cue()` toggles at the current playback position; creating 7 locators via separate MCP tool calls causes 21+ round-trips and race conditions. Prevent by implementing a single `scaffold_arrangement` Remote Script command that creates all locators atomically with rollback on partial failure.
+
+2. **Schema extension must use optional fields** — adding required fields to `ArrangementEntry` TypedDict breaks all 12 genre files and 148 passing tests simultaneously. Prevent by making all new fields (`energy`, `elements`, `transition_in`) optional in schema and validated only when present; existing genres remain valid throughout migration.
+
+3. **Context collapse at tool call 30+** — Claude loses the production plan during long sessions. Prevent by making the session itself the plan: locator names and track names in Ableton serve as persistent external memory; a `get_arrangement_overview` progress-check tool lets Claude re-orient in one call without reconstructing state from raw listings.
+
+4. **Over-engineered plan representation** — arrangement intelligence is intellectually tempting but the plan must stay flat and terse. Prevent by defining the output format before writing any code; a 7-section plan must stay under 400 tokens; no nested phases, dependency graphs, or energy curve polynomials.
+
+5. **Time signature arithmetic hardcoded to 4/4** — any literal `* 4` in beat position math breaks for 3/4, 6/8, 5/4 genres. Prevent by using `beats_per_bar = numerator * (4.0 / denominator)` from day one, reading `Song.signature_numerator/denominator` from the session. The fix is one line; there is no acceptable shortcut.
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure:
+The architecture research recommends four phases (25–28) with strict dependency ordering. Each phase is independently shippable and testable.
 
-### Phase 1: Blueprint Infrastructure + First Genre
-**Rationale:** Everything else depends on schema and catalog being defined; validate the full pipeline end-to-end with one genre before committing content effort to all 12; matches the existing codebase's infrastructure-before-content pattern and limits rework.
-**Delivers:** `schema.py`, `catalog.py`, `genres/__init__.py`, `genres/house.py` (canonical example with all subgenres), `blueprints/__init__.py`, test scaffold
-**Addresses:** Blueprint schema definition, subgenre merge logic, alias resolution infrastructure
-**Avoids:** Schema drift (Pitfall 4 — validation enforced from day one), missing pyproject.toml entries (Pitfall 10)
+### Phase 25: Blueprint Arrangement Extension
 
-### Phase 2: Core Tool Layer + Integration Wiring
-**Rationale:** With infrastructure and one validated genre, build the tool wrappers to achieve end-to-end validation (data → catalog → MCP API → test); locks the API surface before scaling content; proves the delivery mechanism works.
-**Delivers:** `tools/blueprints.py` with `list_genre_blueprints` and `get_genre_blueprint` (section filtering included); `tools/__init__.py` registration; full test coverage for tool layer; token count measurement for house blueprint
-**Uses:** Existing FastMCP `@mcp.tool()` pattern from `tools/theory.py`
-**Implements:** Tool wrapper component; validates MCP tools (not resources) delivery decision
+**Rationale:** Data-only foundation phase. No Ableton needed, no new modules. Must come first because the plan builder (Phase 26) requires enriched arrangement data to generate meaningful checklists, and schema correctness must be proven before any consumption code is written. Mirrors Phase 20 (Blueprint Infrastructure) in scope and approach.
 
-### Phase 3: Genre Content — P0 + P1 Batch
-**Rationale:** Schema validated, pipeline proven, API locked, tests in place — now scale content with confidence; P0 genres (techno, hip-hop/trap, ambient) join house from Phase 1 to cover maximum stylistic range; P1 genres (DnB, dubstep, trance, neo-soul) follow immediately since infrastructure is identical and no new design decisions are needed.
-**Delivers:** 7 genre files (techno, hip-hop/trap, ambient, DnB, dubstep, trance, neo-soul); 8 genres total after Phase 1's house; each includes aliases and subgenres
-**Addresses:** 8-genre minimum table stake; alias resolution (Pitfall 9)
-**Avoids:** Schema drift — import-time validation from Phase 1 catches inconsistencies immediately
+**Delivers:** All 12 genre blueprints enriched with `energy` (int 1–10), `roles`/`elements` (list of instrument role strings), and `transition_in` (str) per section; `ArrangementEntry` TypedDict extended with optional fields; `validate_blueprint()` updated to validate new fields when present; all 148 existing tests still pass with zero changes to genre files.
 
-### Phase 4: P2 Genres + Palette Bridge
-**Rationale:** `get_genre_palette` depends on both the blueprint library and theory engine being stable — build last; P2 genres (synthwave, lo-fi, future bass, disco/funk) are lower priority and complete the catalog alongside the bridge tool; all chord/scale names across all 12 genres must be audited against the theory engine before implementing the bridge.
-**Delivers:** 4 remaining P2 genre files; `get_genre_palette` tool with theory engine integration; cross-reference validation test (every blueprint harmony name verified against theory engine's supported types)
-**Addresses:** Differentiator feature (palette bridge), full 12-genre coverage
-**Avoids:** Palette edge cases (Pitfall 5 — graceful try/except for unsupported chord qualities; names audited at import)
+**Addresses:** Per-section element lists, energy levels, transition descriptors (table stakes features).
+
+**Avoids:** Schema breaking cascade (Pitfall 4) — optional fields only; backward compatibility test verifies all existing genres pass unchanged.
+
+**Research flag:** No deeper research needed. Pattern is identical to v1.2 blueprint work. Standard.
+
+### Phase 26: Production Plan Builder
+
+**Rationale:** Server-side only, pure Python, fully unit-testable without Ableton. Depends on Phase 25 enriched data for meaningful output. Must precede Phase 27 because the scaffold command consumes the plan structure. Mirrors Phase 21 (Blueprint Tools) in scope.
+
+**Delivers:** `MCP_Server/production/` package; `planner.py` generating flat ProductionPlan dicts with calculated beat positions and per-section checklists; `tools/production.py` exposing `generate_production_plan` and `generate_section_plan` MCP tools; unit tests covering multiple genres, keys, and vibe variants.
+
+**Addresses:** Production plan from genre + vibe (table stake), single-section mode (should-have), context-aware plan modification (should-have).
+
+**Avoids:** Over-engineered plan representation (Pitfall 5) — output format defined and validated against 400-token budget before any code; redundant plan builder (Pitfall 9) — vibe and duration parameters ensure output differs from raw blueprint data.
+
+**Research flag:** No deeper research needed. Pure Python computation with well-understood inputs and outputs. Standard.
+
+### Phase 27: Locator and Scaffolding Commands
+
+**Rationale:** Requires Ableton for integration testing. Depends on Phase 26 plan structure to know what locators and tracks to create. The critical LOM constraint (seek/toggle/name atomicity) makes this the highest-risk phase technically — the implementation detail is fully researched and the exact handler pattern is documented in ARCHITECTURE.md, but it requires live Ableton verification.
+
+**Delivers:** `create_locator`, `delete_locator`, `get_arrangement_overview` Remote Script commands in `handlers/arrangement.py`; `scaffold_arrangement` batch command (creates all locators + named tracks + sets tempo in one TCP call); corresponding MCP tool wrappers; `connection.py` updated with new write commands.
+
+**Addresses:** Named locator creation (table stake), session scaffolding tool (table stake), `get_arrangement_overview` progress-check (should-have).
+
+**Avoids:** Cue point seek-toggle fragility (Pitfall 1) — atomic batch command with rollback; CuePoint.name writability (Pitfall 2) — read-back verification after setting name; time signature arithmetic (Pitfall 6) — `beats_per_bar` formula from day one; scaffold conflicts with existing content (Pitfall 10) — pre-scaffold session state query.
+
+**Research flag:** Integration testing against live Ableton required. LOM constraints are fully researched (HIGH confidence) but the atomic handler behavior must be verified in a live session. Flag for integration validation during phase planning.
+
+### Phase 28: Section Execution and Quality Gate
+
+**Rationale:** Integration phase where all components come together. Depends on all prior phases. Mirrors Phase 24 (Quality Gate) in scope — end-to-end workflow validation rather than new feature development.
+
+**Delivers:** `get_section_checklist` MCP tool; end-to-end workflow test (plan to scaffold to execute section checklists); quality gate: full arrangement from genre blueprint to playable Ableton session; progress-check tool validating that scaffolded MIDI tracks have instruments loaded.
+
+**Addresses:** Section execution checklist (table stake), context collapse prevention (Pitfall 3 — progress-check tool ships here, not as an afterthought).
+
+**Avoids:** Context collapse (Pitfall 3) — progress-check tool explicitly validates that Claude can re-orient from session state alone; missing instruments on scaffolded tracks (Pitfall 7) — progress-check flags instrumentless tracks.
+
+**Research flag:** No deeper research needed. Thin tool wrapper + integration validation. Standard quality gate pattern.
 
 ### Phase Ordering Rationale
 
-- Schema and catalog come before all content: all 12 genre files, both retrieval tools, and the palette bridge depend on the infrastructure — building content first would require rework when the schema evolves.
-- One genre validates before scaling: design flaws in the data structure are cheap to fix after one genre and expensive after twelve.
-- Tool layer before remaining content: the API shape should be locked before authors write 11 more genre files against it.
-- Palette bridge last: it is the only code-level integration point between blueprints and theory; isolating it to the final phase keeps integration failures contained and eliminates circular dependency risk during development.
-- P2 genres slot with the bridge: they are content work with no blocking dependencies, and completing all 12 genres in the same phase as the bridge makes for a clean, shippable milestone.
+- Phase 25 before 26: Blueprint enrichment data is the input to the plan builder; generating meaningful checklists requires `energy` and `roles` to be present in blueprints
+- Phase 26 before 27: The `scaffold_arrangement` batch command needs to know what a ProductionPlan looks like (structure, field names, beat position format) before the Remote Script handler can parse it
+- Phase 27 before 28: Section checklist execution requires locators and named tracks to exist in Ableton; the quality gate validates the full stack
+- Each phase is independently testable: Phase 25 and 26 are pure Python (pytest only); Phase 27 requires live Ableton; Phase 28 requires both
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
-- **Phase 3 (genre content):** Content accuracy requires per-genre domain research — BPM ranges, chord conventions, and subgenre distinctions should be verified against producer community sources (forums, tutorials, academic analyses), not written from memory. Plan research tasks per genre.
-- **Phase 4 (palette bridge):** Requires auditing the theory engine's 26 supported chord qualities and all scale names to build a validated allow-list for blueprint harmony sections before authoring P2 genre content or implementing the bridge.
+Phases needing deeper research or integration validation during planning:
+- **Phase 27:** Live Ableton integration testing for the `create_locator` atomic handler. The LOM constraint is fully documented but the seek/toggle/name sequence and CuePoint.name writability in Live 12 must be verified against a live instance. Also verify `scaffold_arrangement` batch command stays under the existing 15-second TIMEOUT_WRITE.
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (infrastructure):** Direct parallel to existing theory engine pattern (`PROGRESSION_CATALOG`, `RHYTHM_CATALOG`); well-understood codebase; no unknowns.
-- **Phase 2 (tool layer):** `tools/theory.py` is the exact template; the pattern is fully established.
+Phases with standard, well-documented patterns (skip research-phase):
+- **Phase 25:** Blueprint extension follows identical pattern to v1.2 Phase 20. No new APIs, no new modules.
+- **Phase 26:** Pure Python plan builder follows identical pattern to theory engine. Fully unit-testable, no external dependencies.
+- **Phase 28:** Quality gate follows identical pattern to v1.2 Phase 24.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Verified against existing `pyproject.toml`; zero new dependencies confirmed; no alternatives required |
-| Features | HIGH | Table stakes derived from existing codebase patterns and clear domain requirements; anti-features well-reasoned against architectural constraints |
-| Architecture | HIGH | Direct structural parallel to existing theory engine; all component boundaries verified against actual codebase; no speculative design |
-| Pitfalls | HIGH | Most pitfalls derived from existing codebase analysis (import patterns, tool registration, token economy); domain-specific content risks are well-understood |
+| Stack | HIGH | Zero new external dependencies confirmed by direct codebase review. Internal module structure derived from existing `MCP_Server/theory/` pattern which is well-established. |
+| Features | HIGH | Table stakes features verified against existing codebase (schema, blueprints, LOM APIs confirmed). Genre arrangement patterns from MEDIUM-confidence external sources but cross-validated against 12 existing blueprints. |
+| Architecture | HIGH | Architecture follows established codebase patterns exactly. LOM constraints verified against official Cycling '74 documentation and existing Remote Script code. Critical locator creation pattern documented with exact handler pseudocode. |
+| Pitfalls | HIGH | All critical pitfalls derived from direct codebase inspection and verified LOM API behavior. CuePoint.name writability in Live 12 confirmed via Cycling '74 forum. Beat position arithmetic and context collapse risks are design constraints, not speculation. |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Genre accuracy validation:** Blueprint content (BPM ranges, chord conventions, mixing guidance) cannot be fully validated by code review. Plan per-genre content research during Phase 3. Add a `sources` field to each blueprint dict for traceability and future review.
-- **Theory engine chord/scale name compatibility:** The palette bridge assumes blueprint harmony names map to theory engine function parameters. Before Phase 4, audit `theory/chords.py` (26 chord qualities) and `theory/scales.py` to build a definitive allow-list; write a cross-reference validation test.
-- **Token budget empirical baseline:** The 800-1200 token target is a design constraint, not a measured baseline. Measure actual token counts for the house blueprint in Phase 1 and adjust schema verbosity guidance before writing the remaining 11 genres.
+- **Scaffold batch command timeout:** The `scaffold_arrangement` batch command creating 7 locators + 8 tracks must complete within the existing `TIMEOUT_WRITE` of 15 seconds. This is expected to be well under that limit based on architecture analysis, but should be measured in the first Phase 27 integration test against a live session.
+
+- **CuePoint.name writability syntax:** Research confirms Live 12 makes `CuePoint.name` writable, but the exact Python API syntax (`cp.name = value` vs. a setter method) should be verified in the first integration test. The fallback (locators exist but are unnamed) degrades gracefully but defeats the "session as plan" design.
+
+- **Subgenre arrangement override completeness:** Some subgenres (e.g., `progressive_house`) already override `arrangement.sections`. The Phase 25 blueprint enrichment must audit all subgenres to determine which have arrangement overrides and ensure those are enriched consistently. The catalog merge behavior (shallow merge) means subgenre overrides replace the parent arrangement entirely — this is the existing behavior and should be preserved.
+
+- **Token budget after enrichment:** The v1.2 quality gate (D-13) established a ceiling of 670 tokens per blueprint. Adding per-section enrichment fields may push some genres to ~850 tokens. The Phase 25 quality gate should verify the new ceiling remains acceptable and update the D-13 token budget parameter if needed.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Existing codebase: `MCP_Server/theory/progressions.py` (PROGRESSION_CATALOG pattern), `MCP_Server/theory/rhythm.py` (RHYTHM_CATALOG pattern), `MCP_Server/tools/theory.py` (tool wrapper pattern), `MCP_Server/tools/__init__.py` (import-based registration), `MCP_Server/server.py` (FastMCP setup)
-- Existing codebase: `pyproject.toml` (confirmed zero new dependencies required)
+- [Cycling '74 LOM Reference (Max 9 PDF)](https://cycling74-docs-production.nyc3.cdn.digitaloceanspaces.com/pdfs/9.0.7-rev.1/Max9-LOM-en.pdf) — CuePoint class (page 56), Song class (pages 126–140)
+- [Cycling '74 LOM Documentation](https://docs.cycling74.com/apiref/lom/) — CuePoint.name R/W, CuePoint.time R/O, Song.set_or_delete_cue() behavior, Song.cue_points
+- [Cycling '74 Forum: Setting Locator Names](https://cycling74.com/forums/setting-locator-names) — CuePoint.name writable in Live 12 confirmed
+- [MCP Specification 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25) — stateless tool design, protocol patterns
+- Existing codebase: `MCP_Server/genres/schema.py`, `MCP_Server/genres/catalog.py`, all 12 genre files — confirmed ArrangementEntry schema, catalog auto-discovery, existing arrangement data
+- Existing codebase: `AbletonMCP_Remote_Script/handlers/transport.py` — current cue point implementation (toggle at current position only)
+- Existing codebase: `AbletonMCP_Remote_Script/handlers/arrangement.py` — existing arrangement clip CRUD (4 commands unchanged in v1.3)
+- Existing codebase: `MCP_Server/tools/arrangement.py` — existing MCP arrangement tools
+- Existing codebase: `MCP_Server/connection.py` — TIMEOUT_WRITE (15s), command classification pattern
 
 ### Secondary (MEDIUM confidence)
-- MCP protocol documentation — Resources vs. Tools control model; delivery mechanism decision rationale
-- FastMCP documentation — decorator syntax, tool vs. resource patterns, prompt distinctions
-- Electronic music production domain knowledge — genre conventions, subgenre distinctions, BPM ranges
+- [EDM Tips - EDM Song Structure](https://edmtips.com/edm-song-structure/) — section energy and element patterns for drop-based genres
+- [AudioServices - Arrangements in Electronic Music](https://audioservices.studio/blog/understanding-arrangements-in-electronic-music-production) — genre-specific arrangement conventions
+- [Cycling '74 LOM Documentation (Max 8 legacy)](https://docs.cycling74.com/legacy/max8/vignettes/live_object_model) — LOM hierarchy and class relationships
+- [Cymatics - EDM Song Structure](https://cymatics.fm/blogs/production/edm-song-structure) — standard section definitions for house, techno, DnB
 
 ### Tertiary (LOW confidence)
-- Genre-specific content accuracy — needs validation against producer community sources (forums, tutorial channels, academic music analyses) during Phase 3 content authoring; treat all genre content as draft until reviewed
+- None — all significant findings were cross-validated against at least two sources or direct codebase inspection.
 
 ---
-*Research completed: 2026-03-25*
+*Research completed: 2026-03-27*
 *Ready for roadmap: yes*
