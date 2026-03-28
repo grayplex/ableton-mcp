@@ -2789,3 +2789,51 @@ class DeviceHandlers:
         except Exception as e:
             self.log_message(f"Error getting mix state: {e}")
             raise
+
+    @command("get_track_meters")
+    def _get_track_meters(self, params=None):
+        """Get output meter levels for all tracks (for gain staging analysis).
+
+        Reads output_meter_level (0.0-1.0 peak hold) from every track.
+        MIDI tracks with no instrument/device are excluded (GAIN-02).
+        Conversion to dBFS is performed on the MCP Server side.
+
+        Returns:
+            tracks: list of {index, name, type, meter_level}
+            return_tracks: list of {index, name, type, meter_level}
+            master_track: {name, type, meter_level}
+        """
+        try:
+            result = {"tracks": [], "return_tracks": [], "master_track": {}}
+
+            for i, track in enumerate(self._song.tracks):
+                # GAIN-02: exclude empty MIDI scaffold tracks
+                is_midi = hasattr(track, "has_midi_input") and track.has_midi_input
+                if is_midi and len(track.devices) == 0:
+                    continue
+                type_str = _get_track_type_str(track)
+                result["tracks"].append({
+                    "index": i,
+                    "name": track.name,
+                    "type": type_str,
+                    "meter_level": track.output_meter_level,
+                })
+
+            for i, track in enumerate(self._song.return_tracks):
+                result["return_tracks"].append({
+                    "index": i,
+                    "name": track.name,
+                    "type": "return",
+                    "meter_level": track.output_meter_level,
+                })
+
+            master = self._song.master_track
+            result["master_track"] = {
+                "name": master.name,
+                "type": "master",
+                "meter_level": master.output_meter_level,
+            }
+            return result
+        except Exception as e:
+            self.log_message(f"Error getting track meters: {e}")
+            raise
