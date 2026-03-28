@@ -24,6 +24,7 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - ✓ ARNG-01..03: ArrangementEntry schema extended with optional energy/roles/transition_in; all 12 genres + 4 subgenres fully authored — v1.3 Phase 25
 - ✓ PLAN-01..03: generate_production_plan and generate_section_plan MCP tools with override support (resize/add/remove sections) — v1.3 Phase 26
 - ✓ SCAF-01..02: scaffold_arrangement (writes locators + MIDI tracks to Arrangement view) and get_arrangement_overview (reads back arrangement state) MCP tools — v1.3 Phase 27
+- ✓ EXEC-01..02: get_section_checklist (per-role instrument status for a named section) and get_arrangement_progress (tracks with no instrument loaded) MCP tools — v1.3 Phase 28
 
 ### Active
 
@@ -36,16 +37,16 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
 
-## Current Milestone: v1.3 Arrangement Intelligence
+## Completed Milestone: v1.3 Arrangement Intelligence (shipped 2026-03-28)
 
 **Goal:** Give Claude a systematic production workflow — plan sections from genre conventions, encode the plan into Ableton, and execute section-by-section without dropping the ball at tool call #40.
 
-**Target features:**
+**Delivered:**
 - Arrangement templates in genre blueprints (section names, bar counts, energy curve, per-section elements, automation cues)
 - Production plan builder: genre + vibe → full section plan or single-section plan on demand
 - Session scaffolding: locators + named tracks written into Ableton Arrangement view (the session IS the plan)
 - Section execution checklists: methodical per-section execution (kick, bass, riser, filter sweep...) — nothing skipped under context pressure
-- Either mode: full track end-to-end OR targeted single section
+- Arrangement progress check: identifies scaffolded MIDI tracks with no instrument loaded
 
 ## Completed Milestone: v1.2 Genre/Style Blueprints (shipped 2026-03-27)
 
@@ -55,9 +56,10 @@ Curated genre reference documents giving Claude consistent knowledge of 12 elect
 
 **Shipped: v1.1 Theory Engine** (2026-03-26)
 **Shipped: v1.2 Genre/Style Blueprints** (2026-03-27) — Phases 20-24 complete
+**Shipped: v1.3 Arrangement Intelligence** (2026-03-28) — Phases 25-28 complete
 
-- **200 MCP tools** across 18 tool modules (added `list_genre_blueprints`, `get_genre_blueprint`, `get_genre_palette`)
-- **178 Remote Script handler commands** across 15 domain modules
+- **202 MCP tools** across 19 tool modules (added `get_section_checklist`, `get_arrangement_progress` in Phase 28)
+- **181 Remote Script handler commands** across 15 domain modules (added `scaffold_tracks`, `create_locator_at`, `get_arrangement_state` in Phase 27)
 - **23 theory functions** in 6 library modules (pitch, chords, scales, progressions, analysis, voicing/rhythm)
 - **12-genre catalog complete** — all genres validated against theory engine
 - **148 genre tests** (palette bridge + quality gate) + 204 v1.0 + 224 theory — all passing
