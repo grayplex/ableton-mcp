@@ -2739,3 +2739,53 @@ class DeviceHandlers:
             "track_name": track.name,
             "devices": applied,
         }
+
+    # --- Phase 32: Device State Reader and Gain Staging ---
+
+    @command("get_mix_state")
+    def _get_mix_state(self, params=None):
+        """Get device parameter snapshot for every device on every track.
+
+        Returns device params only (no mixer state, no clips, no sends).
+        Includes all tracks — tracks with zero devices return devices: [].
+
+        Returns:
+            tracks: list of {index, name, type, devices}
+            return_tracks: list of {index, name, type, devices}
+            master_track: {name, type, devices}
+        """
+        try:
+            result = {"tracks": [], "return_tracks": [], "master_track": {}}
+
+            def build_track_device_state(track, track_type_hint=None):
+                type_str = _get_track_type_str(track, track_type_hint=track_type_hint)
+                devices = []
+                for di, d in enumerate(track.devices):
+                    devices.append({
+                        "index": di,
+                        "class_name": d.class_name,
+                        "device_name": d.name,
+                        "parameters": [
+                            {"name": p.name, "value": p.value}
+                            for p in d.parameters
+                        ],
+                    })
+                return {"name": track.name, "type": type_str, "devices": devices}
+
+            for i, track in enumerate(self._song.tracks):
+                state = build_track_device_state(track)
+                state["index"] = i
+                result["tracks"].append(state)
+
+            for i, track in enumerate(self._song.return_tracks):
+                state = build_track_device_state(track, "return")
+                state["index"] = i
+                result["return_tracks"].append(state)
+
+            result["master_track"] = build_track_device_state(
+                self._song.master_track, "master"
+            )
+            return result
+        except Exception as e:
+            self.log_message(f"Error getting mix state: {e}")
+            raise
