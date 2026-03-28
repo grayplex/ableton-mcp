@@ -37,13 +37,13 @@ GENRE = {
     },
     "arrangement": {
         "sections": [
-            {"name": "intro", "bars": 16},
-            {"name": "movement1", "bars": 32},
-            {"name": "transition", "bars": 16},
-            {"name": "movement2", "bars": 32},
-            {"name": "transition2", "bars": 8},
-            {"name": "movement3", "bars": 32},
-            {"name": "outro", "bars": 16},
+            {"name": "intro", "bars": 16, "energy": 1, "roles": ["pad", "texture"]},
+            {"name": "movement1", "bars": 32, "energy": 3, "roles": ["pad", "drone", "texture", "field_recording"], "transition_in": "slow fade-in + new texture"},
+            {"name": "transition", "bars": 16, "energy": 2, "roles": ["texture", "fx", "granular"], "transition_in": "textural shift"},
+            {"name": "movement2", "bars": 32, "energy": 4, "roles": ["pad", "drone", "bell", "piano", "strings"], "transition_in": "new harmonic layer"},
+            {"name": "transition2", "bars": 8, "energy": 2, "roles": ["texture", "fx", "granular"], "transition_in": "granular dissolve"},
+            {"name": "movement3", "bars": 32, "energy": 5, "roles": ["pad", "drone", "strings", "vocal", "bell", "fx"], "transition_in": "building density"},
+            {"name": "outro", "bars": 16, "energy": 1, "roles": ["pad", "texture"], "transition_in": "slow fadeout"},
         ]
     },
     "mixing": {
@@ -175,12 +175,12 @@ SUBGENRES = {
         },
         "arrangement": {
             "sections": [
-                {"name": "intro", "bars": 8},
-                {"name": "theme", "bars": 16},
-                {"name": "development", "bars": 32},
-                {"name": "climax", "bars": 16},
-                {"name": "resolution", "bars": 16},
-                {"name": "outro", "bars": 8},
+                {"name": "intro", "bars": 8, "energy": 2, "roles": ["pad", "texture", "fx"]},
+                {"name": "theme", "bars": 16, "energy": 4, "roles": ["strings", "piano", "pad"], "transition_in": "theme melody entry"},
+                {"name": "development", "bars": 32, "energy": 6, "roles": ["strings", "pad", "piano", "brass", "percussion", "fx"], "transition_in": "orchestral layering"},
+                {"name": "climax", "bars": 16, "energy": 8, "roles": ["strings", "brass", "percussion", "pad", "vocal", "fx"], "transition_in": "crescendo + full orchestra"},
+                {"name": "resolution", "bars": 16, "energy": 4, "roles": ["strings", "piano", "pad"], "transition_in": "intensity release"},
+                {"name": "outro", "bars": 8, "energy": 1, "roles": ["pad", "texture"], "transition_in": "slow fade to silence"},
             ]
         },
         "mixing": {

@@ -38,13 +38,13 @@ GENRE = {
     },
     "arrangement": {
         "sections": [
-            {"name": "intro", "bars": 16},
-            {"name": "buildup", "bars": 16},
-            {"name": "drop", "bars": 32},
-            {"name": "breakdown", "bars": 16},
-            {"name": "buildup2", "bars": 16},
-            {"name": "drop2", "bars": 32},
-            {"name": "outro", "bars": 16},
+            {"name": "intro", "bars": 16, "energy": 3, "roles": ["pad", "hi-hats", "fx"]},
+            {"name": "buildup", "bars": 16, "energy": 6, "roles": ["kick", "snare", "hi-hats", "bass", "pad", "fx"], "transition_in": "snare roll + riser"},
+            {"name": "drop", "bars": 32, "energy": 9, "roles": ["kick", "snare", "bass", "hi-hats", "break", "lead", "fx"], "transition_in": "impact hit + breakbeat entry"},
+            {"name": "breakdown", "bars": 16, "energy": 4, "roles": ["pad", "vocal", "fx"], "transition_in": "drum strip + atmosphere"},
+            {"name": "buildup2", "bars": 16, "energy": 7, "roles": ["kick", "snare", "hi-hats", "bass", "pad", "fx"], "transition_in": "snare build + rising bass"},
+            {"name": "drop2", "bars": 32, "energy": 10, "roles": ["kick", "snare", "bass", "hi-hats", "break", "lead", "percussion", "fx"], "transition_in": "crash + double-time drop"},
+            {"name": "outro", "bars": 16, "energy": 3, "roles": ["pad", "hi-hats", "fx"], "transition_in": "gradual drum strip"},
         ]
     },
     "mixing": {

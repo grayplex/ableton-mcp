@@ -38,10 +38,21 @@ class RhythmSection(TypedDict):
     drum_pattern: str           # Brief description, e.g., "four-on-the-floor kick"
 
 
-class ArrangementEntry(TypedDict):
-    """A single section in an arrangement (per D-12)."""
+class _ArrangementEntryRequired(TypedDict):
+    """Required fields for arrangement entries."""
     name: str   # Section name, e.g., "intro"
     bars: int   # Number of bars
+
+
+class ArrangementEntry(_ArrangementEntryRequired, total=False):
+    """A single section in an arrangement (per D-12).
+
+    Required: name, bars
+    Optional: energy, roles, transition_in (added in v1.3 Phase 25)
+    """
+    energy: int          # 1-10 energy level for this section
+    roles: List[str]     # Active instrument roles in this section
+    transition_in: str   # How to transition into this section
 
 
 class ArrangementSection(TypedDict):
@@ -195,6 +206,22 @@ def validate_blueprint(data: dict) -> None:
             raise ValueError(f"arrangement.sections[{i}] must have 'name' (str)")
         if "bars" not in entry or not isinstance(entry["bars"], int):
             raise ValueError(f"arrangement.sections[{i}] must have 'bars' (int)")
+        # Optional v1.3 fields: validate type/range if present
+        if "energy" in entry:
+            if not isinstance(entry["energy"], int) or not (1 <= entry["energy"] <= 10):
+                raise ValueError(
+                    f"arrangement.sections[{i}].energy must be int 1-10"
+                )
+        if "roles" in entry:
+            if not isinstance(entry["roles"], list):
+                raise ValueError(
+                    f"arrangement.sections[{i}].roles must be a list"
+                )
+        if "transition_in" in entry:
+            if not isinstance(entry["transition_in"], str):
+                raise ValueError(
+                    f"arrangement.sections[{i}].transition_in must be a string"
+                )
 
 
 def _check_bpm_range(value: object, label: str) -> None:

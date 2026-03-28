@@ -37,14 +37,14 @@ GENRE = {
     },
     "arrangement": {
         "sections": [
-            {"name": "intro", "bars": 8},
-            {"name": "verse", "bars": 16},
-            {"name": "hook", "bars": 8},
-            {"name": "verse2", "bars": 16},
-            {"name": "hook2", "bars": 8},
-            {"name": "bridge", "bars": 8},
-            {"name": "hook3", "bars": 8},
-            {"name": "outro", "bars": 8},
+            {"name": "intro", "bars": 8, "energy": 2, "roles": ["sample", "pad", "fx"]},
+            {"name": "verse", "bars": 16, "energy": 5, "roles": ["kick", "808_bass", "hi-hats", "snare", "vocal", "sample"], "transition_in": "beat drop-in"},
+            {"name": "hook", "bars": 8, "energy": 8, "roles": ["kick", "808_bass", "hi-hats", "snare", "clap", "vocal", "lead", "fx"], "transition_in": "drum fill + vocal hook entry"},
+            {"name": "verse2", "bars": 16, "energy": 6, "roles": ["kick", "808_bass", "hi-hats", "snare", "vocal", "sample", "pad"], "transition_in": "beat variation"},
+            {"name": "hook2", "bars": 8, "energy": 8, "roles": ["kick", "808_bass", "hi-hats", "snare", "clap", "vocal", "lead", "fx"], "transition_in": "drum fill + hook return"},
+            {"name": "bridge", "bars": 8, "energy": 4, "roles": ["pad", "vocal", "fx"], "transition_in": "beat strip + atmosphere"},
+            {"name": "hook3", "bars": 8, "energy": 9, "roles": ["kick", "808_bass", "hi-hats", "snare", "clap", "vocal", "lead", "percussion", "fx"], "transition_in": "build + final hook"},
+            {"name": "outro", "bars": 8, "energy": 3, "roles": ["sample", "pad", "fx"], "transition_in": "beat fadeout"},
         ]
     },
     "mixing": {
