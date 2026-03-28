@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Arrangement Intelligence
 status: Milestone complete
-stopped_at: Completed 28-02-PLAN.md
-last_updated: "2026-03-28T06:28:49.125Z"
+stopped_at: Completed 31-02-PLAN.md
+last_updated: "2026-03-28T20:03:00Z"
 progress:
   total_phases: 4
   completed_phases: 4
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** An AI assistant can produce actual music in Ableton — with harmonic intelligence and genre-aware conventions.
-**Current focus:** Phase 28 — section-execution-and-quality-gate
+**Current focus:** Phase 31 — apply-recipe-and-batch-parameter-tools
 
 ## Current Position
 
-Phase: 28
-Plan: Not started
+Phase: 31
+Plan: 2 of 2 complete
 
 ## Performance Metrics
 
@@ -68,6 +68,9 @@ Plan: Not started
 - [Phase 27-01]: Playhead saved/restored around locator creation to avoid disrupting user position
 - [Phase 27-02]: get_arrangement_state is read-only handler; session_length_bars uses int() division not _beat_to_bar (length vs position)
 - [Phase 28]: Auto-approved checkpoint -- deferred live Ableton verification to next user session
+- [Phase 31-02]: apply_recipe RS handler uses recursive schedule_message pattern for sequential multi-device loading
+- [Phase 31-02]: DEVICE_PATHS dict maps 12 CATALOG class names to browser paths at module level
+- [Phase 31-02]: set_sidechain_source uses case-insensitive substring match on display_name for routing resolution
 
 ### Roadmap Evolution
 
@@ -86,6 +89,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-28T06:23:45.334Z
-Stopped at: Completed 28-02-PLAN.md
+Last session: 2026-03-28T20:03:00Z
+Stopped at: Completed 31-02-PLAN.md
 Resume file: None
