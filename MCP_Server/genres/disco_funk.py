@@ -36,14 +36,14 @@ GENRE = {
     },
     "arrangement": {
         "sections": [
-            {"name": "intro", "bars": 8},
-            {"name": "verse", "bars": 16},
-            {"name": "chorus", "bars": 16},
-            {"name": "verse2", "bars": 16},
-            {"name": "chorus2", "bars": 16},
-            {"name": "bridge", "bars": 8},
-            {"name": "chorus3", "bars": 16},
-            {"name": "outro", "bars": 8},
+            {"name": "intro", "bars": 8, "energy": 3, "roles": ["kick", "hi-hats", "bass_guitar", "rhythm_guitar"]},
+            {"name": "verse", "bars": 16, "energy": 6, "roles": ["kick", "snare", "hi-hats", "bass_guitar", "rhythm_guitar", "keys", "vocal"], "transition_in": "full groove entry"},
+            {"name": "chorus", "bars": 16, "energy": 8, "roles": ["kick", "snare", "hi-hats", "bass_guitar", "rhythm_guitar", "keys", "brass", "strings", "vocal"], "transition_in": "brass stab + energy lift"},
+            {"name": "verse2", "bars": 16, "energy": 6, "roles": ["kick", "snare", "hi-hats", "bass_guitar", "rhythm_guitar", "keys", "clav", "vocal"], "transition_in": "clav entry + groove variation"},
+            {"name": "chorus2", "bars": 16, "energy": 9, "roles": ["kick", "snare", "hi-hats", "bass_guitar", "rhythm_guitar", "keys", "brass", "strings", "vocal", "percussion"], "transition_in": "brass fanfare + percussion"},
+            {"name": "bridge", "bars": 8, "energy": 5, "roles": ["bass_guitar", "keys", "percussion", "vocal"], "transition_in": "breakdown groove"},
+            {"name": "chorus3", "bars": 16, "energy": 10, "roles": ["kick", "snare", "hi-hats", "bass_guitar", "rhythm_guitar", "keys", "brass", "strings", "clav", "vocal", "percussion", "fx"], "transition_in": "full band + final chorus"},
+            {"name": "outro", "bars": 8, "energy": 4, "roles": ["kick", "hi-hats", "bass_guitar", "rhythm_guitar", "brass"], "transition_in": "gradual instrument exit"},
         ]
     },
     "mixing": {
