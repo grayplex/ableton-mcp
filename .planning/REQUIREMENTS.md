@@ -10,7 +10,7 @@
 
 - [x] **CATL-01**: User can look up exact Ableton API parameter names, value ranges, and normalized-to-natural-unit conversion formulas for EQ Eight, Compressor, Glue Compressor, Drum Buss, Multiband Dynamics, Reverb, Delay, Auto Filter, Gate, Limiter, Envelope Follower, and Utility — catalog bootstrapped from live Ableton queries, not documentation
 - [x] **ROLE-01**: User can retrieve the canonical mixing role taxonomy — the role identifiers (kick, bass, lead, pad, chords, vocal, atmospheric, return, master) used as keys for recipe lookup across all genres
-- [ ] **BATCH-01**: User can set multiple device parameters in a single socket call via a Remote Script batch handler — reducing recipe application from N sequential round-trips to one
+- [x] **BATCH-01**: User can set multiple device parameters in a single socket call via a Remote Script batch handler — reducing recipe application from N sequential round-trips to one
 
 ### Mix Recipes
 
@@ -21,8 +21,8 @@
 ### Apply Tools
 
 - [ ] **APPLY-01**: User can apply a role×genre mix recipe to an Ableton track in one MCP tool call — loads the required devices and sets all parameters without requiring multiple sequential tool calls from Claude
-- [ ] **APPLY-02**: User can apply a genre master bus recipe to the Ableton master track in one MCP tool call
-- [ ] **APPLY-03**: Recipe application is atomic with respect to device loading — parameters are set only after the device is confirmed as instantiated in the Ableton session (no race condition on async device load)
+- [x] **APPLY-02**: User can apply a genre master bus recipe to the Ableton master track in one MCP tool call
+- [x] **APPLY-03**: Recipe application is atomic with respect to device loading — parameters are set only after the device is confirmed as instantiated in the Ableton session (no race condition on async device load)
 
 ### State Analysis
 
@@ -59,10 +59,10 @@
 | CATL-01 | Phase 29 | Complete |
 | ROLE-01 | Phase 29 | Complete |
 | RECIP-01 | Phase 30 | Complete |
-| BATCH-01 | Phase 31 | Pending |
+| BATCH-01 | Phase 31 | Complete |
 | APPLY-01 | Phase 31 | Pending |
-| APPLY-02 | Phase 31 | Pending |
-| APPLY-03 | Phase 31 | Pending |
+| APPLY-02 | Phase 31 | Complete |
+| APPLY-03 | Phase 31 | Complete |
 | SIDE-01 | Phase 31 | Pending |
 | STATE-01 | Phase 32 | Pending |
 | GAIN-01 | Phase 32 | Pending |
