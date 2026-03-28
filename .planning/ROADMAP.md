@@ -76,10 +76,11 @@ Plans:
   1. User can call get_mix_state and receive current device parameters for every device on every track in a single MCP call
   2. User can call check_gain_staging and receive per-track dBFS estimates compared against role-based targets, with tracks significantly above or below target flagged
   3. Gain staging check excludes MIDI tracks with no instrument loaded -- no false-positive flags on empty scaffold tracks from v1.3
-**Plans**: TBD
+**Plans**: 2
 
 Plans:
-- [ ] 32-01: TBD
+- [ ] 32-01: rs-handlers-and-data-layer
+- [ ] 32-02: mcp-tools-and-tests
 
 ### Phase 33: Mix Adjustment Intelligence
 **Goal**: Users can request AI-driven mix adjustment suggestions that compare current device state against recipe targets and explain each recommended change
