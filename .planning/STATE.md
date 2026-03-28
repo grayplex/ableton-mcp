@@ -9,7 +9,7 @@ last_activity: 2026-03-28
 progress:
   total_phases: 10
   completed_phases: 5
-  total_plans: 10
+  total_plans: 12
   completed_plans: 10
   percent: 10
 ---
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 
 ## Current Position
 
-Phase: 30
-Plan: 01 complete
-Status: Executing phase 30
+Phase: 30 (core-mix-recipes) — EXECUTING
+Plan: 01 of 2 complete
+Status: Executing Phase 30
 Last activity: 2026-03-28
 
 Progress: [█░░░░░░░░░] 10%
