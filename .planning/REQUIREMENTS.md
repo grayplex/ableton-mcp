@@ -26,9 +26,9 @@
 
 ### State Analysis
 
-- [ ] **STATE-01**: User can retrieve current device parameters for every device on every track in a single MCP tool call — returns a complete snapshot of the session's mix state without N sequential reads
-- [ ] **GAIN-01**: User can run a gain staging check — returns per-track dBFS estimates from track meter levels, compares to role-based targets, and flags tracks significantly above or below target
-- [ ] **GAIN-02**: Gain staging check excludes MIDI tracks with no instrument loaded from analysis — no false-positive flags on empty scaffold tracks
+- [x] **STATE-01**: User can retrieve current device parameters for every device on every track in a single MCP tool call — returns a complete snapshot of the session's mix state without N sequential reads
+- [x] **GAIN-01**: User can run a gain staging check — returns per-track dBFS estimates from track meter levels, compares to role-based targets, and flags tracks significantly above or below target
+- [x] **GAIN-02**: Gain staging check excludes MIDI tracks with no instrument loaded from analysis — no false-positive flags on empty scaffold tracks
 
 ### Mix Intelligence
 
