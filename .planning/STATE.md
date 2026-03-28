@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Mix/Master Intelligence
 status: planned
-stopped_at: Completed 32-02-PLAN.md
-last_updated: "2026-03-28T21:04:42.647Z"
+stopped_at: Completed 32-01-PLAN.md
+last_updated: "2026-03-28T21:23:00.000Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 10
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** An AI assistant can produce actual music in Ableton -- with mix/master intelligence that eliminates parameter guessing.
-**Current focus:** Phase 31 — apply-recipe-and-batch-parameter-tools
+**Current focus:** Phase 32 — device-state-reader-and-gain-staging
 
 ## Current Position
 
 Phase: 32
-Plan: Not started
-Status: Phase complete — ready for verification
+Plan: 01 complete
+Status: In progress
 Last activity: 2026-03-28
 
 Progress: [█░░░░░░░░░] 10%
@@ -58,6 +58,7 @@ Progress: [█░░░░░░░░░] 10%
 | Phase 30 P01 | 5min | 2 tasks | 5 files |
 | Phase 30 P02 | 5min | 2 tasks | 5 files |
 | Phase 31 P01 | 4min | 1 tasks | 9 files |
+| Phase 32 P01 | 2min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,9 @@ Recent decisions affecting current work:
 - [Phase 31-02]: apply_recipe RS handler uses recursive schedule_message pattern for sequential multi-device loading
 - [Phase 31-02]: DEVICE_PATHS dict maps 12 CATALOG class names to browser paths at module level
 - [Phase 31-02]: set_sidechain_source uses case-insensitive substring match on display_name for routing resolution
+- [Phase 32-01]: get_mix_state includes all tracks even with devices: [] — Phase 33 needs scaffold track awareness
+- [Phase 32-01]: get_track_meters excludes MIDI tracks with len(devices)==0 (GAIN-02 scaffold exclusion)
+- [Phase 32-01]: GAIN_TARGETS in MCP_Server/devices/gain_targets.py as pure data module
 
 ### Roadmap Evolution
 
@@ -105,6 +109,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-28T21:04:42.644Z
-Stopped at: Completed 31-02-PLAN.md
+Last session: 2026-03-28T21:23:00.000Z
+Stopped at: Completed 32-01-PLAN.md
 Resume file: None
