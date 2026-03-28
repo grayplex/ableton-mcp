@@ -38,16 +38,16 @@ GENRE = {
     },
     "arrangement": {
         "sections": [
-            {"name": "intro", "bars": 8},
-            {"name": "verse", "bars": 16},
-            {"name": "prechorus", "bars": 8},
-            {"name": "chorus", "bars": 16},
-            {"name": "verse2", "bars": 16},
-            {"name": "prechorus2", "bars": 8},
-            {"name": "chorus2", "bars": 16},
-            {"name": "bridge", "bars": 8},
-            {"name": "chorus3", "bars": 16},
-            {"name": "outro", "bars": 8},
+            {"name": "intro", "bars": 8, "energy": 2, "roles": ["keys", "bass", "drums"]},
+            {"name": "verse", "bars": 16, "energy": 4, "roles": ["keys", "bass", "drums", "guitar", "vocal"], "transition_in": "vocal entry"},
+            {"name": "prechorus", "bars": 8, "energy": 5, "roles": ["keys", "bass", "drums", "guitar", "vocal", "strings"], "transition_in": "harmonic lift"},
+            {"name": "chorus", "bars": 16, "energy": 7, "roles": ["keys", "bass", "drums", "guitar", "vocal", "strings", "horn", "pad"], "transition_in": "full band entry"},
+            {"name": "verse2", "bars": 16, "energy": 4, "roles": ["keys", "bass", "drums", "guitar", "vocal", "percussion"], "transition_in": "strip to groove"},
+            {"name": "prechorus2", "bars": 8, "energy": 6, "roles": ["keys", "bass", "drums", "guitar", "vocal", "strings"], "transition_in": "building tension"},
+            {"name": "chorus2", "bars": 16, "energy": 8, "roles": ["keys", "bass", "drums", "guitar", "vocal", "strings", "horn", "pad", "percussion"], "transition_in": "full arrangement + new layers"},
+            {"name": "bridge", "bars": 8, "energy": 5, "roles": ["keys", "bass", "vocal", "pad", "fx"], "transition_in": "harmonic shift + sparse groove"},
+            {"name": "chorus3", "bars": 16, "energy": 9, "roles": ["keys", "bass", "drums", "guitar", "vocal", "strings", "horn", "pad", "percussion", "fx"], "transition_in": "final chorus + ad-libs"},
+            {"name": "outro", "bars": 8, "energy": 3, "roles": ["keys", "bass", "drums", "vocal"], "transition_in": "gradual wind-down"},
         ]
     },
     "mixing": {

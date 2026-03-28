@@ -37,12 +37,12 @@ GENRE = {
     },
     "arrangement": {
         "sections": [
-            {"name": "intro", "bars": 4},
-            {"name": "loop_a", "bars": 16},
-            {"name": "loop_b", "bars": 16},
-            {"name": "loop_a2", "bars": 16},
-            {"name": "loop_b2", "bars": 16},
-            {"name": "outro", "bars": 4},
+            {"name": "intro", "bars": 4, "energy": 1, "roles": ["vinyl_noise", "piano"]},
+            {"name": "loop_a", "bars": 16, "energy": 3, "roles": ["vinyl_noise", "piano", "bass", "kick", "snare", "hi-hats"], "transition_in": "beat fade-in"},
+            {"name": "loop_b", "bars": 16, "energy": 4, "roles": ["vinyl_noise", "piano", "bass", "kick", "snare", "hi-hats", "guitar", "sample"], "transition_in": "new melody layer"},
+            {"name": "loop_a2", "bars": 16, "energy": 3, "roles": ["vinyl_noise", "piano", "bass", "kick", "snare", "hi-hats", "pad"], "transition_in": "melody swap + pad entry"},
+            {"name": "loop_b2", "bars": 16, "energy": 4, "roles": ["vinyl_noise", "piano", "bass", "kick", "snare", "hi-hats", "guitar", "sample", "fx"], "transition_in": "final variation + texture"},
+            {"name": "outro", "bars": 4, "energy": 1, "roles": ["vinyl_noise", "piano"], "transition_in": "beat fadeout"},
         ]
     },
     "mixing": {

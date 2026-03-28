@@ -22,7 +22,9 @@
       "WebSearch",
       "Bash(node:*)",
       "Bash(cd:*)",
-      "Read"
+      "Read",
+      "Bash(pip show:*)",
+      "Skill(gsd:discuss-phase)"
     ]
   }
 }

@@ -38,13 +38,13 @@ GENRE = {
     },
     "arrangement": {
         "sections": [
-            {"name": "intro", "bars": 16},
-            {"name": "buildup", "bars": 8},
-            {"name": "drop", "bars": 32},
-            {"name": "breakdown", "bars": 16},
-            {"name": "buildup2", "bars": 8},
-            {"name": "drop2", "bars": 32},
-            {"name": "outro", "bars": 16},
+            {"name": "intro", "bars": 16, "energy": 2, "roles": ["kick", "hi-hats", "pad"]},
+            {"name": "buildup", "bars": 8, "energy": 5, "roles": ["kick", "hi-hats", "clap", "bass", "pad", "fx"], "transition_in": "filter sweep + riser"},
+            {"name": "drop", "bars": 32, "energy": 9, "roles": ["kick", "bass", "hi-hats", "clap", "lead", "pad", "stab"], "transition_in": "impact hit + full drop"},
+            {"name": "breakdown", "bars": 16, "energy": 4, "roles": ["pad", "lead", "fx"], "transition_in": "gradual strip-back"},
+            {"name": "buildup2", "bars": 8, "energy": 6, "roles": ["kick", "hi-hats", "clap", "bass", "pad", "fx"], "transition_in": "snare roll + filter sweep"},
+            {"name": "drop2", "bars": 32, "energy": 9, "roles": ["kick", "bass", "hi-hats", "clap", "lead", "pad", "stab", "vocal_chop"], "transition_in": "impact hit + drop"},
+            {"name": "outro", "bars": 16, "energy": 3, "roles": ["kick", "hi-hats", "pad"], "transition_in": "gradual element removal"},
         ]
     },
     "mixing": {
@@ -136,13 +136,13 @@ SUBGENRES = {
         },
         "arrangement": {
             "sections": [
-                {"name": "intro", "bars": 32},
-                {"name": "buildup", "bars": 16},
-                {"name": "drop", "bars": 32},
-                {"name": "breakdown", "bars": 32},
-                {"name": "buildup2", "bars": 16},
-                {"name": "drop2", "bars": 32},
-                {"name": "outro", "bars": 32},
+                {"name": "intro", "bars": 32, "energy": 2, "roles": ["pad", "percussion", "fx"]},
+                {"name": "buildup", "bars": 16, "energy": 5, "roles": ["kick", "bass", "pad", "lead", "fx"], "transition_in": "gradual layering + filter open"},
+                {"name": "drop", "bars": 32, "energy": 8, "roles": ["kick", "bass", "hi-hats", "clap", "lead", "pad"], "transition_in": "smooth transition + full arrangement"},
+                {"name": "breakdown", "bars": 32, "energy": 3, "roles": ["pad", "lead", "fx"], "transition_in": "filter close + element strip"},
+                {"name": "buildup2", "bars": 16, "energy": 6, "roles": ["kick", "bass", "pad", "lead", "percussion", "fx"], "transition_in": "slow layering + rising tension"},
+                {"name": "drop2", "bars": 32, "energy": 9, "roles": ["kick", "bass", "hi-hats", "clap", "lead", "pad", "stab"], "transition_in": "climactic drop"},
+                {"name": "outro", "bars": 32, "energy": 2, "roles": ["pad", "percussion", "fx"], "transition_in": "long fadeout + element removal"},
             ]
         },
     },

@@ -1,426 +1,454 @@
-# Architecture Patterns: v1.2 Genre/Style Blueprint Integration
+# Architecture Patterns: v1.3 Arrangement Intelligence
 
-**Domain:** Genre blueprint reference system for Ableton MCP server
-**Researched:** 2026-03-25
-**Confidence:** HIGH (architecture follows established codebase patterns)
+**Domain:** Arrangement intelligence layer for Ableton MCP server
+**Researched:** 2026-03-27
+**Confidence:** HIGH (architecture follows established codebase patterns, LOM constraints verified)
 
 ## Recommended Architecture
 
 ### Overview
 
-Genre blueprints are **static reference documents** that provide Claude with curated knowledge about electronic music conventions. They integrate into the existing MCP server as a new domain alongside the theory engine, following the same architectural patterns: a library package (`MCP_Server/blueprints/`) exposes data, and a tool module (`MCP_Server/tools/blueprints.py`) wraps it for MCP access.
+v1.3 adds three capabilities to the existing two-tier architecture:
 
-The key architectural decision: use **MCP tools (not resources)** as the delivery mechanism. Tools are model-controlled -- Claude decides when to fetch blueprint data based on conversation context. MCP resources require the client application to explicitly select them, which creates friction and is inconsistent across MCP clients.
+1. **Extended genre blueprint data** -- arrangement templates with energy curves, per-section element maps, and automation cues (data layer, MCP_Server only)
+2. **Production plan builder** -- server-side logic that combines genre blueprints + theory engine into actionable production plans (new module, MCP_Server only)
+3. **Session scaffolding** -- Remote Script commands that write locators and arrangement clips into Ableton (new Remote Script commands + new MCP tools)
 
-### Proposed File Structure
+No new tiers, no new protocols. Everything flows through the existing TCP socket.
 
 ```
+Claude (MCP Client)
+    |
+    | MCP protocol
+    v
 MCP_Server/
-  blueprints/                    # NEW: Blueprint library (parallel to theory/)
-    __init__.py                  # Public API: get_blueprint, list_genres, search_blueprints
-    catalog.py                   # Blueprint registry, lookup, search, subgenre merging
-    schema.py                    # Blueprint validation (TypedDict or runtime checks)
-    genres/                      # Blueprint data files (one per genre)
-      __init__.py                # Imports all genre modules
-      house.py                   # House + subgenres (deep, tech, progressive, etc.)
-      techno.py                  # Techno + subgenres (minimal, industrial, melodic, etc.)
-      drum_and_bass.py           # DnB + subgenres (liquid, neurofunk, jungle, etc.)
-      dubstep.py                 # Dubstep + subgenres (brostep, riddim, melodic, etc.)
-      trance.py                  # Trance + subgenres (progressive, uplifting, psytrance, etc.)
-      ambient.py                 # Ambient + subgenres (dark ambient, drone, etc.)
-      hip_hop.py                 # Hip-hop/trap + subgenres
-      neo_soul.py                # Neo-soul/R&B
-      synthwave.py               # Synthwave/retrowave
-      lo_fi.py                   # Lo-fi hip-hop/chill
-      future_bass.py             # Future bass
-      disco_funk.py              # Disco/nu-disco/funk
-  tools/
-    blueprints.py                # NEW: MCP tool wrappers (parallel to theory.py)
-tests/
-  test_blueprints.py             # NEW: Blueprint library + tool tests
+    tools/production.py     <-- NEW: plan + scaffold tools
+    production/             <-- NEW: plan builder logic
+        __init__.py
+        planner.py          <-- plan generation from blueprint + vibe
+        scaffold.py         <-- Ableton scaffolding orchestration
+    genres/
+        schema.py           <-- MODIFIED: extended ArrangementEntry
+        house.py            <-- MODIFIED: enriched arrangement data
+        ... (all 12 genres)
+    tools/arrangement.py    <-- MODIFIED: new scaffolding tools
+    |
+    | TCP socket (localhost:9877)
+    v
+AbletonMCP_Remote_Script/
+    handlers/arrangement.py <-- MODIFIED: locator + batch clip commands
 ```
-
-### Why This Structure
-
-**Parallel to theory engine.** The theory engine established the pattern: `MCP_Server/theory/` is the library, `MCP_Server/tools/theory.py` is the tool layer. Blueprints follow identically: `MCP_Server/blueprints/` is the library, `MCP_Server/tools/blueprints.py` is the tool layer. Anyone who understands theory/ understands blueprints/ immediately.
-
-**One file per genre.** Each blueprint is substantial (80-120 lines of structured data). With 12 genres, a single file would be 1000-1400 lines. Separate files make individual genres easy to review, edit, and test.
-
-**Python dicts, not JSON/YAML/Markdown.** Three reasons:
-1. The theory engine uses Python catalogs (`PROGRESSION_CATALOG`, `RHYTHM_CATALOG`, `SCALE_CATALOG`). Consistency.
-2. No file I/O at runtime. Python modules load once at import time. The existing server has zero runtime file reads.
-3. Malformed Python fails at import with a clear traceback. Malformed YAML/JSON fails at runtime.
 
 ### Component Boundaries
 
 | Component | Responsibility | Communicates With |
 |-----------|---------------|-------------------|
-| `blueprints/genres/*.py` | Define individual genre blueprint data as dicts | Imported by `genres/__init__.py` |
-| `blueprints/genres/__init__.py` | Re-export all genre modules | Imported by `catalog.py` |
-| `blueprints/catalog.py` | Blueprint registry, lookup by genre/subgenre, listing, subgenre merge logic | Imported by `blueprints/__init__.py` |
-| `blueprints/schema.py` | Blueprint structure validation (ensure required keys exist) | Used by `catalog.py` at import |
-| `blueprints/__init__.py` | Public API surface (`get_blueprint`, `list_genres`) | Imported by `tools/blueprints.py` |
-| `tools/blueprints.py` | MCP tool wrappers with `@mcp.tool()` | Imports from `blueprints/` and `theory/`, registered on `mcp` |
+| `MCP_Server/production/planner.py` | Generate production plans from genre + vibe + key | genres catalog, theory engine |
+| `MCP_Server/production/scaffold.py` | Orchestrate Ableton scaffolding (locators, tracks, clips) | connection.py (sends commands) |
+| `MCP_Server/tools/production.py` | MCP tool definitions for plan + scaffold | planner.py, scaffold.py |
+| `handlers/arrangement.py` (extended) | New Remote Script commands for locators and batch ops | Ableton LOM (Song, Track, CuePoint) |
 
-### What Does NOT Change
+### What Is New vs. Modified
 
-| Component | Why No Change |
-|-----------|--------------|
-| Remote Script | Blueprints are pure server-side reference data (same as theory engine) |
-| `MCP_Server/connection.py` | No socket protocol changes needed |
-| `MCP_Server/server.py` | Tool registration via existing import chain |
-| `MCP_Server/theory/*.py` | No modifications. Blueprints reference theory concepts by name, not by import |
-| Existing tool modules | No modifications to any of the 17 existing tool files |
+| File | Status | Changes |
+|------|--------|---------|
+| `MCP_Server/production/__init__.py` | **NEW** | Package init |
+| `MCP_Server/production/planner.py` | **NEW** | Plan generation logic |
+| `MCP_Server/production/scaffold.py` | **NEW** | Scaffolding orchestration |
+| `MCP_Server/tools/production.py` | **NEW** | MCP tool definitions (4-6 tools) |
+| `MCP_Server/genres/schema.py` | **MODIFIED** | Extended ArrangementEntry TypedDict |
+| `MCP_Server/genres/*.py` (all 12) | **MODIFIED** | Enriched arrangement sections |
+| `MCP_Server/genres/catalog.py` | **NO CHANGE** | Auto-discovery works as-is |
+| `MCP_Server/tools/__init__.py` | **MODIFIED** | Add `production` to imports |
+| `MCP_Server/connection.py` | **MODIFIED** | Add new commands to _WRITE_COMMANDS |
+| `AbletonMCP_Remote_Script/handlers/arrangement.py` | **MODIFIED** | New locator + batch commands |
+| `AbletonMCP_Remote_Script/handlers/__init__.py` | **NO CHANGE** | arrangement already imported |
+| `tests/test_production.py` | **NEW** | Plan builder unit tests |
+| `tests/test_arrangement_schema.py` | **NEW** | Extended schema validation tests |
 
 ## Data Flow
 
-### Primary Flow: User Mentions a Genre
+### 1. Plan Generation (server-side only, no Ableton)
 
 ```
-User: "Help me make a deep house track"
-         |
-    [Claude recognizes genre context from conversation]
-         |
-    Claude calls get_genre_blueprint(genre="house", subgenre="deep_house")
-         |
-    tools/blueprints.py
-      → blueprints.get_blueprint("house", "deep_house")
-        → catalog.py looks up GENRE_CATALOG["house"]
-        → merges subgenre overrides from house.BLUEPRINT["subgenres"]["deep_house"]
-        → returns merged dict
-      → json.dumps(result)
-         |
-    Returns JSON: instrumentation, harmony, rhythm, arrangement, mixing conventions
-         |
-    Claude uses blueprint data to inform all subsequent tool calls:
-      - set_tempo(bpm=122)  (from bpm_range)
-      - create_midi_track() + load_instrument("Operator")  (from ableton_tips)
-      - build_chord(root="D", quality="min7")  (from harmony.chord_types)
-      - generate_progression(key="C", genre="rnb")  (from harmony conventions)
+Claude calls: generate_production_plan(genre="house", key="Am", vibe="dark minimal")
+    |
+    v
+tools/production.py
+    |-- genres.get_blueprint("house") --> full blueprint dict
+    |-- planner.build_plan(blueprint, key, vibe)
+    |       |-- reads blueprint["arrangement"]["sections"]
+    |       |-- reads blueprint["instrumentation"]["roles"]
+    |       |-- calls theory engine for key-resolved chords/scales
+    |       |-- assembles per-section element checklist
+    |       v
+    |   returns ProductionPlan dict:
+    |       {
+    |         "genre": "house",
+    |         "key": "Am",
+    |         "tempo": 124,
+    |         "sections": [
+    |           {
+    |             "name": "intro",
+    |             "bars": 16,
+    |             "start_beat": 0.0,
+    |             "energy": 0.3,
+    |             "elements": ["kick", "hi-hats", "pad"],
+    |             "checklist": [
+    |               {"element": "kick", "action": "four-on-the-floor, 127 vel"},
+    |               {"element": "hi-hats", "action": "offbeat 8th closed"},
+    |               {"element": "pad", "action": "Am7 sustained, LP 800Hz"},
+    |             ],
+    |             "automation_cues": ["filter LP sweep on pad"],
+    |             "transition_to_next": "noise riser last 4 bars"
+    |           },
+    |           ...
+    |         ],
+    |         "tracks_needed": ["Kick", "Bass", "Hi-Hats", "Pad", ...],
+    |       }
+    v
+Returned to Claude as JSON
 ```
 
-### Secondary Flow: Genre Discovery
+### 2. Session Scaffolding (requires Ableton)
 
 ```
-User: "What genres can you help me produce?"
-         |
-    Claude calls list_genre_blueprints()
-         |
-    Returns: [{genre: "house", display_name: "House", subgenres: [...], description: "..."},
-              {genre: "techno", ...}, ...]
+Claude calls: scaffold_arrangement(plan)
+    |
+    v
+tools/production.py --> scaffold.py
+    |
+    |-- For each section in plan:
+    |     send_command("create_locator", {time: start_beat, name: "INTRO"})
+    |
+    |-- For each track in plan.tracks_needed:
+    |     send_command("create_midi_track", {name: "Kick"})
+    |
+    |-- set_tempo(plan.tempo)
+    v
+Returns: {locators_created: 7, tracks_created: 8, tempo_set: 124}
 ```
 
-### Tertiary Flow: Theory Cross-Reference via Palette Tool
+### 3. Section Execution (Claude drives, using existing tools)
 
 ```
-User: "Set up a neo-soul session for me"
-         |
-    Claude calls get_genre_palette(genre="neo_soul", key="Eb")
-         |
-    tools/blueprints.py:
-      1. Loads blueprint: blueprints.get_blueprint("neo_soul")
-      2. Reads harmony section: chord_types=["maj7","min7","dom9"], scales=["dorian","mixolydian"]
-      3. Calls theory functions at RUNTIME (not import time):
-         - theory.build_chord("Eb", "maj7") → {midi: [55,59,62,65], ...}
-         - theory.build_chord("Eb", "min7") → {midi: [55,58,62,65], ...}
-         - theory.get_scale_pitches("Eb", "dorian") → {pitches: [...], ...}
-         - theory.generate_progression("Eb", genre="rnb") → {chords: [...], ...}
-      4. Assembles combined result
-         |
-    Returns JSON: key-resolved chords, scales, progressions + rhythm feel + BPM range
+Claude reads plan section[0] checklist:
+    |-- create_arrangement_midi_clip(track=0, start=0.0, length=64.0)
+    |-- add_notes_to_clip(...)    # existing tool
+    |-- load_instrument_or_effect(...)  # existing tool
+    |-- ...
+    v
+No new tools needed -- existing tools cover clip/note/device operations
 ```
 
-**Critical design principle:** Blueprints do NOT import or call theory functions. They store **convention names** (e.g., `"chord_types": ["min7", "dom9"]`). Only the `get_genre_palette` tool bridges the gap at runtime, keeping the two systems decoupled.
+## Critical LOM Constraint: Locator Creation
 
-## Blueprint Data Schema
+**CuePoint.time is READ-ONLY in the Ableton LOM.** You cannot set a locator's position directly. The only way to create a locator is:
 
-Each genre blueprint is a Python dict following this canonical structure:
+1. Set `Song.current_song_time` to the desired position (read-write property)
+2. Call `Song.set_or_delete_cue()` which toggles a cue point at the current position
+3. Find the newly created CuePoint in `Song.cue_points` and set its `name`
+
+This means locator creation requires a **sequential multi-step Remote Script command** rather than a simple single-call operation. The Remote Script handler must:
 
 ```python
-BLUEPRINT = {
-    # === Identity ===
-    "genre": "house",                          # Machine key (used in lookups)
-    "display_name": "House",                   # Human-readable name
-    "description": "Four-on-the-floor...",     # 1-2 sentence overview
-    "bpm_range": [118, 130],                   # [min, max] BPM
-    "time_signature": "4/4",                   # Primary time signature
+@command("create_locator", write=True)
+def _create_locator(self, params):
+    time = params["time"]
+    name = params["name"]
 
-    # === Subgenres (optional overrides) ===
-    "subgenres": {
-        "deep_house": {
-            "bpm_range": [118, 124],           # Override parent BPM
-            "description": "Warm, jazzy...",
-            "distinguishing_features": ["jazz chords", "warm pads"],
-            # Any key from parent can be overridden here
-        },
-    },
+    # Check if locator already exists at this time
+    for cp in self._song.cue_points:
+        if abs(cp.time - time) < 0.01:
+            cp.name = name  # Just rename existing
+            return {"created": False, "renamed": True, "time": time, "name": name}
 
-    # === Instrumentation ===
-    "instrumentation": {
-        "drums": {
-            "kick": {"role": "foundation", "pattern": "four-on-the-floor", "notes": "..."},
-            "snare_clap": {"role": "backbeat", "pattern": "2 and 4", "notes": "..."},
-            "hi_hats": {"role": "groove", "pattern": "offbeat 8ths", "notes": "..."},
-            "percussion": {"role": "texture", "elements": ["shaker", "rim", "conga"]},
-        },
-        "bass": {
-            "type": "synth bass",
-            "role": "groove + harmony",
-            "characteristics": ["driving", "syncopated"],
-            "octave_range": [1, 3],
-        },
-        "keys_pads": {
-            "types": ["electric piano", "analog pad"],
-            "role": "harmony + atmosphere",
-            "characteristics": ["warm", "filtered"],
-        },
-        "other": [],  # Additional instruments specific to genre
-    },
+    # Save current position
+    original_time = self._song.current_song_time
 
-    # === Harmony ===
-    "harmony": {
-        "key_preferences": ["minor", "dorian"],          # Preferred key/mode types
-        "chord_types": ["min7", "maj7", "dom9"],          # Chord quality names (theory engine compatible)
-        "common_progressions": [                           # Named progressions with Roman numerals
-            {"name": "Classic House", "numerals": ["i", "iv", "v", "i"]},
-        ],
-        "scales": ["natural_minor", "dorian"],             # Scale names (theory engine compatible)
-        "harmonic_rhythm": "1-2 chords per 4 bars",
-        "notes": "Harmony is sparse; chords filtered or evolving.",
-    },
+    # Move to target, create locator
+    self._song.current_song_time = time
+    self._song.set_or_delete_cue()
 
-    # === Rhythm ===
-    "rhythm": {
-        "feel": "straight with swing on hats",
-        "grid": "16th note",
-        "swing_amount": "0-15%",
-        "syncopation": "moderate on bass, heavy on percussion",
-        "notes": "Ghost notes on hats create shuffle feel.",
-    },
+    # Find and name the new cue point
+    for cp in self._song.cue_points:
+        if abs(cp.time - time) < 0.01:
+            cp.name = name
+            break
 
-    # === Arrangement ===
-    "arrangement": {
-        "structure": ["intro", "buildup", "drop", "breakdown", "drop", "outro"],
-        "section_lengths": {"intro": "16-32 bars", "buildup": "8-16 bars", "drop": "32 bars"},
-        "techniques": ["filter sweeps", "gradual layering", "energy curves"],
-        "total_length": "5-8 minutes",
-        "notes": "Additive/subtractive -- layers enter and exit gradually.",
-    },
+    # Restore position
+    self._song.current_song_time = original_time
 
-    # === Mixing ===
-    "mixing": {
-        "frequency_balance": "bass-heavy with clear high-end",
-        "key_frequencies": {"sub_bass": "30-60 Hz", "kick_fundamental": "60-100 Hz"},
-        "stereo_image": "kick/bass/snare center, hats/pads wide",
-        "effects": ["sidechain compression on bass from kick", "reverb on claps"],
-        "loudness_target": "-6 to -8 LUFS",
-        "notes": "Sidechain compression is essential to the pumping feel.",
-    },
-
-    # === Ableton-Specific Tips ===
-    "ableton_tips": {
-        "instruments": ["Operator for bass", "Wavetable for pads", "Drum Rack for drums"],
-        "effects": ["Compressor (sidechain)", "Auto Filter", "Reverb"],
-        "workflow_tips": ["Start with 8-bar loop", "Use Session View for jamming"],
-    },
-}
+    return {"created": True, "time": time, "name": name}
 ```
 
-### Schema Rationale
+**Risk:** If a cue point already exists at that position, `set_or_delete_cue()` will DELETE it instead. The handler MUST check `Song.cue_points` first and skip creation if one already exists at that time (rename instead).
 
-| Section | Maps To | Purpose |
-|---------|---------|---------|
-| `instrumentation` | Track/device tools (create tracks, load instruments) | What to build |
-| `harmony` | Theory tools (chord types, scales, progressions by name) | What notes to use |
-| `rhythm` | Rhythm pattern selection, groove settings | How notes feel |
-| `arrangement` | Arrangement tools, scene management | Song structure |
-| `mixing` | Mixer tools (volume, pan, effects, sends) | How it sounds |
-| `ableton_tips` | Browser/device tools (specific Ableton instruments) | DAW-specific guidance |
+**Batch consideration:** Creating 7 locators means 7 position moves. A `scaffold_arrangement` command that does all at once on the Remote Script side avoids 7 round-trips over TCP.
 
-### Subgenre Merge Strategy
-
-Subgenres override parent values at the top level. A shallow merge -- subgenre keys replace parent keys entirely (no deep dict merging) to keep behavior predictable:
-
-```python
-def get_blueprint(genre: str, subgenre: str | None = None) -> dict:
-    base = GENRE_CATALOG[genre].copy()
-    if subgenre and subgenre in base.get("subgenres", {}):
-        overrides = base["subgenres"][subgenre]
-        for key, value in overrides.items():
-            base[key] = value
-    # Remove subgenres dict from output (not needed by caller)
-    base.pop("subgenres", None)
-    return base
-```
-
-## MCP Delivery: Tools vs Resources Decision
-
-### Why Tools, Not Resources
-
-| Factor | Tools (`@mcp.tool`) | Resources (`@mcp.resource`) |
-|--------|---------------------|----------------------------|
-| Control | Model-controlled (Claude decides when to fetch) | Application-controlled (user must select in client UI) |
-| Client support | Universal across all MCP clients | Inconsistent -- some clients hide or poorly support resources |
-| Existing pattern | All 197 existing capabilities are tools | Zero resources in the codebase |
-| Discovery | Claude sees tool descriptions, calls when genre is mentioned | User must know to browse and attach a resource before chatting |
-| Dynamic params | Supports genre/subgenre/sections naturally | URI templates are less expressive |
-| Autonomy | Claude proactively loads relevant genre info | Breaks if user forgets to select the resource |
-
-**Decision: Tools.** Resources would require users to manually attach genre context before every conversation. With tools, Claude autonomously fetches blueprint data when a user mentions "make me a techno track." This is the natural UX.
-
-### Tool Design (3 Tools)
-
-Following the project's granular tool philosophy (23 theory tools, each doing one thing):
-
-```python
-@mcp.tool()
-def list_genre_blueprints(ctx: Context, category: str | None = None) -> str:
-    """List available genre/style blueprints. Returns genre names, subgenres, BPM ranges,
-    and brief descriptions. Use this to discover what genres are available before
-    fetching a full blueprint.
-
-    Parameters:
-    - category: Optional filter (e.g., "electronic", "urban", "ambient")
-    """
-
-@mcp.tool()
-def get_genre_blueprint(ctx: Context, genre: str, subgenre: str | None = None,
-                         sections: list[str] | None = None) -> str:
-    """Get a genre/style blueprint with production conventions covering instrumentation,
-    harmony, rhythm, arrangement, and mixing. Use this when producing music in a
-    specific genre to get authoritative guidance on conventions.
-
-    Parameters:
-    - genre: Genre identifier (e.g., "house", "techno", "drum_and_bass")
-    - subgenre: Optional subgenre (e.g., "deep_house", "minimal_techno")
-    - sections: Optional list of sections to return (e.g., ["harmony", "rhythm"]).
-                Returns all sections if omitted. Useful to save tokens.
-    """
-
-@mcp.tool()
-def get_genre_palette(ctx: Context, genre: str, key: str = "C",
-                       subgenre: str | None = None) -> str:
-    """Get a ready-to-use harmonic palette for a genre: chords, scales, and progressions
-    resolved to a specific musical key. Bridges genre conventions with the theory engine.
-
-    Parameters:
-    - genre: Genre identifier (e.g., "house", "techno", "neo_soul")
-    - key: Musical key to resolve to (e.g., "C", "Eb", "F#")
-    - subgenre: Optional subgenre for more specific conventions
-    """
-```
-
-### The `get_genre_palette` Bridge
-
-This is the one place where blueprints and theory intersect at the code level. It reads a blueprint's harmony conventions and calls theory functions to produce concrete output:
-
-```python
-# tools/blueprints.py (simplified)
-from MCP_Server.theory import build_chord, get_scale_pitches, generate_progression
-
-@mcp.tool()
-def get_genre_palette(ctx, genre, key="C", subgenre=None):
-    blueprint = _get_blueprint(genre, subgenre)
-    harmony = blueprint["harmony"]
-
-    chords = []
-    for quality in harmony["chord_types"][:6]:
-        try:
-            chords.append(build_chord(key, quality))
-        except Exception:
-            pass  # Skip unsupported qualities gracefully
-
-    scales = []
-    for scale_type in harmony["scales"][:3]:
-        try:
-            scales.append(get_scale_pitches(key, scale_type))
-        except Exception:
-            pass
-
-    return json.dumps({
-        "key": key, "genre": genre,
-        "suggested_chords": chords,
-        "suggested_scales": scales,
-        "bpm_range": blueprint["bpm_range"],
-        "rhythm_feel": blueprint["rhythm"]["feel"],
-    }, indent=2)
-```
+Sources:
+- [CuePoint LOM reference](https://docs.cycling74.com/apiref/lom/cuepoint/) -- confirms name is R/W, time is R/O
+- [Song LOM reference](https://docs.cycling74.com/apiref/lom/song/) -- confirms set_or_delete_cue() toggles at current position
 
 ## Patterns to Follow
 
-### Pattern 1: Python Catalog (from Theory Engine)
+### Pattern 1: Blueprint Extension (Backward-Compatible)
 
-Module-level dicts, registered in a central catalog, exposed through a clean public API. This is exactly how `PROGRESSION_CATALOG`, `RHYTHM_CATALOG`, and `SCALE_CATALOG` work.
+The existing `ArrangementEntry` TypedDict has only `name` and `bars`. Extend it with **optional** fields so existing blueprints remain valid during migration:
 
-### Pattern 2: Thin Tool Wrappers (from Theory Tools)
+```python
+# schema.py -- BEFORE
+class ArrangementEntry(TypedDict):
+    name: str
+    bars: int
 
-Every tool in `tools/theory.py` follows: validate input, call library function, `json.dumps()` result, catch exceptions with `format_error()`. Blueprint tools follow identically.
+# schema.py -- AFTER (two approaches, pick one)
 
-### Pattern 3: Section Filtering for Token Economy
+# Approach A: Subclass with total=False
+class ArrangementEntryV2(ArrangementEntry, total=False):
+    """Extended arrangement entry with optional v1.3 fields."""
+    energy: float           # 0.0-1.0, section energy level
+    elements: list[str]     # which instrumentation roles are active
+    automation_cues: list[str]  # automation hints for this section
+    transition: str         # transition description to next section
 
-A full blueprint is 2000+ tokens. The `sections` parameter on `get_genre_blueprint` lets Claude request only what it needs (e.g., just `["harmony"]` when building chords). This avoids flooding context with irrelevant mixing tips when the user is focused on chord progressions.
+# Approach B: Keep one class, validate optionals in validate_blueprint()
+# (simpler, matches current validation style)
+```
+
+Use approach B (validate optionals in `validate_blueprint()`) because the existing codebase uses runtime validation, not TypedDict enforcement. The validator already hand-checks each field; adding optional field checks fits naturally.
+
+**Why not a separate "arrangement_v2" key:** Breaks the clean one-key-per-dimension pattern. Extending the existing sections list is cleaner and the catalog/merger already handles it.
+
+### Pattern 2: Production Module (Mirrors Theory/Genres Pattern)
+
+Follow the same pattern as `MCP_Server/theory/` and `MCP_Server/genres/`:
+
+- **Library module** (`production/planner.py`): Pure functions, no Ableton dependency, fully unit-testable
+- **Orchestration module** (`production/scaffold.py`): Uses `connection.send_command()`, not directly testable without Ableton
+- **Tool module** (`tools/production.py`): Thin wrappers that call library functions
+
+This means `planner.py` can be tested with the same pattern as theory tests -- pure Python, no mocks needed.
+
+### Pattern 3: Checklist-Driven Execution
+
+The production plan includes per-section **checklists** -- ordered lists of elements to create. This addresses the stated goal of "nothing skipped under context pressure."
+
+The checklist is **data, not automation**. Claude reads it and executes each item using existing tools. The plan builder generates it; Claude consumes it. This avoids building a complex automation engine while solving the "forgot the hi-hats" problem.
+
+```python
+# Example checklist entry
+{
+    "element": "kick",
+    "action": "four-on-the-floor, 127 velocity, full section length",
+    "track_name": "Kick",
+    "priority": 1  # core elements first, flourishes last
+}
+```
+
+### Pattern 4: Batch Commands for Scaffolding
+
+Creating an arrangement scaffold involves many small operations (7 locators, 8 tracks). Rather than 15+ TCP round-trips, provide a batch scaffolding command on the Remote Script side:
+
+```python
+@command("scaffold_arrangement", write=True)
+def _scaffold_arrangement(self, params):
+    """Create locators and tracks for arrangement scaffolding.
+
+    Params:
+        locators: [{time, name}, ...]
+        tracks: [{name, type}, ...]  # type: "midi" or "audio"
+        tempo: float (optional)
+    """
+```
+
+This is consistent with how the existing codebase handles compound operations (e.g., `add_notes_to_clip` accepts a list of notes).
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Markdown Blob Blueprints
-Storing blueprints as markdown and returning raw text. Unstructured text cannot be filtered by section, cannot be programmatically cross-referenced, and is harder for Claude to parse reliably than JSON.
+### Anti-Pattern 1: Putting Plan Logic in the Remote Script
 
-### Anti-Pattern 2: Blueprint-Theory Tight Coupling
-Having blueprint modules import theory functions at load time or embed MIDI data. Creates circular dependency risk and makes blueprints fragile to theory changes. Blueprints store convention **names**; only `get_genre_palette` bridges at runtime.
+**What:** Moving production plan generation into the Remote Script
+**Why bad:** Remote Script runs in Ableton's embedded Python with no access to music21, no pip, limited stdlib. Theory engine is server-side only (established decision from v1.1).
+**Instead:** All plan logic in `MCP_Server/production/`. Remote Script only handles LOM operations.
 
-### Anti-Pattern 3: Single Mega-File
-All genres in one 1400-line `catalog.py`. Impossible to review or maintain. One file per genre.
+### Anti-Pattern 2: Separate Arrangement Data Files
 
-### Anti-Pattern 4: MCP Resources
-Using `@mcp.resource("blueprint://house")`. Resources are application-controlled, not model-controlled. Claude cannot autonomously fetch blueprints when it recognizes a genre. Also introduces a new primitive type the codebase has never used.
+**What:** Creating a separate `arrangements/` package parallel to `genres/`
+**Why bad:** Arrangement data is inherently tied to genre conventions. Separating it creates sync issues and doubles the lookup logic.
+**Instead:** Extend the existing `arrangement` section within each genre blueprint dict.
 
-### Anti-Pattern 5: Deep Dict Merging for Subgenres
-Recursive dict merging where subgenre partially overrides nested dicts. Behavior becomes unpredictable. Shallow merge (subgenre key replaces parent key entirely) is simple and sufficient.
+### Anti-Pattern 3: Auto-Executing Plans
 
-## Integration Points: New vs Modified
+**What:** A single tool that generates a plan AND scaffolds AND creates all clips
+**Why bad:** Claude loses visibility, can't adapt mid-execution, can't handle errors per-element. Long-running single command will timeout (existing TIMEOUT_WRITE is 15s). Violates the "session IS the plan" philosophy.
+**Instead:** Three-step workflow: (1) generate plan, (2) scaffold arrangement, (3) Claude executes section-by-section using existing tools.
 
-### New Components (to build)
+### Anti-Pattern 4: Storing Plan State Server-Side
 
-| Component | Lines (est.) | Dependencies |
-|-----------|-------------|--------------|
-| `MCP_Server/blueprints/__init__.py` | ~30 | None |
-| `MCP_Server/blueprints/catalog.py` | ~80 | Genre modules |
-| `MCP_Server/blueprints/schema.py` | ~40 | None |
-| `MCP_Server/blueprints/genres/__init__.py` | ~15 | Genre modules |
-| `MCP_Server/blueprints/genres/*.py` (12 files) | ~80-120 each | None |
-| `MCP_Server/tools/blueprints.py` | ~120 | `blueprints/`, `theory/`, `server.mcp` |
-| `tests/test_blueprints.py` | ~200 | `blueprints/` |
-| **Total new code** | **~1500-2000** | |
+**What:** Keeping plan state in MCP server memory between tool calls
+**Why bad:** MCP is stateless between tool invocations. Server may restart. Plan state would be lost.
+**Instead:** Return the full plan to Claude. Claude holds it in context. Plan is pure data (JSON dict).
 
-### Modified Components (2 files, minimal changes)
+## Integration Points with Existing Architecture
 
-| Component | Change | Lines Changed |
-|-----------|--------|--------------|
-| `MCP_Server/tools/__init__.py` | Add `blueprints` to import list | 1 line |
-| `pyproject.toml` | Add `MCP_Server.blueprints`, `MCP_Server.blueprints.genres` to packages | 2 lines |
+### Genre Blueprints (existing, to be extended)
+
+The plan builder reads from `genres.get_blueprint()` -- no new access pattern needed. The extended arrangement data flows through the existing catalog auto-discovery and subgenre merge. Subgenre arrangement overrides (like `progressive_house` already has) continue to work via shallow merge.
+
+### Theory Engine (existing, no changes)
+
+The plan builder calls theory functions to resolve chords/scales in the requested key:
+- `generate_progression(key, numerals, scale_type)` -- for section chord sequences
+- `get_scale_pitches(key, scale_name)` -- for melodic element hints
+- `build_chord(root, quality)` -- for specific chord voicings
+
+These are all existing functions in `MCP_Server/theory/`. No theory modifications needed.
+
+### Existing Arrangement Tools (existing, no changes)
+
+`create_arrangement_midi_clip`, `create_arrangement_audio_clip`, `get_arrangement_clips`, `duplicate_clip_to_arrangement` -- all continue to work unchanged. Claude uses these during section execution.
+
+### Existing Transport/Cue Tools (existing, no changes)
+
+`get_cue_points`, `set_or_delete_cue`, `jump_to_cue` -- already exist. The new `create_locator` command is a higher-level wrapper that handles the position-move-create-name dance. The existing tools remain for ad-hoc use.
+
+## Schema Extension Detail
+
+### Current ArrangementEntry
+
+```python
+{"name": "intro", "bars": 16}
+```
+
+### Extended ArrangementEntry (v1.3)
+
+```python
+{
+    "name": "intro",
+    "bars": 16,
+    "energy": 0.3,
+    "elements": ["kick", "hi-hats", "pad"],
+    "automation_cues": ["filter LP sweep on pad"],
+    "transition": "noise riser last 4 bars"
+}
+```
+
+### Validation Strategy
+
+The existing `validate_blueprint()` checks that each `arrangement.sections` entry has `name` (str) and `bars` (int). New fields are validated only if present:
+
+```python
+# In validate_blueprint(), after existing name/bars check on line 196:
+if "energy" in entry:
+    if not isinstance(entry["energy"], (int, float)):
+        raise ValueError(f"arrangement.sections[{i}].energy must be numeric")
+    if not (0.0 <= entry["energy"] <= 1.0):
+        raise ValueError(f"arrangement.sections[{i}].energy must be 0.0-1.0")
+if "elements" in entry:
+    if not isinstance(entry["elements"], list):
+        raise ValueError(f"arrangement.sections[{i}].elements must be a list")
+if "automation_cues" in entry:
+    if not isinstance(entry["automation_cues"], list):
+        raise ValueError(f"arrangement.sections[{i}].automation_cues must be a list")
+if "transition" in entry:
+    if not isinstance(entry["transition"], str):
+        raise ValueError(f"arrangement.sections[{i}].transition must be a string")
+```
+
+This is backward-compatible: blueprints without `energy`/`elements` pass validation. The plan builder treats missing fields as "use defaults from genre instrumentation roles."
+
+### Token Budget Impact
+
+Each genre blueprint is currently 537-670 tokens (per D-13 quality gate from v1.2). Adding 4 fields per section entry (~7 sections) adds roughly 150-200 tokens per genre. This keeps blueprints under ~850 tokens, well within acceptable limits. The plan builder output (returned to Claude, not stored in blueprints) is separate from blueprint token budget.
+
+## New MCP Tools (tools/production.py)
+
+| Tool | Purpose | Calls Ableton? |
+|------|---------|----------------|
+| `generate_production_plan` | Genre + key + vibe -> full plan with checklists | No |
+| `generate_section_plan` | Single section plan for targeted work | No |
+| `scaffold_arrangement` | Write locators + tracks into Ableton | Yes |
+| `get_section_checklist` | Extract checklist for one section from a plan | No |
+
+**Tool count:** 4 new tools (204 total). Consistent with project pattern of small, focused tools.
+
+**Why `generate_section_plan` exists:** The PROJECT.md states "Either mode: full track end-to-end OR targeted single section." This tool generates a plan for just one section, useful when Claude is working on a specific part.
+
+## New Remote Script Commands
+
+| Command | Type | Purpose |
+|---------|------|---------|
+| `create_locator` | write | Create named locator at specific beat position |
+| `delete_locator` | write | Delete locator at specific beat position |
+| `scaffold_arrangement` | write | Batch create locators + tracks + set tempo |
+| `get_arrangement_overview` | read | Return all locators + track names + total length |
+
+**Why `get_arrangement_overview`:** Claude needs to understand the current state before scaffolding (avoid duplicating locators) and during execution (know which sections exist). This is a read command that composites data from `Song.cue_points`, track names, and `Song.song_length`.
 
 ## Suggested Build Order
 
-| Order | Phase | What | Why This Order |
-|-------|-------|------|----------------|
-| 1 | Schema + Catalog | `schema.py`, `catalog.py`, `genres/__init__.py` | Foundation everything else depends on |
-| 2 | First Genre | `genres/house.py` (canonical example) | Validates schema with real data |
-| 3 | Core Tools | `tools/blueprints.py` with `list_genre_blueprints`, `get_genre_blueprint` | End-to-end validation: data -> API |
-| 4 | Tests | `test_blueprints.py` for catalog + tools | Regression safety before scaling |
-| 5 | Remaining Genres | 11 more `genres/*.py` files | Schema validated, now scale content |
-| 6 | Palette Bridge | `get_genre_palette` tool | Requires both blueprints and theory; build last |
-| 7 | Integration | Wire into `tools/__init__.py`, update `pyproject.toml` | Final wiring (trivial, but last to avoid import issues during dev) |
+### Phase 25: Blueprint Arrangement Extension
 
-**Rationale:** Front-load architectural decisions (schema, catalog, tools) and validate with one genre before committing to content for all 12. The palette bridge tool depends on both blueprints and theory being stable, so it comes last.
+1. Extend `ArrangementEntry` TypedDict with optional fields
+2. Update `validate_blueprint()` for new optional fields
+3. Enrich all 12 genre blueprints with energy/elements/automation data
+4. Tests: schema validation, backward compat, enriched data
+
+**Rationale:** Data-only, no Ableton needed, no new modules. Foundation for everything else. Mirrors Phase 20 (Blueprint Infrastructure) in scope.
+
+### Phase 26: Production Plan Builder
+
+1. Create `MCP_Server/production/` package
+2. Implement `planner.py` -- plan generation logic
+3. Create `tools/production.py` -- `generate_production_plan` + `generate_section_plan`
+4. Tests: plan generation with various genres/keys/vibes
+
+**Rationale:** Server-side only, pure Python, fully testable. Depends on Phase 25 for enriched data. Mirrors Phase 21 (Blueprint Tools) in scope.
+
+### Phase 27: Locator and Scaffolding Commands
+
+1. Add `create_locator`, `delete_locator`, `get_arrangement_overview` to Remote Script `handlers/arrangement.py`
+2. Add `scaffold_arrangement` batch command to Remote Script
+3. Add MCP tool wrappers in `tools/production.py` or `tools/arrangement.py`
+4. Update `connection.py` with new write commands
+5. Tests: unit tests for scaffold logic, integration notes for Remote Script
+
+**Rationale:** Requires Ableton for integration testing. Depends on Phase 26 for plan structure that scaffolding consumes.
+
+### Phase 28: Section Execution and Quality Gate
+
+1. Add `get_section_checklist` tool
+2. End-to-end workflow validation
+3. Verify full workflow: plan -> scaffold -> execute section checklists
+4. Quality gate: full arrangement from blueprint to Ableton
+
+**Rationale:** Integration phase. Everything comes together. Mirrors Phase 24 (Quality Gate) in scope.
+
+**Phase ordering rationale:**
+- Phase 25 before 26: Plan builder needs enriched arrangement data to generate meaningful checklists
+- Phase 26 before 27: Scaffolding needs plan structure to know what locators/tracks to create
+- Phase 27 before 28: Section execution needs locators/tracks in Ableton
+- Each phase is independently shippable and testable
+
+## Scalability Considerations
+
+| Concern | Current (12 genres) | At 30 genres | At 100 genres |
+|---------|---------------------|--------------|---------------|
+| Blueprint size | ~600-850 tokens/genre | Same per genre | Same per genre |
+| Plan generation time | <50ms | <50ms | <50ms |
+| Scaffold time (7 locators) | ~1s (7 TCP round-trips) | Same | Same |
+| Scaffold time (batch) | ~200ms (1 TCP call) | Same | Same |
+
+No scalability concerns. Plan generation is pure computation. Scaffolding is bounded by section count (typically 5-9 sections per genre), not genre count.
 
 ## Sources
 
-- Existing codebase: `MCP_Server/theory/progressions.py` (PROGRESSION_CATALOG), `MCP_Server/theory/rhythm.py` (RHYTHM_CATALOG), `MCP_Server/tools/theory.py` (tool wrapper pattern), `MCP_Server/server.py` (FastMCP setup), `MCP_Server/tools/__init__.py` (import-based registration)
-- [MCP Resources vs Tools](https://medium.com/@laurentkubaski/mcp-resources-explained-and-how-they-differ-from-mcp-tools-096f9d15f767) -- Resources are application-controlled, tools are model-controlled
-- [MCP Features Guide](https://workos.com/blog/mcp-features-guide) -- Tools, Resources, Prompts interaction patterns
-- [FastMCP Resource/Prompt docs](https://gofastmcp.com/servers/prompts) -- Decorator syntax and usage
-- [FastMCP Tutorial](https://gofastmcp.com/tutorials/create-mcp-server) -- Server patterns
+- [CuePoint LOM reference](https://docs.cycling74.com/apiref/lom/cuepoint/) -- CuePoint.name R/W, CuePoint.time R/O
+- [Song LOM reference](https://docs.cycling74.com/apiref/lom/song/) -- Song.cue_points, set_or_delete_cue(), current_song_time R/W
+- [Live Object Model overview](https://docs.cycling74.com/legacy/max8/vignettes/live_object_model) -- LOM hierarchy and class relationships
+- Existing codebase: `MCP_Server/genres/schema.py` (current TypedDict + validation), `MCP_Server/genres/catalog.py` (auto-discovery + merge), `AbletonMCP_Remote_Script/handlers/arrangement.py` (existing arrangement commands), `AbletonMCP_Remote_Script/handlers/transport.py` (existing cue point commands), `MCP_Server/connection.py` (timeout/command classification)
 
 ---
-*Architecture research for: v1.2 Genre/Style Blueprints*
-*Researched: 2026-03-25*
+*Architecture research for: v1.3 Arrangement Intelligence*
+*Researched: 2026-03-27*

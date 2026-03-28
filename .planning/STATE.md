@@ -1,38 +1,38 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Genre/Style Blueprints
-status: v1.2 milestone complete
-stopped_at: Completed 24-01-PLAN.md
-last_updated: "2026-03-27T17:57:46.238Z"
+milestone: v1.3
+milestone_name: Arrangement Intelligence
+status: Milestone complete
+stopped_at: Completed 28-02-PLAN.md
+last_updated: "2026-03-28T06:28:49.125Z"
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 9
-  completed_plans: 9
+  total_phases: 4
+  completed_phases: 4
+  total_plans: 8
+  completed_plans: 8
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-25)
+See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** An AI assistant can produce actual music in Ableton — with harmonic intelligence and genre-aware conventions.
-**Current focus:** Phase 24 — palette-bridge-quality-gate
+**Current focus:** Phase 28 — section-execution-and-quality-gate
 
 ## Current Position
 
-Phase: 24
+Phase: 28
 Plan: Not started
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: —
+- Total plans completed: 3
+- Average duration: 16min
+- Total execution time: 47min
 
 ## Accumulated Context
 
@@ -55,12 +55,26 @@ Plan: Not started
 - [Phase 24]: Token budget lower bound adjusted from 800 to 400 -- actual blueprints are 537-670 tokens (cl100k_base)
 - [Phase 24]: Progression chord names use short quality forms (maj/min/dim/aug) stripped of octave digits from generate_progression output
 - [Phase 24]: Scale type heuristic: lowercase first Roman numeral = natural_minor, uppercase = major
+- [Phase 26-01]: bar_start is 1-based and cumulative: intro=1, buildup=17, drop=25 for house (16+8+32 pattern)
+- [Phase 26-01]: Vibe field conditional: included in output only when provided by caller (not None)
+- [Phase 26-01]: section_bar_overrides, add_sections, remove_sections declared in signature but not implemented (Plan 02)
+- [Phase 26-02]: _build_plan_sections returns tuple (plan_sections, warnings) after override refactor
+- [Phase 26-02]: Override order: remove -> add -> resize -> calculate bar positions (D-09)
+- [Phase 26-02]: Duplicate section name raises ValueError; caller converts to format_error
+- [Phase 26-02]: Nonexistent anchor/name produces warning string (not error) -- plan still returned
+- [Phase 26-02]: Added custom sections have roles=[] and no transition_in (no blueprint data)
+- [Phase 27-01]: Role dedup counts sections containing each role: lead in 3 sections = lead, lead 2, lead 3
+- [Phase 27-01]: Toggle safety: existing cue at target position renamed instead of toggled off
+- [Phase 27-01]: Playhead saved/restored around locator creation to avoid disrupting user position
+- [Phase 27-02]: get_arrangement_state is read-only handler; session_length_bars uses int() division not _beat_to_bar (length vs position)
+- [Phase 28]: Auto-approved checkpoint -- deferred live Ableton verification to next user session
 
 ### Roadmap Evolution
 
 - v1.0: Phases 1-13 (shipped 2026-03-23)
 - v1.1: Phases 14-19 (shipped 2026-03-26)
-- v1.2: Phases 20-24 (in progress)
+- v1.2: Phases 20-24 (shipped 2026-03-27)
+- v1.3: Phases 25-28 (in progress)
 
 ### Pending Todos
 
@@ -72,6 +86,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-27T17:10:17.385Z
-Stopped at: Completed 24-01-PLAN.md
+Last session: 2026-03-28T06:23:45.334Z
+Stopped at: Completed 28-02-PLAN.md
 Resume file: None

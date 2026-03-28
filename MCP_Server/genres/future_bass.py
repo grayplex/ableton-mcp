@@ -37,13 +37,13 @@ GENRE = {
     },
     "arrangement": {
         "sections": [
-            {"name": "intro", "bars": 8},
-            {"name": "buildup", "bars": 8},
-            {"name": "drop", "bars": 16},
-            {"name": "breakdown", "bars": 8},
-            {"name": "buildup2", "bars": 8},
-            {"name": "drop2", "bars": 16},
-            {"name": "outro", "bars": 8},
+            {"name": "intro", "bars": 8, "energy": 2, "roles": ["pad", "pluck", "fx"]},
+            {"name": "buildup", "bars": 8, "energy": 5, "roles": ["kick", "hi-hats", "bass", "pad", "vocal_chop", "fx"], "transition_in": "vocal chop entry + riser"},
+            {"name": "drop", "bars": 16, "energy": 9, "roles": ["supersaw", "bass", "kick", "snare", "hi-hats", "vocal_chop", "lead", "fx"], "transition_in": "silence gap + supersaw wall"},
+            {"name": "breakdown", "bars": 8, "energy": 3, "roles": ["pad", "pluck", "vocal_chop", "fx"], "transition_in": "drum strip + melody"},
+            {"name": "buildup2", "bars": 8, "energy": 6, "roles": ["kick", "hi-hats", "bass", "pad", "vocal_chop", "fx"], "transition_in": "snare build + filter sweep"},
+            {"name": "drop2", "bars": 16, "energy": 10, "roles": ["supersaw", "bass", "kick", "snare", "hi-hats", "vocal_chop", "lead", "percussion", "fx"], "transition_in": "impact + layered supersaw drop"},
+            {"name": "outro", "bars": 8, "energy": 2, "roles": ["pad", "pluck", "fx"], "transition_in": "fadeout + reverb tail"},
         ]
     },
     "mixing": {
