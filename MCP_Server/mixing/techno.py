@@ -589,3 +589,44 @@ RECIPE = {
         },
     },
 }
+
+# ---------------------------------------------------------------------------
+# Master bus recipe: GlueCompressor -> MultibandDynamics -> Limiter
+# Hard, loud, aggressive -- typical techno master chain
+# All values in natural units; converted to normalized by devices.convert
+# Param names match CATALOG keys exactly
+# ---------------------------------------------------------------------------
+
+MASTER_RECIPE = {
+    "GlueCompressor": {
+        "Threshold": -8.0,       # dB
+        "Ratio": 0.6,            # approx 4:1
+        "Attack": 0.2,           # fast
+        "Release": 0.3,
+        "Makeup": 3.0,           # dB
+        "Dry/Wet": 100.0,        # % (100% wet)
+        "Peak Clip In": 0,
+        "Range": 0.5,
+    },
+    "MultibandDynamics": {
+        "Master Output": 0.0,
+        "Band Activator (High)": 1,
+        "Band Activator (Mid)": 1,
+        "Band Activator (Low)": 1,
+        "Above Threshold (Low)": -14.0,
+        "Above Ratio (Low)": 0.7,
+        "Above Threshold (Mid)": -12.0,
+        "Above Ratio (Mid)": 0.6,
+        "Above Threshold (High)": -10.0,
+        "Above Ratio (High)": 0.6,
+        "Input Gain (Low)": 0.0,
+        "Input Gain (Mid)": 0.0,
+        "Input Gain (High)": 0.0,
+    },
+    "Limiter": {
+        "Input Gain": 5.0,       # dB
+        "Ceiling": 0.9,          # near unity
+        "Link": 1.0,
+        "Lookahead": 1,
+    },
+}

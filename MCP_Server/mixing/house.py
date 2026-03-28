@@ -639,3 +639,44 @@ RECIPE = {
         },
     },
 }
+
+# ---------------------------------------------------------------------------
+# Master bus recipe: GlueCompressor -> MultibandDynamics -> Limiter
+# Punchy, glued, loud -- classic house master chain
+# All values in natural units; converted to normalized by devices.convert
+# Param names match CATALOG keys exactly
+# ---------------------------------------------------------------------------
+
+MASTER_RECIPE = {
+    "GlueCompressor": {
+        "Threshold": -6.0,       # dB (-40 to 0)
+        "Ratio": 0.4,            # 0-2 range (approx 2:1)
+        "Attack": 0.3,           # 0-6 raw range (medium-fast)
+        "Release": 0.4,          # 0-6 raw range (auto-ish)
+        "Makeup": 2.0,           # dB (-15 to 15 natural)
+        "Dry/Wet": 100.0,        # % (0-100 natural -> linear)
+        "Peak Clip In": 0,       # off
+        "Range": 0.5,            # 0-70 raw range
+    },
+    "MultibandDynamics": {
+        "Master Output": 0.0,    # dB (-24 to 24)
+        "Band Activator (High)": 1,
+        "Band Activator (Mid)": 1,
+        "Band Activator (Low)": 1,
+        "Above Threshold (Low)": -12.0,   # dB
+        "Above Ratio (Low)": 0.6,         # -1 to 1
+        "Above Threshold (Mid)": -10.0,
+        "Above Ratio (Mid)": 0.5,
+        "Above Threshold (High)": -8.0,
+        "Above Ratio (High)": 0.5,
+        "Input Gain (Low)": 0.0,          # dB
+        "Input Gain (Mid)": 0.0,
+        "Input Gain (High)": 0.0,
+    },
+    "Limiter": {
+        "Input Gain": 4.0,       # dB (-15 to 15 natural)
+        "Ceiling": 0.7,          # 0-1 raw (lower = more limiting)
+        "Link": 1.0,             # 0-1
+        "Lookahead": 1,          # quantized 0-2 (0=off, 1=1ms, 2=6ms)
+    },
+}

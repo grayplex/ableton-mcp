@@ -15,6 +15,7 @@ logger = logging.getLogger("AbletonMCPServer")
 
 # Module-level registry populated on first access
 _registry: Dict[str, dict] = {}  # genre_id -> RECIPE dict
+_master_registry: Dict[str, dict] = {}  # genre_id -> MASTER_RECIPE dict
 _alias_map: Dict[str, str] = {}  # normalized genre alias -> genre_id
 _initialized = False
 
@@ -83,6 +84,11 @@ def _discover_recipes() -> None:
         _registry[modname] = recipe_data
         _alias_map[modname] = modname
 
+        # Also check for MASTER_RECIPE (master bus chain)
+        master_data = getattr(mod, "MASTER_RECIPE", None)
+        if master_data is not None:
+            _master_registry[modname] = master_data
+
     _initialized = True
 
 
@@ -121,6 +127,23 @@ def get_recipe(role: str, genre: str) -> Optional[dict]:
 
     recipe = _registry[genre_id]
     return recipe.get(resolved_role)
+
+
+def get_master_recipe(genre: str) -> Optional[dict]:
+    """Get master bus recipe for a genre.
+
+    Args:
+        genre: Genre ID (house, techno, etc.) or alias.
+
+    Returns:
+        Dict of device_class -> param_dict, or None if not found.
+    """
+    _ensure_initialized()
+    norm_genre = _normalize(genre)
+    genre_id = _alias_map.get(norm_genre) or _GENRE_ALIASES.get(norm_genre)
+    if genre_id is None or genre_id not in _master_registry:
+        return None
+    return _master_registry[genre_id]
 
 
 def list_recipes() -> List[str]:

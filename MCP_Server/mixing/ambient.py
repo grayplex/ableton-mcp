@@ -603,3 +603,44 @@ RECIPE = {
         },
     },
 }
+
+# ---------------------------------------------------------------------------
+# Master bus recipe: GlueCompressor -> MultibandDynamics -> Limiter
+# Gentle, transparent, wide -- ambient master chain
+# All values in natural units; converted to normalized by devices.convert
+# Param names match CATALOG keys exactly
+# ---------------------------------------------------------------------------
+
+MASTER_RECIPE = {
+    "GlueCompressor": {
+        "Threshold": -4.0,       # dB (gentle)
+        "Ratio": 0.2,            # ~1.5:1
+        "Attack": 0.5,           # slow
+        "Release": 0.6,
+        "Makeup": 1.0,           # dB
+        "Dry/Wet": 100.0,        # %
+        "Peak Clip In": 0,
+        "Range": 0.5,
+    },
+    "MultibandDynamics": {
+        "Master Output": 0.0,
+        "Band Activator (High)": 1,
+        "Band Activator (Mid)": 1,
+        "Band Activator (Low)": 1,
+        "Above Threshold (Low)": -8.0,
+        "Above Ratio (Low)": 0.4,
+        "Above Threshold (Mid)": -6.0,
+        "Above Ratio (Mid)": 0.3,
+        "Above Threshold (High)": -6.0,
+        "Above Ratio (High)": 0.3,
+        "Input Gain (Low)": 0.0,
+        "Input Gain (Mid)": 0.0,
+        "Input Gain (High)": 0.0,
+    },
+    "Limiter": {
+        "Input Gain": 2.0,       # dB (gentle)
+        "Ceiling": 0.5,
+        "Link": 1.0,
+        "Lookahead": 1,
+    },
+}
