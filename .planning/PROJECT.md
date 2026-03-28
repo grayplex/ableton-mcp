@@ -25,10 +25,18 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - ✓ PLAN-01..03: generate_production_plan and generate_section_plan MCP tools with override support (resize/add/remove sections) — v1.3 Phase 26
 - ✓ SCAF-01..02: scaffold_arrangement (writes locators + MIDI tracks to Arrangement view) and get_arrangement_overview (reads back arrangement state) MCP tools — v1.3 Phase 27
 - ✓ EXEC-01..02: get_section_checklist (per-role instrument status for a named section) and get_arrangement_progress (tracks with no instrument loaded) MCP tools — v1.3 Phase 28
+- ✓ CATL-01: Device parameter catalog — 12 built-in Ableton devices with 327 real parameters from live session; get_device_catalog MCP tool — v1.4 Phase 29
+- ✓ ROLE-01: Role taxonomy — 9 canonical mixing roles; get_role_taxonomy MCP tool — v1.4 Phase 29
+- ✓ RECIP-01: Core mix recipes — 4 genres × 9 roles, natural-unit parameter values for EQ/compression/reverb/panning/dynamics; get_mix_recipe MCP tool with alias support; pkgutil auto-discovery — v1.4 Phase 30
+- ✓ BATCH-01: set_device_parameters RS command — batch parameter set in single socket round-trip; registered in _WRITE_COMMANDS — v1.4 Phase 31
+- ✓ APPLY-01: apply_mix_recipe MCP tool — loads devices + converts natural-unit recipe to normalized payload + sends apply_recipe command in one call — v1.4 Phase 31
+- ✓ APPLY-02: apply_master_recipe MCP tool — applies full GlueCompressor + MultibandDynamics + Limiter chain to master track; MASTER_RECIPE constants for 4 core genres — v1.4 Phase 31
+- ✓ APPLY-03: apply_recipe RS handler with self_scheduling=True — recursive load + verify pattern guarantees atomicity; no race condition — v1.4 Phase 31
+- ✓ SIDE-01: set_sidechain_source RS handler + MCP tool — resolves source track by name via case-insensitive substring match on routing display names — v1.4 Phase 31
 
 ### Active
 
-(v1.3 complete — see REQUIREMENTS.md for full traceability)
+(v1.4 in progress — Phase 31 complete — see REQUIREMENTS.md for full traceability)
 
 ### Out of Scope
 
@@ -36,6 +44,21 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - Audio generation/synthesis — Ableton handles audio; MCP handles control
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
+
+## Current Milestone: v1.4 Mix/Master Intelligence
+
+**Goal:** Give Claude reliable mixing and mastering in Ableton by eliminating parameter guessing — role×genre recipes map principles to exact device values; analysis tools close the feedback loop.
+
+**Target features:**
+- Device parameter catalog (priority built-in devices mapped to API param names + value ranges)
+- Role × genre mix recipes (EQ, comp, reverb/delay, panning, dynamics per role per genre)
+- Apply recipe tool (load device + set all params in one MCP call)
+- Device state reader (get current params on any track's device chain)
+- Gain staging check (read volumes + clip levels, flag tracks outside target range)
+- Suggest adjustments (read current state → param diff with reasoning)
+- Spectrum analysis (frequency snapshot if LOM exposes it)
+- Master bus recipes per genre (multiband dynamics, glue comp, limiter with specific values)
+- Master bus tools (apply chain, read state)
 
 ## Completed Milestone: v1.3 Arrangement Intelligence (shipped 2026-03-28)
 
@@ -129,5 +152,22 @@ Two-tier: MCP server (FastMCP/Python 3) ↔ TCP socket (length-prefix framing) �
 - v1.2 milestone archived at `.planning/milestones/v1.2-ROADMAP.md`
 - Codebase map at `.planning/codebase/`
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd:transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-03-27 — v1.3 Arrangement Intelligence milestone started*
+*Last updated: 2026-03-28
