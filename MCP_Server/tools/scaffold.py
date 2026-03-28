@@ -54,6 +54,23 @@ def _deduplicate_roles(sections: list[dict]) -> list[str]:
     return result
 
 
+def _beat_to_bar(beat_position: float, beats_per_bar: float) -> int:
+    """Convert a 0-indexed beat position to a 1-indexed bar number.
+
+    Uses floor division so fractional positions map to the bar they fall within.
+
+    Args:
+        beat_position: Beat position (0-indexed, from Ableton cue point time).
+        beats_per_bar: Number of beats per bar, derived from time signature
+                       as numerator * (4 / denominator).
+
+    Returns:
+        1-indexed bar number.
+    """
+    import math
+    return math.floor(beat_position / beats_per_bar) + 1
+
+
 def _bar_to_beat(bar_start: int, beats_per_bar: float) -> float:
     """Convert a 1-based bar number to a 0-based beat position.
 
@@ -133,6 +150,45 @@ def scaffold_arrangement(ctx: Context, plan: dict) -> str:
     except Exception as e:
         return format_error(
             "Failed to scaffold arrangement",
+            detail=str(e),
+            suggestion="Verify Ableton connection with get_connection_status",
+        )
+
+
+@mcp.tool()
+def get_arrangement_overview(ctx: Context) -> str:
+    """Get arrangement state: locators, tracks, session length in bars.
+
+    Returns locators with 1-indexed bar positions, flat track name list,
+    and session length in bars for mid-session re-orientation.
+    """
+    try:
+        ableton = get_ableton_connection()
+        state = ableton.send_command("get_arrangement_state")
+
+        numerator = state["signature_numerator"]
+        denominator = state["signature_denominator"]
+        beats_per_bar = numerator * (4.0 / denominator)
+
+        locators = []
+        for cp in state["cue_points"]:
+            locators.append({
+                "name": cp["name"],
+                "bar": _beat_to_bar(cp["time"], beats_per_bar),
+            })
+
+        # D-15: session_length_bars is song_length / beats_per_bar (length, not position)
+        # Use int() division, NOT _beat_to_bar (which adds +1 for position-to-bar)
+        session_length_bars = int(state["song_length"] / beats_per_bar)
+
+        return json.dumps({
+            "locators": locators,
+            "tracks": state["tracks"],
+            "session_length_bars": session_length_bars,
+        })
+    except Exception as e:
+        return format_error(
+            "Failed to get arrangement overview",
             detail=str(e),
             suggestion="Verify Ableton connection with get_connection_status",
         )

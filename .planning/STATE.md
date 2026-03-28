@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Arrangement Intelligence
 status: Executing Phase 27
-stopped_at: Completed 27-01-PLAN.md
-last_updated: "2026-03-28T05:08:44.230Z"
+stopped_at: Completed 27-02-PLAN.md
+last_updated: "2026-03-28T05:24:15.000Z"
 progress:
   total_phases: 4
   completed_phases: 2
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-03-27)
 
 ## Current Position
 
-Phase: 27 (locator-and-scaffolding-commands) — EXECUTING
-Plan: 01 complete, 02 pending
+Phase: 27 (locator-and-scaffolding-commands)
+Plan: 2 of 2 complete
 
 ## Performance Metrics
 
@@ -66,6 +66,7 @@ Plan: 01 complete, 02 pending
 - [Phase 27-01]: Role dedup counts sections containing each role: lead in 3 sections = lead, lead 2, lead 3
 - [Phase 27-01]: Toggle safety: existing cue at target position renamed instead of toggled off
 - [Phase 27-01]: Playhead saved/restored around locator creation to avoid disrupting user position
+- [Phase 27-02]: get_arrangement_state is read-only handler; session_length_bars uses int() division not _beat_to_bar (length vs position)
 
 ### Roadmap Evolution
 
@@ -84,6 +85,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-28T05:17:00Z
-Stopped at: Completed 27-01-PLAN.md
+Last session: 2026-03-28T05:24:15Z
+Stopped at: Completed 27-02-PLAN.md
 Resume file: None

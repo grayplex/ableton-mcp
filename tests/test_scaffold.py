@@ -1,16 +1,18 @@
-"""Tests for scaffold_arrangement MCP tool and helpers.
+"""Tests for scaffold tools and helpers.
 
 Tests cover:
 - Role deduplication: flattening section roles into unique track names
 - Bar-to-beat conversion: mapping 1-based bar numbers to beat positions
+- Beat-to-bar conversion: mapping beat positions to 1-indexed bar numbers
 - scaffold_arrangement tool: end-to-end with mocked Ableton connection
+- get_arrangement_overview tool: reading arrangement state back
 """
 
 import json
 
 import pytest
 
-from MCP_Server.tools.scaffold import _bar_to_beat, _deduplicate_roles
+from MCP_Server.tools.scaffold import _bar_to_beat, _beat_to_bar, _deduplicate_roles
 
 
 # ---------------------------------------------------------------------------
@@ -232,3 +234,115 @@ async def test_scaffold_tools_registered(mcp_server):
     tools = await mcp_server.list_tools()
     names = {t.name for t in tools}
     assert "scaffold_arrangement" in names
+
+
+# ---------------------------------------------------------------------------
+# Beat-to-bar conversion tests
+# ---------------------------------------------------------------------------
+
+class TestBarConversions:
+    """Tests for _beat_to_bar pure function."""
+
+    def test_beat_to_bar_4_4(self):
+        """4/4 time: beat 0.0 -> bar 1, beat 16.0 -> bar 5."""
+        beats_per_bar = 4.0
+        assert _beat_to_bar(0.0, beats_per_bar) == 1
+        assert _beat_to_bar(16.0, beats_per_bar) == 5
+
+    def test_beat_to_bar_3_4(self):
+        """3/4 time: beat 0.0 -> bar 1, beat 12.0 -> bar 5."""
+        beats_per_bar = 3.0
+        assert _beat_to_bar(0.0, beats_per_bar) == 1
+        assert _beat_to_bar(12.0, beats_per_bar) == 5
+
+    def test_beat_to_bar_fractional(self):
+        """Fractional beat position floors to nearest bar: beat 5.0 -> bar 2 for 4/4."""
+        beats_per_bar = 4.0
+        assert _beat_to_bar(5.0, beats_per_bar) == 2  # floor(5/4)+1 = 2
+
+
+# ---------------------------------------------------------------------------
+# Arrangement overview tests
+# ---------------------------------------------------------------------------
+
+def _mock_overview_factory(cue_points=None, tracks=None, song_length=256.0,
+                           time_sig=(4, 4)):
+    """Return a side_effect function for mocking get_arrangement_state and other commands."""
+    if cue_points is None:
+        cue_points = [{"name": "intro", "time": 0.0}, {"name": "drop", "time": 64.0}]
+    if tracks is None:
+        tracks = ["kick", "bass", "lead"]
+
+    def side_effect(cmd, params=None):
+        if cmd == "get_arrangement_state":
+            return {
+                "cue_points": cue_points,
+                "tracks": tracks,
+                "song_length": song_length,
+                "signature_numerator": time_sig[0],
+                "signature_denominator": time_sig[1],
+            }
+        # Pass through other commands to the standard factory
+        return _mock_send_command_factory(time_sig=time_sig)(cmd, params)
+
+    return side_effect
+
+
+class TestArrangementOverview:
+    """Tests for get_arrangement_overview MCP tool with mocked Ableton connection."""
+
+    async def test_returns_locators_with_bar_positions(self, mcp_server, mock_connection):
+        """Locators have 1-indexed bar positions derived from cue point times."""
+        mock_connection.send_command.side_effect = _mock_overview_factory()
+
+        result = await mcp_server.call_tool("get_arrangement_overview", {})
+        text = result[0][0].text
+        parsed = json.loads(text)
+
+        assert parsed["locators"][0]["name"] == "intro"
+        assert parsed["locators"][0]["bar"] == 1  # beat 0.0 -> bar 1
+        assert parsed["locators"][1]["name"] == "drop"
+        assert parsed["locators"][1]["bar"] == 17  # beat 64.0 / 4 + 1 = 17
+
+    async def test_returns_flat_track_names(self, mcp_server, mock_connection):
+        """Tracks are returned as a flat list of name strings."""
+        mock_connection.send_command.side_effect = _mock_overview_factory()
+
+        result = await mcp_server.call_tool("get_arrangement_overview", {})
+        text = result[0][0].text
+        parsed = json.loads(text)
+
+        assert parsed["tracks"] == ["kick", "bass", "lead"]
+
+    async def test_session_length_bars(self, mcp_server, mock_connection):
+        """Session length in bars: 256 beats / 4 beats_per_bar = 64 bars."""
+        mock_connection.send_command.side_effect = _mock_overview_factory(
+            song_length=256.0
+        )
+
+        result = await mcp_server.call_tool("get_arrangement_overview", {})
+        text = result[0][0].text
+        parsed = json.loads(text)
+
+        assert parsed["session_length_bars"] == 64
+
+    async def test_empty_session(self, mcp_server, mock_connection):
+        """Empty session: no cue points, no tracks, song_length=0."""
+        mock_connection.send_command.side_effect = _mock_overview_factory(
+            cue_points=[], tracks=[], song_length=0.0
+        )
+
+        result = await mcp_server.call_tool("get_arrangement_overview", {})
+        text = result[0][0].text
+        parsed = json.loads(text)
+
+        assert parsed["locators"] == []
+        assert parsed["tracks"] == []
+        assert parsed["session_length_bars"] == 0
+
+
+async def test_overview_tool_registered(mcp_server):
+    """get_arrangement_overview is registered as an MCP tool."""
+    tools = await mcp_server.list_tools()
+    names = {t.name for t in tools}
+    assert "get_arrangement_overview" in names

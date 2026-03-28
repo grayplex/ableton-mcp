@@ -48,6 +48,33 @@ class ScaffoldHandler:
             self.log_message(f"Error creating locator: {e}")
             raise
 
+    @command("get_arrangement_state")
+    def _get_arrangement_state(self, params=None):
+        """Read arrangement state: cue points, tracks, song length, time sig.
+
+        Returns:
+            cue_points: List of {name, time} dicts from song cue points.
+            tracks: List of track name strings.
+            song_length: Total song length in beats.
+            signature_numerator: Time signature numerator.
+            signature_denominator: Time signature denominator.
+        """
+        cue_points = []
+        for cp in self._song.cue_points:
+            cue_points.append({"name": cp.name, "time": cp.time})
+
+        tracks = []
+        for track in self._song.tracks:
+            tracks.append(track.name)
+
+        return {
+            "cue_points": cue_points,
+            "tracks": tracks,
+            "song_length": self._song.song_length,
+            "signature_numerator": self._song.signature_numerator,
+            "signature_denominator": self._song.signature_denominator,
+        }
+
     @command("scaffold_tracks", write=True)
     def _scaffold_tracks(self, params):
         """Create multiple named MIDI tracks in one operation.

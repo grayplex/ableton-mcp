@@ -21,7 +21,7 @@
 ### Session Scaffolding
 
 - [x] **SCAF-01**: User can scaffold a full arrangement into Ableton — creates all named locators and named tracks in Arrangement view from a production plan in one atomic operation
-- [ ] **SCAF-02**: User can retrieve an arrangement overview from the active Ableton session — returns locators (with positions), track names, and session length for mid-session re-orientation
+- [x] **SCAF-02**: User can retrieve an arrangement overview from the active Ableton session — returns locators (with positions), track names, and session length for mid-session re-orientation
 
 ### Section Execution
 
