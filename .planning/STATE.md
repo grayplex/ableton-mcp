@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Mix/Master Intelligence
 status: executing
-stopped_at: Completed 30-01-PLAN.md
-last_updated: "2026-03-28T18:26:09Z"
+stopped_at: Completed 30-02-PLAN.md
+last_updated: "2026-03-28T18:36:56.376Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 10
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 12
   percent: 10
 ---
 
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 ## Current Position
 
 Phase: 30 (core-mix-recipes) — EXECUTING
-Plan: 01 of 2 complete
-Status: Executing Phase 30
+Plan: 2 of 2 complete
+Status: Ready to execute
 Last activity: 2026-03-28
 
 Progress: [█░░░░░░░░░] 10%
@@ -56,6 +56,7 @@ Progress: [█░░░░░░░░░] 10%
 | Phase 29 P02 | 2min | 1 tasks | 2 files |
 | Phase 29 P02 | 10min | 2 tasks | 4 files |
 | Phase 30 P01 | 5min | 2 tasks | 5 files |
+| Phase 30 P02 | 5min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,8 @@ Recent decisions affecting current work:
 - [Phase 29]: Real Ableton class name for Compressor is Compressor2 — test assertions and any future catalog references must use Compressor2
 - [Phase 30]: CATALOG uses 'Delay' as device class name (not 'ProxyAudioEffectDevice' as referenced in earlier planning)
 - [Phase 30]: Master recipes minimal (Eq8 + StereoGain only) -- Phase 34 adds full master chain with GlueCompressor + MultibandDynamics + Limiter
+- [Phase 30]: Used Delay device class name (not ProxyAudioEffectDevice) matching CATALOG
+- [Phase 30]: Ambient: gentle compression (1.3-2:1), long reverbs (3-5s), wide stereo; DnB: aggressive compression (5-6:1), DrumBuss on kick, short reverbs
 
 ### Roadmap Evolution
 
@@ -96,6 +99,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-28T18:26:09Z
-Stopped at: Completed 30-01-PLAN.md
+Last session: 2026-03-28T18:36:56.373Z
+Stopped at: Completed 30-02-PLAN.md
 Resume file: None
