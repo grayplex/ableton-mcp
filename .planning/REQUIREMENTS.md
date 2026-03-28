@@ -45,17 +45,15 @@
 
 ## Traceability
 
-*To be filled by roadmapper*
-
 | REQ-ID | Phase | Notes |
 |--------|-------|-------|
-| ARNG-01 | — | — |
-| ARNG-02 | — | — |
-| ARNG-03 | — | — |
-| PLAN-01 | — | — |
-| PLAN-02 | — | — |
-| PLAN-03 | — | — |
-| SCAF-01 | — | — |
-| SCAF-02 | — | — |
-| EXEC-01 | — | — |
-| EXEC-02 | — | — |
+| ARNG-01 | Phase 25 | Blueprint energy levels |
+| ARNG-02 | Phase 25 | Blueprint instrument roles |
+| ARNG-03 | Phase 25 | Blueprint transition descriptors |
+| PLAN-01 | Phase 26 | Full production plan generation |
+| PLAN-02 | Phase 26 | Single-section plan generation |
+| PLAN-03 | Phase 26 | Plan overrides/customization |
+| SCAF-01 | Phase 27 | Atomic scaffold into Ableton |
+| SCAF-02 | Phase 27 | Arrangement overview readback |
+| EXEC-01 | Phase 28 | Section execution checklist |
+| EXEC-02 | Phase 28 | Arrangement progress check |

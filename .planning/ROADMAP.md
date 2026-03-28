@@ -5,6 +5,7 @@
 - ✅ **v1.0 MVP** — Phases 1-13 (shipped 2026-03-23)
 - ✅ **v1.1 Theory Engine** — Phases 14-19 (shipped 2026-03-26)
 - ✅ **v1.2 Genre/Style Blueprints** — Phases 20-24 (shipped 2026-03-27)
+- [ ] **v1.3 Arrangement Intelligence** — Phases 25-28 (in progress)
 
 ## Phases
 
@@ -35,10 +36,96 @@ Genre blueprint system: 5 phases, 9 plans, 23 requirements, 12 genres, 3 MCP too
 
 </details>
 
+### v1.3 Arrangement Intelligence (In Progress)
+
+**Milestone Goal:** Give Claude a systematic production workflow -- plan sections from genre conventions, encode the plan into Ableton, and execute section-by-section without dropping the ball at tool call #40.
+
+**Phase Numbering:**
+- Integer phases (25, 26, 27, 28): Planned milestone work
+- Decimal phases (e.g., 26.1): Urgent insertions (marked with INSERTED)
+
+- [ ] **Phase 25: Blueprint Arrangement Extension** - Enrich all 12 genre blueprints with per-section energy levels, instrument roles, and transition descriptors
+- [ ] **Phase 26: Production Plan Builder** - Server-side plan generation from genre + key + BPM + vibe, with single-section and override support
+- [ ] **Phase 27: Locator and Scaffolding Commands** - Atomic locator creation and batch scaffold command writing the plan into Ableton Arrangement view
+- [ ] **Phase 28: Section Execution and Quality Gate** - Per-section execution checklists and arrangement progress checking for methodical, complete production
+
+## Phase Details
+
+### Phase 25: Blueprint Arrangement Extension
+**Goal**: Users can access rich per-section arrangement data from any genre blueprint -- energy curve, instrument roles, and transition descriptions -- enabling informed arrangement decisions
+**Depends on**: Nothing (first phase of v1.3; builds on v1.2 genre blueprint infrastructure)
+**Requirements**: ARNG-01, ARNG-02, ARNG-03
+**Success Criteria** (what must be TRUE):
+  1. User can call get_genre_blueprint for any of the 12 genres and see an integer energy level (1-10) for each arrangement section
+  2. User can call get_genre_blueprint and see a list of instrument roles (e.g. [kick, bass, lead, pad]) for each arrangement section
+  3. User can call get_genre_blueprint and see a transition_in descriptor string (e.g. "filter sweep + riser") for each arrangement section
+  4. All 148 existing genre tests pass without modification (backward-compatible schema extension)
+**Plans**: TBD
+
+Plans:
+- [ ] 25-01: TBD
+- [ ] 25-02: TBD
+
+### Phase 26: Production Plan Builder
+**Goal**: Users can generate concrete, token-efficient production plans from genre conventions and personal preferences -- full track or single section, with customizable overrides
+**Depends on**: Phase 25
+**Requirements**: PLAN-01, PLAN-02, PLAN-03
+**Success Criteria** (what must be TRUE):
+  1. User can call generate_production_plan with genre, key, BPM, and vibe and receive a flat production plan with all sections, calculated beat positions, and per-section checklists in under 400 tokens
+  2. User can call generate_section_plan for a single section name and receive a targeted plan without generating the full track plan
+  3. User can pass override parameters (e.g. shorter breakdown, add bridge, change bar counts) and receive a modified plan reflecting those overrides
+  4. Production plan output includes beat positions calculated from the session's time signature (not hardcoded to 4/4)
+**Plans**: TBD
+
+Plans:
+- [ ] 26-01: TBD
+- [ ] 26-02: TBD
+
+### Phase 27: Locator and Scaffolding Commands
+**Goal**: Users can write a production plan into Ableton's Arrangement view as named locators and named tracks in one operation, and re-orient mid-session by reading the arrangement state back
+**Depends on**: Phase 26
+**Requirements**: SCAF-01, SCAF-02
+**Success Criteria** (what must be TRUE):
+  1. User can call scaffold_arrangement with a production plan and see named locators at correct beat positions and named tracks created in Ableton Arrangement view in one atomic operation
+  2. User can call get_arrangement_overview and receive a summary of all locators (with positions), track names, and session length for mid-session re-orientation
+  3. Scaffold operation completes within the existing 15-second write timeout for a typical 7-section arrangement
+**Plans**: TBD
+
+Plans:
+- [ ] 27-01: TBD
+- [ ] 27-02: TBD
+
+**UI hint**: yes
+
+### Phase 28: Section Execution and Quality Gate
+**Goal**: Users can execute sections methodically with checklist guidance and verify that no scaffolded tracks were left empty -- nothing is skipped under context pressure
+**Depends on**: Phase 27
+**Requirements**: EXEC-01, EXEC-02
+**Success Criteria** (what must be TRUE):
+  1. User can call get_section_checklist for a named section and receive the list of pending instrument roles to be produced in that section
+  2. User can call an arrangement progress check and see which scaffolded MIDI tracks have no instrument loaded, preventing silent empty tracks
+  3. End-to-end workflow succeeds: genre blueprint to production plan to scaffolded Ableton session to section-by-section execution with checklist tracking
+**Plans**: TBD
+
+Plans:
+- [ ] 28-01: TBD
+- [ ] 28-02: TBD
+
 ## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 25 → 26 → 27 → 28
+
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 25. Blueprint Arrangement Extension | v1.3 | 0/2 | Not started | - |
+| 26. Production Plan Builder | v1.3 | 0/2 | Not started | - |
+| 27. Locator and Scaffolding Commands | v1.3 | 0/2 | Not started | - |
+| 28. Section Execution and Quality Gate | v1.3 | 0/2 | Not started | - |
 
 | Milestone | Phases | Plans | Requirements | Status | Shipped |
 |-----------|--------|-------|-------------|--------|---------|
 | v1.0 MVP | 1-13 | 33 | 53 | Complete | 2026-03-23 |
 | v1.1 Theory Engine | 14-19 | 12 | 24 | Complete | 2026-03-26 |
 | v1.2 Genre/Style Blueprints | 20-24 | 9 | 23 | Complete | 2026-03-27 |
+| v1.3 Arrangement Intelligence | 25-28 | TBD | 10 | In progress | - |
