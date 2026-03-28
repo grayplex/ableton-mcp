@@ -33,10 +33,13 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - ✓ APPLY-02: apply_master_recipe MCP tool — applies full GlueCompressor + MultibandDynamics + Limiter chain to master track; MASTER_RECIPE constants for 4 core genres — v1.4 Phase 31
 - ✓ APPLY-03: apply_recipe RS handler with self_scheduling=True — recursive load + verify pattern guarantees atomicity; no race condition — v1.4 Phase 31
 - ✓ SIDE-01: set_sidechain_source RS handler + MCP tool — resolves source track by name via case-insensitive substring match on routing display names — v1.4 Phase 31
+- ✓ STATE-01: get_mix_state RS command + MCP tool — full device parameter snapshot for all tracks in one call — v1.4 Phase 32
+- ✓ GAIN-01: check_gain_staging MCP tool — per-track dBFS estimates vs role-aware target ranges — v1.4 Phase 32
+- ✓ GAIN-02: MIDI scaffold track exclusion in get_track_meters RS handler — v1.4 Phase 32
 
 ### Active
 
-(v1.4 in progress — Phase 31 complete — see REQUIREMENTS.md for full traceability)
+(v1.4 in progress — Phase 32 complete — see REQUIREMENTS.md for full traceability)
 
 ### Out of Scope
 
