@@ -90,10 +90,10 @@ Plans:
   1. User can call suggest_mix_adjustments for a track and receive a list of parameter diffs (current value to suggested value) with a one-sentence reason per change
   2. Suggestions are based on comparing actual device state (from get_mix_state) against the role x genre recipe for that track
   3. Suggestions are returned for review only -- no parameters are changed without explicit user confirmation
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 33-01: TBD
+- [ ] 33-01-PLAN.md -- Intelligence tool, reverse conversion, and tests
 
 ### Phase 34: Full Genre Recipe Expansion
 **Goal**: Users can retrieve track and master bus mix recipes for all 12 genres, completing the full genre coverage
@@ -153,5 +153,5 @@ Phases execute in numeric order: 29 -> 30 -> 31 -> 32 -> 33 -> 34
 | 30. Core Mix Recipes | 2/2 | Complete    | 2026-03-28 |
 | 31. Apply Recipe and Batch Parameter Tools | 2/2 | Complete    | 2026-03-28 |
 | 32. Device State Reader and Gain Staging | 2/2 | Complete    | 2026-03-28 |
-| 33. Mix Adjustment Intelligence | 0/TBD | Not started | - |
+| 33. Mix Adjustment Intelligence | 0/1 | Not started | - |
 | 34. Full Genre Recipe Expansion | 0/TBD | Not started | - |
