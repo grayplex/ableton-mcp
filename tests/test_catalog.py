@@ -101,7 +101,7 @@ class TestCatalogData:
     def test_catalog_keys_are_class_names(self):
         """Key class names include the expected Ableton class identifiers."""
         assert "Eq8" in CATALOG
-        assert "Compressor" in CATALOG
+        assert "Compressor2" in CATALOG
         assert "GlueCompressor" in CATALOG
 
 

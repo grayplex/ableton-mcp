@@ -153,14 +153,20 @@ def bootstrap() -> None:
         print(f"Error: Could not get session info: {exc}")
         sys.exit(1)
 
-    tracks = session.get("tracks", [])
-    print(f"Session has {len(tracks)} tracks. Scanning for target devices...")
+    track_count = session.get("track_count", 0)
+    print(f"Session has {track_count} tracks. Scanning for target devices...")
 
     # Build a case-insensitive lookup from display name -> class_name + params
     found: dict[str, dict] = {}  # display_name -> catalog entry dict
 
-    for track_idx, track in enumerate(tracks):
-        device_count = track.get("num_devices", 0)
+    for track_idx in range(track_count):
+        try:
+            track = ableton.send_command("get_track_info", {"track_index": track_idx})
+        except Exception as exc:
+            print(f"  Warning: Could not get track {track_idx} info: {exc}")
+            continue
+        devices = track.get("devices", [])
+        device_count = len(devices)
         for device_idx in range(device_count):
             try:
                 result = ableton.send_command("get_device_parameters",
