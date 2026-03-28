@@ -62,7 +62,7 @@ Plans:
   3. End-to-end workflow succeeds: genre blueprint to production plan to scaffolded Ableton session to section-by-section execution with checklist tracking
 
 Plans:
-- [ ] 28-01-PLAN.md — Extend get_arrangement_state with device presence + create execution.py with get_section_checklist and get_arrangement_progress + full test coverage
+- [x] 28-01-PLAN.md — Extend get_arrangement_state with device presence + create execution.py with get_section_checklist and get_arrangement_progress + full test coverage (completed 2026-03-28)
 - [ ] 28-02-PLAN.md — Live Ableton end-to-end verification checkpoint
 
 **UI hint**: yes

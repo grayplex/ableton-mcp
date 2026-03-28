@@ -25,8 +25,8 @@
 
 ### Section Execution
 
-- [ ] **EXEC-01**: User can get a per-section execution checklist — returns pending instrument roles for a given section so Claude can execute methodically
-- [ ] **EXEC-02**: User can check arrangement progress — flags scaffolded MIDI tracks that have no instrument loaded, preventing silent empty tracks
+- [x] **EXEC-01**: User can get a per-section execution checklist — returns pending instrument roles for a given section so Claude can execute methodically
+- [x] **EXEC-02**: User can check arrangement progress — flags scaffolded MIDI tracks that have no instrument loaded, preventing silent empty tracks
 
 ## Future Requirements
 
