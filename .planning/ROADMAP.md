@@ -150,7 +150,7 @@ Phases execute in numeric order: 29 -> 30 -> 31 -> 32 -> 33 -> 34
 |-------|----------------|--------|-----------|
 | 29. Device Parameter Catalog and Role Taxonomy | 2/2 | Complete    | 2026-03-28 |
 | 30. Core Mix Recipes | 2/2 | Complete    | 2026-03-28 |
-| 31. Apply Recipe and Batch Parameter Tools | 2/2 | Complete | 2026-03-28 |
+| 31. Apply Recipe and Batch Parameter Tools | 2/2 | Complete    | 2026-03-28 |
 | 32. Device State Reader and Gain Staging | 0/TBD | Not started | - |
 | 33. Mix Adjustment Intelligence | 0/TBD | Not started | - |
 | 34. Full Genre Recipe Expansion | 0/TBD | Not started | - |
