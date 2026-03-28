@@ -28,10 +28,15 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - ✓ CATL-01: Device parameter catalog — 12 built-in Ableton devices with 327 real parameters from live session; get_device_catalog MCP tool — v1.4 Phase 29
 - ✓ ROLE-01: Role taxonomy — 9 canonical mixing roles; get_role_taxonomy MCP tool — v1.4 Phase 29
 - ✓ RECIP-01: Core mix recipes — 4 genres × 9 roles, natural-unit parameter values for EQ/compression/reverb/panning/dynamics; get_mix_recipe MCP tool with alias support; pkgutil auto-discovery — v1.4 Phase 30
+- ✓ BATCH-01: set_device_parameters RS command — batch parameter set in single socket round-trip; registered in _WRITE_COMMANDS — v1.4 Phase 31
+- ✓ APPLY-01: apply_mix_recipe MCP tool — loads devices + converts natural-unit recipe to normalized payload + sends apply_recipe command in one call — v1.4 Phase 31
+- ✓ APPLY-02: apply_master_recipe MCP tool — applies full GlueCompressor + MultibandDynamics + Limiter chain to master track; MASTER_RECIPE constants for 4 core genres — v1.4 Phase 31
+- ✓ APPLY-03: apply_recipe RS handler with self_scheduling=True — recursive load + verify pattern guarantees atomicity; no race condition — v1.4 Phase 31
+- ✓ SIDE-01: set_sidechain_source RS handler + MCP tool — resolves source track by name via case-insensitive substring match on routing display names — v1.4 Phase 31
 
 ### Active
 
-(v1.4 in progress — Phase 30 complete — see REQUIREMENTS.md for full traceability)
+(v1.4 in progress — Phase 31 complete — see REQUIREMENTS.md for full traceability)
 
 ### Out of Scope
 
