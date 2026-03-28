@@ -1,454 +1,330 @@
-# Architecture Patterns: v1.3 Arrangement Intelligence
+# Architecture Patterns: v1.4 Mix/Master Intelligence
 
-**Domain:** Arrangement intelligence layer for Ableton MCP server
-**Researched:** 2026-03-27
-**Confidence:** HIGH (architecture follows established codebase patterns, LOM constraints verified)
+**Domain:** Mix/master intelligence layer for Ableton MCP server
+**Researched:** 2026-03-28
+**Confidence:** HIGH (architecture follows established codebase patterns, all integration points verified via code inspection)
 
 ## Recommended Architecture
 
-### Overview
+### High-Level Integration
 
-v1.3 adds three capabilities to the existing two-tier architecture:
+Mix/master intelligence integrates as a new `MCP_Server/mixing/` package -- parallel to `genres/` and `theory/` -- containing:
+1. **Device parameter catalog** (static data, curated)
+2. **Mix recipes** (role x genre x device-type mappings)
+3. **Recipe engine** (lookup + application logic)
 
-1. **Extended genre blueprint data** -- arrangement templates with energy curves, per-section element maps, and automation cues (data layer, MCP_Server only)
-2. **Production plan builder** -- server-side logic that combines genre blueprints + theory engine into actionable production plans (new module, MCP_Server only)
-3. **Session scaffolding** -- Remote Script commands that write locators and arrangement clips into Ableton (new Remote Script commands + new MCP tools)
-
-No new tiers, no new protocols. Everything flows through the existing TCP socket.
+New MCP tools in `MCP_Server/tools/mixing.py` expose recipe application, gain staging checks, and state reading. These tools **orchestrate existing Remote Script commands** -- no new Remote Script handlers are needed for the core recipe workflow.
 
 ```
-Claude (MCP Client)
-    |
-    | MCP protocol
-    v
 MCP_Server/
-    tools/production.py     <-- NEW: plan + scaffold tools
-    production/             <-- NEW: plan builder logic
-        __init__.py
-        planner.py          <-- plan generation from blueprint + vibe
-        scaffold.py         <-- Ableton scaffolding orchestration
-    genres/
-        schema.py           <-- MODIFIED: extended ArrangementEntry
-        house.py            <-- MODIFIED: enriched arrangement data
-        ... (all 12 genres)
-    tools/arrangement.py    <-- MODIFIED: new scaffolding tools
-    |
-    | TCP socket (localhost:9877)
-    v
-AbletonMCP_Remote_Script/
-    handlers/arrangement.py <-- MODIFIED: locator + batch clip commands
+  mixing/                    # NEW package (parallel to genres/, theory/)
+    __init__.py              # Public API exports
+    schema.py                # TypedDicts for recipes, device catalog entries
+    catalog.py               # Device parameter catalog (static dicts)
+    recipes/                 # Subpackage: per-genre recipe files
+      __init__.py            # Auto-discovery catalog (like genres/catalog.py)
+      house.py               # Role x device recipes for house
+      techno.py              # Role x device recipes for techno
+      ...                    # One file per genre
+    engine.py                # Recipe lookup + parameter resolution logic
+    gain.py                  # Gain staging analysis logic
+  tools/
+    mixing.py                # NEW tool module (MCP tools for mix/master)
 ```
 
 ### Component Boundaries
 
 | Component | Responsibility | Communicates With |
 |-----------|---------------|-------------------|
-| `MCP_Server/production/planner.py` | Generate production plans from genre + vibe + key | genres catalog, theory engine |
-| `MCP_Server/production/scaffold.py` | Orchestrate Ableton scaffolding (locators, tracks, clips) | connection.py (sends commands) |
-| `MCP_Server/tools/production.py` | MCP tool definitions for plan + scaffold | planner.py, scaffold.py |
-| `handlers/arrangement.py` (extended) | New Remote Script commands for locators and batch ops | Ableton LOM (Song, Track, CuePoint) |
+| `mixing/catalog.py` | Maps Ableton device class_names to parameter names, value ranges, and semantics | `mixing/engine.py` (lookup) |
+| `mixing/recipes/*.py` | Stores role x genre x device-type recipes as Python dicts | `mixing/engine.py` (lookup via recipes/__init__.py) |
+| `mixing/engine.py` | Resolves a recipe request into concrete device + parameter actions | `mixing/catalog.py`, `mixing/recipes/` |
+| `mixing/schema.py` | TypedDict definitions for catalog entries, recipes, gain targets | All mixing modules (type contract) |
+| `mixing/gain.py` | Gain staging analysis: compare current state to targets, produce diffs | `mixing/catalog.py` |
+| `tools/mixing.py` | MCP tool endpoints -- bridges engine to existing Remote Script commands | `mixing/engine.py`, `connection.py` (existing) |
+| Remote Script | **NO CHANGES** -- existing handlers already cover all needed operations | N/A |
 
-### What Is New vs. Modified
+### Data Flow
 
-| File | Status | Changes |
-|------|--------|---------|
-| `MCP_Server/production/__init__.py` | **NEW** | Package init |
-| `MCP_Server/production/planner.py` | **NEW** | Plan generation logic |
-| `MCP_Server/production/scaffold.py` | **NEW** | Scaffolding orchestration |
-| `MCP_Server/tools/production.py` | **NEW** | MCP tool definitions (4-6 tools) |
-| `MCP_Server/genres/schema.py` | **MODIFIED** | Extended ArrangementEntry TypedDict |
-| `MCP_Server/genres/*.py` (all 12) | **MODIFIED** | Enriched arrangement sections |
-| `MCP_Server/genres/catalog.py` | **NO CHANGE** | Auto-discovery works as-is |
-| `MCP_Server/tools/__init__.py` | **MODIFIED** | Add `production` to imports |
-| `MCP_Server/connection.py` | **MODIFIED** | Add new commands to _WRITE_COMMANDS |
-| `AbletonMCP_Remote_Script/handlers/arrangement.py` | **MODIFIED** | New locator + batch commands |
-| `AbletonMCP_Remote_Script/handlers/__init__.py` | **NO CHANGE** | arrangement already imported |
-| `tests/test_production.py` | **NEW** | Plan builder unit tests |
-| `tests/test_arrangement_schema.py` | **NEW** | Extended schema validation tests |
-
-## Data Flow
-
-### 1. Plan Generation (server-side only, no Ableton)
-
+**Apply Recipe Flow:**
 ```
-Claude calls: generate_production_plan(genre="house", key="Am", vibe="dark minimal")
-    |
-    v
-tools/production.py
-    |-- genres.get_blueprint("house") --> full blueprint dict
-    |-- planner.build_plan(blueprint, key, vibe)
-    |       |-- reads blueprint["arrangement"]["sections"]
-    |       |-- reads blueprint["instrumentation"]["roles"]
-    |       |-- calls theory engine for key-resolved chords/scales
-    |       |-- assembles per-section element checklist
-    |       v
-    |   returns ProductionPlan dict:
-    |       {
-    |         "genre": "house",
-    |         "key": "Am",
-    |         "tempo": 124,
-    |         "sections": [
-    |           {
-    |             "name": "intro",
-    |             "bars": 16,
-    |             "start_beat": 0.0,
-    |             "energy": 0.3,
-    |             "elements": ["kick", "hi-hats", "pad"],
-    |             "checklist": [
-    |               {"element": "kick", "action": "four-on-the-floor, 127 vel"},
-    |               {"element": "hi-hats", "action": "offbeat 8th closed"},
-    |               {"element": "pad", "action": "Am7 sustained, LP 800Hz"},
-    |             ],
-    |             "automation_cues": ["filter LP sweep on pad"],
-    |             "transition_to_next": "noise riser last 4 bars"
-    |           },
-    |           ...
-    |         ],
-    |         "tracks_needed": ["Kick", "Bass", "Hi-Hats", "Pad", ...],
-    |       }
-    v
-Returned to Claude as JSON
+Claude calls apply_mix_recipe(track_index, role, genre, device_type="eq")
+  --> tools/mixing.py looks up recipe via engine.resolve_recipe(role, genre, "eq")
+  --> engine returns: {device_path: "audio_effects/EQ Eight", params: [{name: "1 Frequency A", value: 80.0}, ...]}
+  --> tools/mixing.py calls existing load_instrument_or_effect(track_index, path=device_path)
+  --> tools/mixing.py calls existing set_device_parameter() for EACH param
+  --> Returns summary of what was applied
 ```
 
-### 2. Session Scaffolding (requires Ableton)
-
+**Read + Suggest Flow:**
 ```
-Claude calls: scaffold_arrangement(plan)
-    |
-    v
-tools/production.py --> scaffold.py
-    |
-    |-- For each section in plan:
-    |     send_command("create_locator", {time: start_beat, name: "INTRO"})
-    |
-    |-- For each track in plan.tracks_needed:
-    |     send_command("create_midi_track", {name: "Kick"})
-    |
-    |-- set_tempo(plan.tempo)
-    v
-Returns: {locators_created: 7, tracks_created: 8, tempo_set: 124}
+Claude calls get_mix_state(track_index)
+  --> tools/mixing.py calls existing get_device_parameters() for each device on track
+  --> Returns structured device chain state
+
+Claude calls suggest_mix_adjustments(track_index, role, genre)
+  --> tools/mixing.py reads current state (as above)
+  --> engine.diff_against_recipe(current_state, role, genre)
+  --> Returns param diffs with reasoning
 ```
 
-### 3. Section Execution (Claude drives, using existing tools)
-
+**Gain Staging Flow:**
 ```
-Claude reads plan section[0] checklist:
-    |-- create_arrangement_midi_clip(track=0, start=0.0, length=64.0)
-    |-- add_notes_to_clip(...)    # existing tool
-    |-- load_instrument_or_effect(...)  # existing tool
-    |-- ...
-    v
-No new tools needed -- existing tools cover clip/note/device operations
+Claude calls check_gain_staging()
+  --> tools/mixing.py reads all track volumes via existing mixer commands
+  --> gain.analyze(volumes, role_assignments) compares to target ranges
+  --> Returns flagged tracks with suggested adjustments
 ```
 
-## Critical LOM Constraint: Locator Creation
+## Key Architecture Decisions
 
-**CuePoint.time is READ-ONLY in the Ableton LOM.** You cannot set a locator's position directly. The only way to create a locator is:
+### 1. New `mixing/` Package (Not Inline in Genres)
 
-1. Set `Song.current_song_time` to the desired position (read-write property)
-2. Call `Song.set_or_delete_cue()` which toggles a cue point at the current position
-3. Find the newly created CuePoint in `Song.cue_points` and set its `name`
+**Decision:** Create `MCP_Server/mixing/` as a peer package to `genres/` and `theory/`.
 
-This means locator creation requires a **sequential multi-step Remote Script command** rather than a simple single-call operation. The Remote Script handler must:
+**Rationale:** The genre blueprints' `mixing` section contains *prose-level conventions* (e.g., "mono bass and kick, wide pads"). Mix recipes contain *exact device parameter values* (e.g., `EQ Eight.1 Frequency A = 80.0`). These are fundamentally different data types. Embedding parameter-level data in genre blueprints would:
+- Bloat blueprint token counts (currently 537-670 tokens; recipes would add 2000+ per genre)
+- Violate the "no helper functions" design decision for genre files (D-02)
+- Require schema changes that break the existing 12-genre validation suite
 
-```python
-@command("create_locator", write=True)
-def _create_locator(self, params):
-    time = params["time"]
-    name = params["name"]
+The `mixing/` package *references* genre IDs for recipe lookup but owns its own data.
 
-    # Check if locator already exists at this time
-    for cp in self._song.cue_points:
-        if abs(cp.time - time) < 0.01:
-            cp.name = name  # Just rename existing
-            return {"created": False, "renamed": True, "time": time, "name": name}
+### 2. Static Device Parameter Catalog (Not Auto-Discovered)
 
-    # Save current position
-    original_time = self._song.current_song_time
+**Decision:** Curate a static Python dict mapping device class_names to their parameters.
 
-    # Move to target, create locator
-    self._song.current_song_time = time
-    self._song.set_or_delete_cue()
+**Rationale:**
+- **Reliability:** Auto-discovery requires a live Ableton connection and device instantiation. Recipes need to work offline for validation/testing.
+- **Stability:** Ableton's built-in device parameters are stable across Live 12 versions. EQ Eight's "1 Frequency A" does not change between updates.
+- **Testing:** Static data can be validated in CI without Ableton running.
+- **Scope:** Start with ~10 priority devices (EQ Eight, Compressor, Glue Compressor, Limiter, Utility, Auto Filter, Reverb, Delay, Saturator, Multiband Dynamics). Covers 95% of mixing needs.
+- **Bootstrap:** Capture initial data by running `get_device_parameters` on each device in a live Ableton session, then store as static dicts.
 
-    # Find and name the new cue point
-    for cp in self._song.cue_points:
-        if abs(cp.time - time) < 0.01:
-            cp.name = name
-            break
+The catalog stores: `class_name`, `display_name`, `browser_path`, and a list of `{name, min, max, default, unit, semantic}` per parameter. The `semantic` field tags parameters by function (e.g., "frequency", "gain", "threshold", "ratio") enabling the engine to map recipe intent to parameter names.
 
-    # Restore position
-    self._song.current_song_time = original_time
+**Confidence:** HIGH -- existing `get_device_parameters` already returns this exact structure from live devices.
 
-    return {"created": True, "time": time, "name": name}
-```
+### 3. Orchestrate Existing Tools (No New Remote Script Commands)
 
-**Risk:** If a cue point already exists at that position, `set_or_delete_cue()` will DELETE it instead. The handler MUST check `Song.cue_points` first and skip creation if one already exists at that time (rename instead).
+**Decision:** Recipe application calls existing `load_browser_item` and `set_device_parameter` commands in sequence. No new Remote Script handler needed.
 
-**Batch consideration:** Creating 7 locators means 7 position moves. A `scaffold_arrangement` command that does all at once on the Remote Script side avoids 7 round-trips over TCP.
+**Rationale:**
+- Existing `load_browser_item` loads any device by browser path
+- Existing `set_device_parameter` sets any param by name or index with clamping
+- Existing `get_device_parameters` reads all params from any device
+- All three already support `track_type: "master"` for master bus operations
+- Adding a new "apply_recipe" Remote Script command would duplicate logic and create a maintenance burden
 
-Sources:
-- [CuePoint LOM reference](https://docs.cycling74.com/apiref/lom/cuepoint/) -- confirms name is R/W, time is R/O
-- [Song LOM reference](https://docs.cycling74.com/apiref/lom/song/) -- confirms set_or_delete_cue() toggles at current position
+**Tradeoff:** Multiple socket round-trips per recipe application (1 load + N param sets). At ~5ms per round-trip over localhost TCP, a 15-parameter recipe takes ~80ms total. Acceptable for a non-real-time workflow.
+
+**Confidence:** HIGH -- verified that all three commands exist and support master track type.
+
+### 4. Master Track: Same Tools, Different `track_type`
+
+**Decision:** Master bus tools use `track_type: "master"` on existing device/mixer tools. No separate tool set needed.
+
+**Rationale:**
+- `_resolve_track()` in the Remote Script already resolves `track_type: "master"` to `song.master_track`
+- `load_browser_item`, `set_device_parameter`, `get_device_parameters` all accept `track_type: "master"`
+- Master track uses `track_index: 0` (ignored when `track_type: "master"`)
+
+**What differs for master recipes:**
+- Recipe data: master bus recipes reference different devices (Multiband Dynamics, Glue Compressor, Limiter) and different parameter targets (e.g., ceiling, output gain)
+- The engine routes `role="master_bus"` to master-specific recipe data
+- The tools pass `track_type="master"` automatically when role is `master_bus`
+
+**No separate `apply_master_recipe` tool is needed** -- `apply_mix_recipe(track_index=0, track_type="master", role="master_bus", genre="house")` uses the same code path.
+
+**Important note on load_browser_item:** The current handler indexes into `self._song.tracks[track_index]`, which does NOT include the master track. Loading devices onto the master track may require either: (a) a small Remote Script fix to handle master track device loading, or (b) using the master track's existing device loading mechanism. This needs verification during implementation -- flag as a potential integration gap.
+
+### 5. Spectrum Analysis: Not Feasible via LOM
+
+**Decision:** Do NOT build spectrum analysis tools. Use gain staging + device state reading as the feedback loop instead.
+
+**Rationale:**
+- Ableton's Spectrum device is visualization-only. The LOM exposes its *control parameters* (FFT size, range, channel mode) but **not the frequency bin data** it displays. There is no API to read amplitude-per-frequency.
+- Max for Live can access audio buffers via `[snapshot~]` but this requires M4L device authoring, not Remote Script API calls.
+- The Remote Script API has no audio buffer access whatsoever.
+
+**Alternative feedback loop (sufficient for mixing intelligence):**
+1. **Read device state:** `get_device_parameters` on EQ/compressor shows current frequency/gain/threshold settings
+2. **Gain staging check:** Read track volumes, flag outliers against genre-appropriate targets
+3. **Recipe diff:** Compare current device params vs. recipe targets, suggest adjustments with reasoning
+
+**Confidence:** HIGH that Spectrum data is not accessible via LOM.
 
 ## Patterns to Follow
 
-### Pattern 1: Blueprint Extension (Backward-Compatible)
+### Pattern 1: Auto-Discovery Catalog (Reuse genres/ pattern)
 
-The existing `ArrangementEntry` TypedDict has only `name` and `bars`. Extend it with **optional** fields so existing blueprints remain valid during migration:
+**What:** Python dicts in individual files, auto-discovered via `pkgutil.iter_modules`, validated at import time.
 
+**Applied to mixing recipes:**
 ```python
-# schema.py -- BEFORE
-class ArrangementEntry(TypedDict):
-    name: str
-    bars: int
-
-# schema.py -- AFTER (two approaches, pick one)
-
-# Approach A: Subclass with total=False
-class ArrangementEntryV2(ArrangementEntry, total=False):
-    """Extended arrangement entry with optional v1.3 fields."""
-    energy: float           # 0.0-1.0, section energy level
-    elements: list[str]     # which instrumentation roles are active
-    automation_cues: list[str]  # automation hints for this section
-    transition: str         # transition description to next section
-
-# Approach B: Keep one class, validate optionals in validate_blueprint()
-# (simpler, matches current validation style)
-```
-
-Use approach B (validate optionals in `validate_blueprint()`) because the existing codebase uses runtime validation, not TypedDict enforcement. The validator already hand-checks each field; adding optional field checks fits naturally.
-
-**Why not a separate "arrangement_v2" key:** Breaks the clean one-key-per-dimension pattern. Extending the existing sections list is cleaner and the catalog/merger already handles it.
-
-### Pattern 2: Production Module (Mirrors Theory/Genres Pattern)
-
-Follow the same pattern as `MCP_Server/theory/` and `MCP_Server/genres/`:
-
-- **Library module** (`production/planner.py`): Pure functions, no Ableton dependency, fully unit-testable
-- **Orchestration module** (`production/scaffold.py`): Uses `connection.send_command()`, not directly testable without Ableton
-- **Tool module** (`tools/production.py`): Thin wrappers that call library functions
-
-This means `planner.py` can be tested with the same pattern as theory tests -- pure Python, no mocks needed.
-
-### Pattern 3: Checklist-Driven Execution
-
-The production plan includes per-section **checklists** -- ordered lists of elements to create. This addresses the stated goal of "nothing skipped under context pressure."
-
-The checklist is **data, not automation**. Claude reads it and executes each item using existing tools. The plan builder generates it; Claude consumes it. This avoids building a complex automation engine while solving the "forgot the hi-hats" problem.
-
-```python
-# Example checklist entry
-{
-    "element": "kick",
-    "action": "four-on-the-floor, 127 velocity, full section length",
-    "track_name": "Kick",
-    "priority": 1  # core elements first, flourishes last
+# MCP_Server/mixing/recipes/house.py
+RECIPES = {
+    "genre_id": "house",
+    "roles": {
+        "kick": {
+            "eq": {
+                "device": "eq_eight",
+                "params": [
+                    {"name": "1 Filter On A", "value": 1.0},
+                    {"name": "1 Filter Type A", "value": 6.0},
+                    {"name": "1 Frequency A", "value": 30.0},
+                ],
+            },
+            "compressor": {
+                "device": "compressor",
+                "params": [
+                    {"name": "Threshold", "value": -12.0},
+                    {"name": "Ratio", "value": 4.0},
+                ],
+            },
+        },
+        "bass": { ... },
+        "master_bus": {
+            "glue_compressor": { ... },
+            "limiter": { ... },
+            "eq": { ... },
+        },
+    },
 }
 ```
 
-### Pattern 4: Batch Commands for Scaffolding
+### Pattern 2: Engine Module (Reuse theory/ pattern)
 
-Creating an arrangement scaffold involves many small operations (7 locators, 8 tracks). Rather than 15+ TCP round-trips, provide a batch scaffolding command on the Remote Script side:
+**What:** Pure computation module with no Ableton dependency -- takes data in, returns data out.
 
+**Applied to mixing:**
 ```python
-@command("scaffold_arrangement", write=True)
-def _scaffold_arrangement(self, params):
-    """Create locators and tracks for arrangement scaffolding.
+# MCP_Server/mixing/engine.py
+def resolve_recipe(role: str, genre_id: str, device_type: str) -> ResolvedRecipe | None:
+    """Look up a recipe and resolve it against the device catalog."""
+    ...
 
-    Params:
-        locators: [{time, name}, ...]
-        tracks: [{name, type}, ...]  # type: "midi" or "audio"
-        tempo: float (optional)
-    """
+def diff_against_recipe(current_params: list[dict], recipe: ResolvedRecipe) -> list[ParamDiff]:
+    """Compare current device state to recipe target, return diffs."""
+    ...
 ```
 
-This is consistent with how the existing codebase handles compound operations (e.g., `add_notes_to_clip` accepts a list of notes).
+### Pattern 3: Thin Tool Layer (Reuse existing tools/ pattern)
+
+**What:** MCP tool functions are thin wrappers -- validate inputs, call library/engine, format output. No business logic in tools.
+
+```python
+# MCP_Server/tools/mixing.py
+@mcp.tool()
+def apply_mix_recipe(ctx: Context, track_index: int, role: str, genre: str,
+                     device_type: str, track_type: str = "track") -> str:
+    """Apply a mixing recipe..."""
+    recipe = engine.resolve_recipe(role, genre, device_type)
+    # ... call existing load + set_device_parameter commands
+```
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Putting Plan Logic in the Remote Script
+### Anti-Pattern 1: Mega-Tool That Does Everything
 
-**What:** Moving production plan generation into the Remote Script
-**Why bad:** Remote Script runs in Ableton's embedded Python with no access to music21, no pip, limited stdlib. Theory engine is server-side only (established decision from v1.1).
-**Instead:** All plan logic in `MCP_Server/production/`. Remote Script only handles LOM operations.
+**What:** A single `mix_track` tool that loads ALL devices AND sets ALL params for a role.
 
-### Anti-Pattern 2: Separate Arrangement Data Files
+**Why bad:** Too many socket calls in one tool invocation (could be 50+ round-trips). If one fails mid-way, partial state is hard to recover. Claude cannot inspect intermediate results.
 
-**What:** Creating a separate `arrangements/` package parallel to `genres/`
-**Why bad:** Arrangement data is inherently tied to genre conventions. Separating it creates sync issues and doubles the lookup logic.
-**Instead:** Extend the existing `arrangement` section within each genre blueprint dict.
+**Instead:** One tool per device-type application. Claude calls per device: EQ, then compressor, then send setup. Matches how a human mixes -- device by device, with listening between.
 
-### Anti-Pattern 3: Auto-Executing Plans
+### Anti-Pattern 2: Auto-Discovering Parameters from Live at Startup
 
-**What:** A single tool that generates a plan AND scaffolds AND creates all clips
-**Why bad:** Claude loses visibility, can't adapt mid-execution, can't handle errors per-element. Long-running single command will timeout (existing TIMEOUT_WRITE is 15s). Violates the "session IS the plan" philosophy.
-**Instead:** Three-step workflow: (1) generate plan, (2) scaffold arrangement, (3) Claude executes section-by-section using existing tools.
+**What:** Building the device catalog by querying Ableton for every built-in device's parameters.
 
-### Anti-Pattern 4: Storing Plan State Server-Side
+**Why bad:** Requires Ableton running for tests. Slow startup. Recipe authoring can't happen offline.
 
-**What:** Keeping plan state in MCP server memory between tool calls
-**Why bad:** MCP is stateless between tool invocations. Server may restart. Plan state would be lost.
-**Instead:** Return the full plan to Claude. Claude holds it in context. Plan is pure data (JSON dict).
+**Instead:** Static catalog, validated against live Ableton in integration tests only.
 
-## Integration Points with Existing Architecture
+### Anti-Pattern 3: Storing Recipes in Genre Blueprints
 
-### Genre Blueprints (existing, to be extended)
+**What:** Adding parameter-level recipe data to the existing genre blueprint `mixing` section.
 
-The plan builder reads from `genres.get_blueprint()` -- no new access pattern needed. The extended arrangement data flows through the existing catalog auto-discovery and subgenre merge. Subgenre arrangement overrides (like `progressive_house` already has) continue to work via shallow merge.
+**Why bad:** Breaks token budget. Breaks schema. Couples genre conventions with device specifics.
 
-### Theory Engine (existing, no changes)
+**Instead:** `mixing/` package references genre IDs. Genre `mixing` section = the *why*. Recipes = the *how*.
 
-The plan builder calls theory functions to resolve chords/scales in the requested key:
-- `generate_progression(key, numerals, scale_type)` -- for section chord sequences
-- `get_scale_pitches(key, scale_name)` -- for melodic element hints
-- `build_chord(root, quality)` -- for specific chord voicings
+### Anti-Pattern 4: New Remote Script Command for Recipe Application
 
-These are all existing functions in `MCP_Server/theory/`. No theory modifications needed.
+**What:** A Remote Script command that receives a full recipe payload and applies it.
 
-### Existing Arrangement Tools (existing, no changes)
+**Why bad:** Puts business logic in Ableton's Python sandbox. Harder to test/debug. Couples recipe format to socket protocol.
 
-`create_arrangement_midi_clip`, `create_arrangement_audio_clip`, `get_arrangement_clips`, `duplicate_clip_to_arrangement` -- all continue to work unchanged. Claude uses these during section execution.
+**Instead:** Keep intelligence server-side. Remote Script stays dumb.
 
-### Existing Transport/Cue Tools (existing, no changes)
+## Integration Points Summary (New vs. Modified)
 
-`get_cue_points`, `set_or_delete_cue`, `jump_to_cue` -- already exist. The new `create_locator` command is a higher-level wrapper that handles the position-move-create-name dance. The existing tools remain for ad-hoc use.
+### New Components
 
-## Schema Extension Detail
+| Component | Type | Description |
+|-----------|------|-------------|
+| `MCP_Server/mixing/__init__.py` | New package | Public API exports |
+| `MCP_Server/mixing/schema.py` | New module | TypedDicts for catalog, recipes, diffs |
+| `MCP_Server/mixing/catalog.py` | New module | Static device parameter catalog (~10 devices) |
+| `MCP_Server/mixing/recipes/` | New subpackage | Per-genre recipe files with auto-discovery |
+| `MCP_Server/mixing/engine.py` | New module | Recipe resolution + diff logic |
+| `MCP_Server/mixing/gain.py` | New module | Gain staging analysis |
+| `MCP_Server/tools/mixing.py` | New module | MCP tool endpoints |
 
-### Current ArrangementEntry
+### Modified Components
 
-```python
-{"name": "intro", "bars": 16}
-```
+| Component | Change | Reason |
+|-----------|--------|--------|
+| `MCP_Server/tools/__init__.py` | Add `import MCP_Server.tools.mixing` | Tool auto-registration |
+| Possibly `AbletonMCP_Remote_Script/handlers/browser.py` | Support `track_type: "master"` in `load_browser_item` | Master track device loading (needs verification) |
 
-### Extended ArrangementEntry (v1.3)
+### Existing Commands Reused (No Changes)
 
-```python
-{
-    "name": "intro",
-    "bars": 16,
-    "energy": 0.3,
-    "elements": ["kick", "hi-hats", "pad"],
-    "automation_cues": ["filter LP sweep on pad"],
-    "transition": "noise riser last 4 bars"
-}
-```
+| Command | Used For | Confidence |
+|---------|----------|------------|
+| `load_browser_item` | Loading devices onto tracks from recipes | HIGH (per-track); MEDIUM (master -- needs verification) |
+| `set_device_parameter` | Setting recipe parameter values | HIGH |
+| `get_device_parameters` | Reading current device state for diffs | HIGH |
+| `set_track_volume` | Gain staging adjustments | HIGH |
+| `set_send_level` | Setting up return track sends (reverb/delay) | HIGH |
 
-### Validation Strategy
-
-The existing `validate_blueprint()` checks that each `arrangement.sections` entry has `name` (str) and `bars` (int). New fields are validated only if present:
+## Recipe Data Structure
 
 ```python
-# In validate_blueprint(), after existing name/bars check on line 196:
-if "energy" in entry:
-    if not isinstance(entry["energy"], (int, float)):
-        raise ValueError(f"arrangement.sections[{i}].energy must be numeric")
-    if not (0.0 <= entry["energy"] <= 1.0):
-        raise ValueError(f"arrangement.sections[{i}].energy must be 0.0-1.0")
-if "elements" in entry:
-    if not isinstance(entry["elements"], list):
-        raise ValueError(f"arrangement.sections[{i}].elements must be a list")
-if "automation_cues" in entry:
-    if not isinstance(entry["automation_cues"], list):
-        raise ValueError(f"arrangement.sections[{i}].automation_cues must be a list")
-if "transition" in entry:
-    if not isinstance(entry["transition"], str):
-        raise ValueError(f"arrangement.sections[{i}].transition must be a string")
+class RecipeParam(TypedDict):
+    name: str           # Exact Ableton parameter name (e.g., "1 Frequency A")
+    value: float        # Target value
+    unit: str           # Documentation: "Hz", "dB", "ratio", "%"
+    reason: str         # Why this value (e.g., "high-pass below kick fundamental")
+
+class DeviceRecipe(TypedDict):
+    device: str         # catalog key (e.g., "eq_eight")
+    params: list[RecipeParam]
+
+class RoleRecipes(TypedDict, total=False):
+    eq: DeviceRecipe
+    compressor: DeviceRecipe
+    reverb_send: float         # Send level 0.0-1.0
+    delay_send: float          # Send level 0.0-1.0
+    pan: float                 # -1.0 to 1.0
+    volume: float              # 0.0 to 1.0 (gain staging target)
+
+class GenreRecipes(TypedDict):
+    genre_id: str
+    roles: dict[str, RoleRecipes]
 ```
-
-This is backward-compatible: blueprints without `energy`/`elements` pass validation. The plan builder treats missing fields as "use defaults from genre instrumentation roles."
-
-### Token Budget Impact
-
-Each genre blueprint is currently 537-670 tokens (per D-13 quality gate from v1.2). Adding 4 fields per section entry (~7 sections) adds roughly 150-200 tokens per genre. This keeps blueprints under ~850 tokens, well within acceptable limits. The plan builder output (returned to Claude, not stored in blueprints) is separate from blueprint token budget.
-
-## New MCP Tools (tools/production.py)
-
-| Tool | Purpose | Calls Ableton? |
-|------|---------|----------------|
-| `generate_production_plan` | Genre + key + vibe -> full plan with checklists | No |
-| `generate_section_plan` | Single section plan for targeted work | No |
-| `scaffold_arrangement` | Write locators + tracks into Ableton | Yes |
-| `get_section_checklist` | Extract checklist for one section from a plan | No |
-
-**Tool count:** 4 new tools (204 total). Consistent with project pattern of small, focused tools.
-
-**Why `generate_section_plan` exists:** The PROJECT.md states "Either mode: full track end-to-end OR targeted single section." This tool generates a plan for just one section, useful when Claude is working on a specific part.
-
-## New Remote Script Commands
-
-| Command | Type | Purpose |
-|---------|------|---------|
-| `create_locator` | write | Create named locator at specific beat position |
-| `delete_locator` | write | Delete locator at specific beat position |
-| `scaffold_arrangement` | write | Batch create locators + tracks + set tempo |
-| `get_arrangement_overview` | read | Return all locators + track names + total length |
-
-**Why `get_arrangement_overview`:** Claude needs to understand the current state before scaffolding (avoid duplicating locators) and during execution (know which sections exist). This is a read command that composites data from `Song.cue_points`, track names, and `Song.song_length`.
-
-## Suggested Build Order
-
-### Phase 25: Blueprint Arrangement Extension
-
-1. Extend `ArrangementEntry` TypedDict with optional fields
-2. Update `validate_blueprint()` for new optional fields
-3. Enrich all 12 genre blueprints with energy/elements/automation data
-4. Tests: schema validation, backward compat, enriched data
-
-**Rationale:** Data-only, no Ableton needed, no new modules. Foundation for everything else. Mirrors Phase 20 (Blueprint Infrastructure) in scope.
-
-### Phase 26: Production Plan Builder
-
-1. Create `MCP_Server/production/` package
-2. Implement `planner.py` -- plan generation logic
-3. Create `tools/production.py` -- `generate_production_plan` + `generate_section_plan`
-4. Tests: plan generation with various genres/keys/vibes
-
-**Rationale:** Server-side only, pure Python, fully testable. Depends on Phase 25 for enriched data. Mirrors Phase 21 (Blueprint Tools) in scope.
-
-### Phase 27: Locator and Scaffolding Commands
-
-1. Add `create_locator`, `delete_locator`, `get_arrangement_overview` to Remote Script `handlers/arrangement.py`
-2. Add `scaffold_arrangement` batch command to Remote Script
-3. Add MCP tool wrappers in `tools/production.py` or `tools/arrangement.py`
-4. Update `connection.py` with new write commands
-5. Tests: unit tests for scaffold logic, integration notes for Remote Script
-
-**Rationale:** Requires Ableton for integration testing. Depends on Phase 26 for plan structure that scaffolding consumes.
-
-### Phase 28: Section Execution and Quality Gate
-
-1. Add `get_section_checklist` tool
-2. End-to-end workflow validation
-3. Verify full workflow: plan -> scaffold -> execute section checklists
-4. Quality gate: full arrangement from blueprint to Ableton
-
-**Rationale:** Integration phase. Everything comes together. Mirrors Phase 24 (Quality Gate) in scope.
-
-**Phase ordering rationale:**
-- Phase 25 before 26: Plan builder needs enriched arrangement data to generate meaningful checklists
-- Phase 26 before 27: Scaffolding needs plan structure to know what locators/tracks to create
-- Phase 27 before 28: Section execution needs locators/tracks in Ableton
-- Each phase is independently shippable and testable
 
 ## Scalability Considerations
 
-| Concern | Current (12 genres) | At 30 genres | At 100 genres |
-|---------|---------------------|--------------|---------------|
-| Blueprint size | ~600-850 tokens/genre | Same per genre | Same per genre |
-| Plan generation time | <50ms | <50ms | <50ms |
-| Scaffold time (7 locators) | ~1s (7 TCP round-trips) | Same | Same |
-| Scaffold time (batch) | ~200ms (1 TCP call) | Same | Same |
-
-No scalability concerns. Plan generation is pure computation. Scaffolding is bounded by section count (typically 5-9 sections per genre), not genre count.
+| Concern | At 12 genres | At 30 genres | At 50+ genres |
+|---------|-------------|-------------|---------------|
+| Recipe file count | 12 files, manageable | 30 files, still fine with auto-discovery | Recipe inheritance (base -> subgenre override, like current SUBGENRES pattern) |
+| Device catalog | ~10 devices | ~10 devices (same built-in devices) | Same -- built-in devices are fixed |
+| Tool count | +5-8 new tools | Same tools | Same tools |
+| Token budget per recipe | ~800-1200 tokens per genre | Same | Same -- tool returns only requested recipe |
 
 ## Sources
 
-- [CuePoint LOM reference](https://docs.cycling74.com/apiref/lom/cuepoint/) -- CuePoint.name R/W, CuePoint.time R/O
-- [Song LOM reference](https://docs.cycling74.com/apiref/lom/song/) -- Song.cue_points, set_or_delete_cue(), current_song_time R/W
-- [Live Object Model overview](https://docs.cycling74.com/legacy/max8/vignettes/live_object_model) -- LOM hierarchy and class relationships
-- Existing codebase: `MCP_Server/genres/schema.py` (current TypedDict + validation), `MCP_Server/genres/catalog.py` (auto-discovery + merge), `AbletonMCP_Remote_Script/handlers/arrangement.py` (existing arrangement commands), `AbletonMCP_Remote_Script/handlers/transport.py` (existing cue point commands), `MCP_Server/connection.py` (timeout/command classification)
-
----
-*Architecture research for: v1.3 Arrangement Intelligence*
-*Researched: 2026-03-27*
+- Ableton Live Object Model: [LOM Reference](https://docs.cycling74.com/max8/vignettes/live_object_model) -- MEDIUM confidence (Max 8 docs, structure same in Live 12)
+- Ableton Forum on Spectrum device: [Push 3 spectrum 'No parameter mapped'](https://forum.ableton.com/viewtopic.php?t=247697) -- confirms Spectrum has no mappable parameters
+- Existing codebase: `_resolve_track()`, device tools, genre catalog, browser handler -- HIGH confidence (direct code inspection)
+- Ableton Live 12 Release Notes: [ableton.com](https://www.ableton.com/en/release-notes/live-12/) -- HIGH confidence

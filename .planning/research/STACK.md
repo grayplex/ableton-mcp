@@ -1,200 +1,201 @@
-# Technology Stack: v1.3 Arrangement Intelligence
+# Technology Stack
 
-**Project:** Ableton MCP v1.3
-**Researched:** 2026-03-27
+**Project:** Ableton MCP v1.4 -- Mix/Master Intelligence
+**Researched:** 2026-03-28
 
-## Recommended Stack
+## Existing Stack (No Changes)
 
-### No New External Dependencies
+These are already in place and sufficient. Listed for context only.
 
-v1.3 requires **zero new pip packages**. All arrangement intelligence features are pure Python logic (template data, plan builders, checklist generators) served through existing FastMCP tools, backed by existing Ableton LOM commands. This continues the v1.2 pattern: new internal modules, no new external deps.
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| Python | 3.11 | Remote Script runtime (Ableton-embedded) |
+| Python | >=3.10 | MCP Server runtime |
+| FastMCP (mcp[cli]) | >=1.3.0 | MCP server framework |
+| music21 | >=9.0 | Theory engine |
+| TCP socket | localhost:9877 | MCP Server <-> Remote Script IPC |
 
-**Rationale:** Arrangement templates are data (Python dicts extending genre blueprints). Production plans are computed from that data. Session scaffolding uses existing Ableton LOM APIs. No new computational domain (unlike v1.1 which needed music21 for theory).
+## New Stack Additions
 
-### Existing Stack (unchanged)
+### No New Dependencies Required
 
-| Technology | Version | Purpose | Status for v1.3 |
-|------------|---------|---------|-----------------|
-| Python | 3.10+ (host), 3.11 (Ableton) | Runtime | Unchanged |
-| mcp[cli] | >=1.3.0 | MCP server framework (FastMCP) | Unchanged |
-| music21 | >=9.0 | Theory engine backend | Unchanged (not directly used by v1.3) |
-| pytest | >=8.3 | Testing | Unchanged |
-| ruff | >=0.15.6 | Linting | Unchanged |
+**This is the key finding.** The v1.4 milestone requires zero new Python package dependencies. Here is why:
 
-### New Internal Modules (no external deps)
+1. **Device parameter catalog**: Pure Python data (dicts), following the same pattern as genre blueprints. No library exists for this -- Ableton device parameters are discoverable at runtime via the existing `get_device_parameters` tool, and the catalog is hand-authored reference data.
 
-| Module | Purpose | Dependencies |
-|--------|---------|--------------|
-| `MCP_Server/arrangement/` | Arrangement intelligence package | Python stdlib only |
-| `MCP_Server/arrangement/__init__.py` | Package init | None |
-| `MCP_Server/arrangement/templates.py` | Arrangement template builder (genre data + energy curves + per-section elements) | `MCP_Server/genres/` |
-| `MCP_Server/arrangement/planner.py` | Production plan builder (genre + vibe -> section plan) | `arrangement/templates.py` |
-| `MCP_Server/arrangement/checklist.py` | Section execution checklist generator | `arrangement/planner.py` |
-| `MCP_Server/tools/arrangement_intelligence.py` | New MCP tool wrappers for v1.3 features | `arrangement/`, `mcp` |
+2. **Role x genre mix recipes**: Pure Python data (dicts), extending the genre blueprint pattern. No library needed.
 
-**Note:** The existing `MCP_Server/tools/arrangement.py` (4 Ableton arrangement clip tools) and `AbletonMCP_Remote_Script/handlers/arrangement.py` (4 handlers) remain unchanged. v1.3 adds intelligence on top, not replacement.
+3. **dB/gain calculations**: Already implemented in `mixer_helpers.py` (`_to_db()` function with calibrated two-piece formula). Extend with inverse `_from_db()` for target-based gain staging.
 
-## Ableton LOM APIs Needed
+4. **LUFS measurement**: NOT feasible without audio file access. The MCP server controls Ableton -- it does not process audio streams. LUFS requires raw audio samples (pyloudnorm needs NumPy arrays of audio data). The Remote Script has no access to audio buffers. **Drop LUFS from scope.**
 
-### Already Available (existing v1.0 handlers)
+5. **Spectrum analysis**: NOT exposed via LOM. The Spectrum device is visual-only; its frequency bin data is not accessible through `Device.parameters` or any other LOM property. **Drop Spectrum frequency reading from scope.** However, Spectrum can still be loaded as a monitoring device via `insert_device`.
 
-These APIs are already implemented and sufficient for v1.3 scaffolding:
+6. **Output metering**: Available via LOM Track properties `output_meter_level`, `output_meter_left`, `output_meter_right` (0.0-1.0 range). This requires a new Remote Script handler but no new libraries.
 
-| API | Handler | MCP Tool | v1.3 Use |
-|-----|---------|----------|----------|
-| `Song.cue_points` (get) | `get_cue_points` | `get_cue_points` | Read back locators after creation |
-| `Song.set_or_delete_cue()` | `set_or_delete_cue` | `set_or_delete_cue` | Create locators (toggle at position) |
-| `Song.current_song_time` (get/set) | `get_playback_position` | `get_playback_position` | Position cursor before creating cue |
-| `Song.jump_by()` | `jump_by` | `jump_by` | Navigate to specific beat positions |
-| `Track.name` (get/set) | `rename_track` | `rename_track` | Name tracks per arrangement role |
-| `Track.color_index` (set) | `set_track_color` | `set_track_color` | Color-code tracks by section role |
-| `Track.create_midi_clip()` | `create_arrangement_midi_clip` | `create_arrangement_midi_clip` | Place section clips |
-| `Song.create_midi_track()` | `create_midi_track` | `create_midi_track` | Create tracks for arrangement |
-| `Song.create_audio_track()` | `create_audio_track` | `create_audio_track` | Create audio tracks |
+### Core Framework: None needed
 
-### New Remote Script Handlers Needed
+| Category | Decision | Rationale |
+|----------|----------|-----------|
+| Device catalog | Pure Python dicts | Same pattern as genre blueprints; auto-discovery via pkgutil; no library exists |
+| Mix recipes | Pure Python dicts | Extends genre blueprint schema; TypedDict validation |
+| Gain math | Extend `mixer_helpers.py` | `_to_db()` already calibrated; add `_from_db()` inverse |
+| Output meters | New Remote Script handler | LOM `track.output_meter_level` (0.0-1.0); no library needed |
+| dBFS conversion | `20 * math.log10(value)` | Standard formula; `math` is stdlib |
 
-| Handler | LOM API | Purpose | Confidence |
-|---------|---------|---------|------------|
-| `create_cue_at_position` | `Song.current_song_time` (set) + `Song.set_or_delete_cue()` | Create a named locator at a specific beat position without moving playback | HIGH |
-| `set_cue_name` | `CuePoint.name` (set) | Rename a cue point/locator. **Live 12 confirmed writable** (was read-only pre-Live 12) | HIGH |
-| `delete_all_cues` | iterate `Song.cue_points` + `Song.set_or_delete_cue()` | Clear all existing locators before scaffolding | MEDIUM |
+### Database: None needed
 
-**Critical finding — CuePoint.name is now writable in Live 12:**
-- Pre-Live 12: `CuePoint.name` was read-only (get + observe only)
-- Live 12+: `CuePoint.name` is writable via `set name` (confirmed by [Cycling74 forum](https://cycling74.com/forums/setting-locator-names))
-- This is essential for v1.3 — locators must be named ("Intro", "Drop 1", etc.) to serve as visual section markers
-- The LOM reference (Max 9 PDF, page 56) lists `name` as `symbol` type with observe access; the writable change was added in Live 12
+Mix recipes and device catalogs are static reference data, same as genre blueprints. No database.
 
-**Locator creation pattern (workaround for LOM limitation):**
-The LOM has no `create_cue_at_time(time, name)` method. `Song.set_or_delete_cue()` toggles at the current `Song.current_song_time`. The workaround is:
-1. Store current `Song.current_song_time`
-2. Set `Song.current_song_time` to target beat position
-3. Call `Song.set_or_delete_cue()` to create the cue
-4. Set `CuePoint.name` on the newly created cue
-5. Restore original `Song.current_song_time`
+### Infrastructure: No changes
 
-This must be a single atomic Remote Script handler (not multiple MCP tool calls) to avoid race conditions and ensure the name is set on the correct cue point.
+Same two-tier architecture: MCP Server <-> TCP socket <-> Remote Script.
 
-### APIs NOT Needed
+### Supporting Libraries: None
 
-| API | Why Not |
-|-----|---------|
-| `Clip.move_notes()` | v1.3 scaffolds structure, not note content |
-| Session-to-arrangement recording | Arrangement clips are created directly |
-| `Song.tempo_automation` | v1.3 uses single tempo per track |
-| Max for Live devices | Remote Script API is sufficient |
-| `Song.create_scene()` | Working in arrangement view, not session |
+| Considered | Decision | Why Not |
+|------------|----------|---------|
+| pyloudnorm | DO NOT ADD | Requires raw audio samples (NumPy arrays). MCP server has no audio access. Remote Script has no audio buffer access. LUFS measurement is architecturally impossible in this system. |
+| numpy/scipy | DO NOT ADD | Only needed if doing DSP. We are not. Device parameters are set by value, not computed from audio. |
+| PyAbleton | DO NOT ADD | Preset file manipulation library. We control live devices via LOM, not .adv files. |
+| pylive | DO NOT ADD | OSC-based Ableton control. We already have a superior TCP socket protocol with 181 commands. |
 
-## Genre Blueprint Schema Extensions
+## Detailed Technical Findings
 
-The existing `ArrangementEntry` TypedDict (`{name: str, bars: int}`) needs expansion for v1.3. The new fields provide the data that production plans and checklists consume.
+### 1. No Existing Python Libraries for Ableton Device Parameter Catalogs
 
-### Current Schema (v1.2)
+**Confidence: HIGH** (searched PyPI, GitHub, community forums)
+
+No library provides a structured catalog of Ableton built-in device parameter names and value ranges. This is because:
+
+- Parameter names and ranges are discoverable at runtime via `device.parameters[i].name`, `.min`, `.max`, `.is_quantized`
+- The existing `get_device_parameters` handler already returns this data (lines 80-97 of Remote Script `devices.py`)
+- What is missing is a **static reference** so Claude does not need to call `get_device_parameters` before every `set_device_parameter` call
+
+**Approach:** Hand-author device parameter catalogs by querying Ableton Live once per device, capturing the parameter list, and storing it as Python dicts. Same pattern as genre blueprints.
+
+### 2. Ableton LOM Spectrum Analyzer Data: NOT Accessible
+
+**Confidence: HIGH** (verified via Cycling 74 LOM docs, forum searches, Max for Live documentation)
+
+The Spectrum device (`class_name: "SpectrumAnalyzer"`) exposes only standard device parameters through the LOM (on/off, block size, channel, range, etc.). The actual frequency magnitude data displayed in the visual analyzer is rendered internally by the C++ audio engine and is NOT exposed to the Python LOM API.
+
+**What IS accessible:**
+- `track.output_meter_level` -- peak hold value, 0.0-1.0, 1-second hold (max of L/R)
+- `track.output_meter_left` -- smoothed momentary peak, left channel, 0.0-1.0
+- `track.output_meter_right` -- smoothed momentary peak, right channel, 0.0-1.0
+
+These are per-track aggregate levels, not frequency-domain data. Sufficient for gain staging checks but not spectral analysis.
+
+**Important caveat:** The LOM docs note that accessing output meter properties adds load to Live's GUI and meters may only update when visible in the interface.
+
+### 3. Existing get_device_parameters / set_device_parameter Coverage
+
+**Confidence: HIGH** (verified by reading source code)
+
+The existing tooling covers ALL built-in device needs with one gap:
+
+**Fully covered:**
+- All device parameters via `device.parameters` enumeration (name, value, min, max, is_quantized)
+- Parameter setting by name (case-insensitive) or index with automatic clamping
+- Rack chain navigation (chain_index, chain_device_index)
+- Master track device access (`track_type="master"`)
+- Device insertion at position (`insert_device` / `track.insert_device()`)
+- Device loading from browser (`load_browser_item`)
+- Device deletion and moving
+- Device A/B comparison
+
+**Gap: No batch parameter setting.** Setting 10 parameters on a Compressor requires 10 separate `set_device_parameter` calls. For mix recipes (which set 5-15 parameters per device), a batch endpoint would reduce round-trips dramatically.
+
+**Recommendation:** Add `set_device_parameters_batch` handler that accepts a list of `{parameter_name, value}` pairs and sets them all in one command. This is the single most impactful Remote Script addition for v1.4.
+
+### 4. dBFS and Gain Staging
+
+**Confidence: HIGH** (verified against existing code)
+
+The existing `_to_db()` function converts normalized 0.0-1.0 volume to dB with high accuracy (RMS 0.13 dB error, calibrated against 77 Ableton Live data points). For gain staging:
+
+- Track volumes are 0.0-1.0 normalized (LOM `mixer_device.volume.value`)
+- Output meters are 0.0-1.0 normalized (LOM `track.output_meter_level`)
+- Conversion to dBFS for meters: `20 * math.log10(meter_value)` where meter_value > 0
+- Conversion for fader positions: existing `_to_db()` calibrated formula
+- Target ranges are well-known (e.g., kick at -8 to -6 dB, master peak at -1 to 0 dB)
+- No library needed -- all math is `math.log10()` and the existing calibrated formula
+
+**What to add:**
+- `_from_db(db_value) -> float` -- inverse of `_to_db()` for setting volume from dB targets
+- `_meter_to_db(meter_value) -> float` -- convert 0.0-1.0 meter reading to dBFS
+- New Remote Script command: `get_track_meters` -- reads output_meter_level/left/right for one or all tracks
+
+### 5. Role x Genre Mix Recipe Data Format
+
+**Confidence: HIGH** (based on proven genre blueprint pattern)
+
+The existing genre blueprint pattern (Python dicts, TypedDict schema, auto-discovery catalog) is the correct format. The current `MixingSection` in `schema.py` has prose-only fields:
 
 ```python
-class ArrangementEntry(TypedDict):
-    name: str   # "intro", "drop", etc.
-    bars: int   # 16, 32, etc.
+class MixingSection(TypedDict):
+    frequency_focus: str        # "sub-bass 40-80Hz, kick presence 100-200Hz"
+    stereo_field: str           # "mono bass and kick, wide pads"
+    common_effects: List[str]   # ["sidechain compression", "reverb"]
+    compression_style: str      # "heavy sidechain on bass and pads"
 ```
 
-### Extended Schema (v1.3)
+These are human-readable guidelines, not machine-actionable recipes. v1.4 adds a parallel structure with exact parameter values. The existing MixingSection stays (it serves Claude's reasoning). New data lives alongside it.
+
+**Recommended schema for mix recipes:**
 
 ```python
-class ArrangementEntry(TypedDict):
-    name: str           # Section name: "intro", "drop", "breakdown"
-    bars: int           # Bar count: 16, 32
-    energy: float       # Energy level 0.0-1.0 (for energy curve)
-    elements: List[str] # Active instrument roles: ["kick", "hi-hats", "pad"]
-    automation_cues: List[str]  # Automation hints: ["filter_sweep_up", "reverb_swell"]
+class DeviceRecipe(TypedDict):
+    device_name: str                  # "EQ Eight", "Compressor", etc.
+    parameters: Dict[str, float]      # {"1 Frequency A": 80.0, "1 Gain A": -3.0}
+
+class RoleMixRecipe(TypedDict):
+    devices: List[DeviceRecipe]       # Ordered device chain
+    volume_db: float                  # Target fader position in dB
+    pan: float                        # -1.0 to 1.0
+
+class GenreMixRecipes(TypedDict):
+    roles: Dict[str, RoleMixRecipe]   # "kick" -> recipe, "bass" -> recipe
+    master: RoleMixRecipe             # Master bus recipe
 ```
 
-**Backward compatibility:** Extend the existing schema with optional fields defaulting sensibly. Validation (`validate_blueprint`) adds checks for new fields when present. Existing v1.2 blueprints remain valid; v1.3 enriches them incrementally.
-
-**Token budget impact:** Each section gains ~3-5 additional tokens (energy float, 3-5 element strings, 1-2 automation cues). For a 7-section arrangement, this adds roughly 25-40 tokens. The v1.2 budget ceiling of 670 tokens per blueprint should expand to ~750 tokens max. Still well within context limits.
-
-## MCP Protocol Patterns for Stateful Workflows
-
-### What v1.3 Does NOT Need
-
-| Pattern | Why Not Needed |
-|---------|----------------|
-| MCP Tasks (async/polling) | Scaffolding is synchronous — create tracks + cues in sequence, done |
-| MCP Sampling (server-initiated LLM calls) | Plan generation is deterministic from template data |
-| MCP Elicitation (user input during workflow) | User provides genre + vibe upfront; no mid-workflow decisions |
-| Server-side session state | Plans are returned as data; the AI assistant holds workflow state |
-| WebSocket streaming | All operations are request/response |
-
-### What v1.3 DOES Need
-
-**Composite tools that return structured plans as data:**
-
-The v1.3 tools are "plan generators" — they take inputs (genre, vibe, mode) and return structured JSON that the AI assistant then executes step-by-step using existing v1.0 tools. This is the correct MCP pattern for multi-step workflows: the server provides intelligence, the client (Claude) provides execution.
-
-```
-AI calls: get_production_plan(genre="house", vibe="dark", mode="full")
-Server returns: { sections: [...], tracks: [...], locators: [...] }
-AI then executes: create_midi_track() x N, create_cue_at_position() x N, etc.
-```
-
-**Scaffold-in-one tool (optional optimization):**
-
-A single `scaffold_arrangement` tool that creates all tracks + locators in one Remote Script round-trip. This avoids N separate socket calls and is faster. The trade-off is less granular undo (one undo undoes the entire scaffold vs. one track at a time).
-
-**Recommendation:** Provide both patterns:
-1. `get_production_plan` — returns the plan as data (Claude executes piece by piece)
-2. `scaffold_arrangement` — executes the plan server-side in one call (fast, atomic)
-
-Claude should prefer `scaffold_arrangement` for full-track mode and `get_production_plan` for targeted single-section mode where it needs finer control.
+**Why dicts over a database:** Same reasons as genre blueprints -- pure Python, no external dependency, version-controlled, auto-discoverable, TypedDict-validated at import time.
 
 ## Alternatives Considered
 
-| Decision | Chosen | Alternative | Why Not |
-|----------|--------|-------------|---------|
-| Arrangement data format | Extend existing Python dicts in genre blueprints | Separate JSON/YAML arrangement files | Blueprints already have arrangement sections; extending is simpler and keeps data co-located |
-| Plan builder location | Server-side Python module | Client-side (Claude prompt engineering only) | Server-side ensures consistent plans; Claude's knowledge of genre conventions is unreliable under context pressure |
-| Checklist format | Structured JSON returned by tool | Markdown text returned by tool | JSON is parseable; Claude can track completion state; Markdown is ambiguous |
-| Locator creation | Atomic Remote Script handler | Sequence of MCP tool calls (jump, toggle cue, rename) | Race conditions: playback could move between calls; atomicity is essential |
-| State management | Stateless tools (plan = pure data) | Server-side session tracking | Unnecessary complexity; the AI assistant is the natural state holder in MCP |
-| New external library for templates | None (pure Python logic) | Jinja2 for template rendering | Templates are data structures, not text; Jinja2 is for text templating |
-| New external library for validation | None (extend existing validate_blueprint) | Pydantic for schema validation | Existing TypedDict + validate_blueprint pattern works; adding Pydantic for 3 new fields is overkill |
+| Category | Recommended | Alternative | Why Not |
+|----------|-------------|-------------|---------|
+| Device catalog format | Python dicts | SQLite database | Overkill for ~20 device definitions; dicts are version-controlled and match existing patterns |
+| Device catalog format | Python dicts | JSON files | Python dicts allow TypedDict validation at import time; JSON requires separate loader/validator |
+| Gain staging | Extend mixer_helpers.py | pyloudnorm | pyloudnorm needs raw audio (NumPy arrays); we only have meter readings |
+| Batch params | New RS handler | Multiple set_device_parameter calls | 10x more round-trips; recipe application becomes prohibitively slow |
+| Recipe storage | Parallel to genre blueprints | Extend existing MixingSection | Existing MixingSection is prose for Claude reasoning; recipes need exact values; keep both |
 
-## What NOT to Add
+## Installation
 
-| Do Not Add | Reason |
-|------------|--------|
-| Pydantic | Existing TypedDict validation is sufficient for dict schemas |
-| Jinja2 | Arrangement templates are data structures, not text templates |
-| Any state management library | MCP is stateless by design; AI holds workflow state |
-| Any async framework beyond existing anyio | All arrangement operations are synchronous |
-| Any database (SQLite, etc.) | Plans are computed on-the-fly, not persisted |
-| tiktoken (for v1.3) | Token budget measurement was a v1.2 dev-only concern; v1.3 enrichments are small enough to eyeball |
-
-## Package Configuration Changes
-
-```toml
-# pyproject.toml — add to existing [tool.setuptools] packages list
-packages = [
-    "MCP_Server",
-    "MCP_Server.tools",
-    "MCP_Server.theory",
-    "MCP_Server.genres",
-    "MCP_Server.arrangement",  # NEW for v1.3
-]
+```bash
+# No new dependencies. Existing install command unchanged:
+pip install -e ".[dev]"
 ```
 
-No new entries in `[project.dependencies]`.
+## Key Architecture Decisions for v1.4
+
+| Decision | Rationale |
+|----------|-----------|
+| Zero new pip dependencies | All new functionality is pure Python data + existing LOM access |
+| Device catalog as Python dicts | Same proven pattern as genre blueprints; discoverable, validated, version-controlled |
+| Batch parameter setter | Single biggest ROI addition; reduces round-trips from N to 1 per device |
+| Output meter reading via LOM | `track.output_meter_level/left/right` provides gain staging feedback without new deps |
+| Drop Spectrum frequency reading | LOM does not expose frequency bin data; visual-only device |
+| Drop LUFS measurement | Architecturally impossible -- no audio buffer access from Remote Script or MCP Server |
+| Extend _to_db with _from_db | Enables target-based gain staging ("set kick to -8 dB") |
 
 ## Sources
 
-- [Cycling74 LOM Reference (Max 9 PDF)](https://cycling74-docs-production.nyc3.cdn.digitaloceanspaces.com/pdfs/9.0.7-rev.1/Max9-LOM-en.pdf) — CuePoint class: page 56, Song class: pages 126-140 (HIGH confidence)
-- [Cycling74 Forum: Setting Locator Names](https://cycling74.com/forums/setting-locator-names) — Confirms CuePoint.name is writable in Live 12 (HIGH confidence)
-- [Cycling74 LOM Documentation (Max 8)](https://docs.cycling74.com/legacy/max8/vignettes/live_object_model) — Song.cue_points, set_or_delete_cue (HIGH confidence)
-- [MCP Specification 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25) — Protocol patterns, stateless tool design (HIGH confidence)
-- Existing codebase: `AbletonMCP_Remote_Script/handlers/transport.py` — current cue point implementation (HIGH confidence, direct code review)
-- Existing codebase: `MCP_Server/genres/schema.py` — current ArrangementEntry TypedDict (HIGH confidence, direct code review)
-- Existing codebase: `MCP_Server/tools/arrangement.py` — current arrangement tools (HIGH confidence, direct code review)
-
----
-*Stack research for: v1.3 Arrangement Intelligence*
-*Researched: 2026-03-27*
+- [Cycling 74 LOM Documentation](https://docs.cycling74.com/legacy/max8/vignettes/live_object_model) -- Track metering properties, Device parameter access (HIGH confidence)
+- [Ableton Reference Manual v12 -- Audio Effect Reference](https://www.ableton.com/en/manual/live-audio-effect-reference/) -- Device parameters and behaviors (HIGH confidence)
+- [pyloudnorm on PyPI](https://pypi.org/project/pyloudnorm/) -- Confirmed requires NumPy audio arrays; not applicable (HIGH confidence)
+- [pylive on GitHub](https://github.com/ideoforms/pylive) -- Alternative control approach; not needed (HIGH confidence)
+- [PyAbleton on GitHub](https://github.com/hamiltonkibbe/PyAbleton) -- Preset file manipulation; not applicable (HIGH confidence)
+- Source code analysis: `AbletonMCP_Remote_Script/handlers/devices.py`, `mixer_helpers.py`, `MCP_Server/genres/schema.py` (HIGH confidence)

@@ -1,189 +1,214 @@
 # Project Research Summary
 
-**Project:** Ableton MCP v1.3 Arrangement Intelligence
-**Domain:** AI-assisted arrangement planning and session scaffolding for a DAW MCP server
-**Researched:** 2026-03-27
-**Confidence:** HIGH
+**Project:** Ableton MCP v1.4 — Mix/Master Intelligence
+**Domain:** AI-assisted mixing and mastering for electronic music production via Ableton Live MCP
+**Researched:** 2026-03-28
+**Confidence:** HIGH (stack and architecture confirmed via codebase inspection; feature conventions HIGH from domain sources; specific parameter values LOW — require live Ableton validation)
 
 ## Executive Summary
 
-v1.3 adds an arrangement intelligence layer to an existing, well-understood MCP server codebase. The work falls cleanly into three concerns: (1) enriching the 12 existing genre blueprints with per-section energy levels, instrument role lists, and transition descriptors; (2) a server-side plan builder that combines that enriched data with user-supplied genre/key/vibe parameters to produce a concrete, flat, checklist-driven production plan; and (3) Remote Script commands that write the plan into Ableton as named locators and named tracks. No new external dependencies are required. The stack is pure Python logic sitting on top of the existing FastMCP/TCP/Ableton LOM infrastructure established in v1.0–v1.2.
+Ableton MCP v1.4 adds a mix/master intelligence layer on top of a working 181-command MCP server. The approach is to build a new `MCP_Server/mixing/` package — a peer to the existing `genres/` and `theory/` packages — containing a static device parameter catalog, role x genre mix recipes, and a recipe engine. This follows proven patterns already in the codebase and requires zero new Python package dependencies. The headline feature is an `apply_mix_recipe` tool that applies genre-appropriate mixing chains (EQ, compression, sends, volume targets) to Ableton tracks in a single MCP call, replacing the current need for Claude to issue 10-30+ sequential tool calls to achieve the same result.
 
-The recommended approach is a strict three-step workflow: generate plan (server-side, no Ableton), scaffold arrangement (locators + tracks in Ableton via a single atomic batch command), then execute section-by-section using existing tools guided by per-section checklists. The plan is returned as data to Claude rather than persisted server-side, because MCP is stateless and Claude is the natural state holder. The critical design insight is that the "session IS the plan" — locator names and track names in Ableton serve as persistent external memory that survives context pressure at tool call 30+.
+The recommended build order is: device parameter catalog first (the foundation that everything depends on), followed by role taxonomy and core mix recipes for 4 genres, then the apply-recipe tool and gain staging check, then master bus recipes and tools, and finally the "suggest adjustments" intelligence layer and recipe expansion to all 12 genres. This sequence respects hard dependencies — recipes cannot be authored without a validated parameter catalog, and the suggest-adjustments diff engine cannot work without the recipe and state-reader layers beneath it.
 
-The most significant implementation risk is the Ableton LOM's locator creation API: there is no `create_cue_at(time, name)` method. Creating a named locator requires a three-step Remote Script sequence (seek to position, toggle cue, set name) that MUST be atomic in a single handler. Exposing this as multiple MCP tool calls would cause race conditions and partial-failure states. This constraint, along with the need for optional-only schema extensions to avoid breaking 148 existing tests, must be settled in the first phase before any plan builder or scaffold logic is written.
+The most serious risk in this milestone is parameter name and value mismatch: Ableton's LOM uses internal parameter naming conventions that differ from GUI labels (e.g., `"1 Frequency A"` not `"Frequency"`), and many parameters store normalized floats rather than natural units (e.g., EQ frequency is 0.0-1.0, not 20-20000 Hz). Every part of this milestone depends on getting the catalog right from a live Ableton session query, not hand-authored from documentation. Two features originally scoped — LUFS metering and Spectrum frequency analysis — are architecturally impossible via the LOM and must be dropped from v1.4 scope.
 
 ## Key Findings
 
 ### Recommended Stack
 
-v1.3 requires zero new pip packages. All arrangement intelligence is pure Python computation (template data in dicts, plan builder functions, checklist generators) served through existing FastMCP tools and backed by existing Ableton LOM commands over the established localhost:9877 TCP socket. The existing `mcp[cli] >=1.3.0`, `music21 >=9.0` (used by theory engine but not directly by v1.3), `pytest >=8.3`, and `ruff >=0.15.6` stack is entirely unchanged.
+No new pip dependencies are needed for v1.4. All new functionality is pure Python data structures (dicts, TypedDicts) layered on top of the existing stack: Python 3.11 (Remote Script), Python >=3.10 (MCP Server), FastMCP >=1.3.0, music21 >=9.0, and the localhost:9877 TCP socket IPC. The only new Remote Script addition is a `get_track_meters` handler for reading `track.output_meter_level/left/right`, which enables gain staging checks without any new libraries.
 
-One new internal package is needed: `MCP_Server/production/` (mirroring the existing `MCP_Server/theory/` pattern) with `planner.py` (pure functions, fully unit-testable) and `scaffold.py` (uses `connection.send_command()`, requires Ableton for integration tests). The `pyproject.toml` packages list gains one entry: `MCP_Server.production`.
+**Core technologies (unchanged):**
+- Python dicts + TypedDict: device catalog and mix recipes — same proven pattern as genre blueprints, no external library exists for this domain
+- Existing `set_device_parameter` / `get_device_parameters` handlers: sufficient for recipe application (with batch wrapper)
+- `mixer_helpers.py` extension: add `_from_db()` inverse and `_meter_to_db()` for target-based gain staging
+- LOM `track.output_meter_level/left/right`: gain staging feedback, available without new deps
 
-**Core technologies:**
-- Python stdlib only: arrangement templates — no Jinja2, no Pydantic; existing TypedDict + runtime validation pattern is sufficient
-- Existing FastMCP tools: plan and scaffold exposed as 4 new MCP tools (generate_production_plan, generate_section_plan, scaffold_arrangement, get_section_checklist)
-- Ableton LOM via existing TCP socket: 4 new Remote Script commands (create_locator, delete_locator, scaffold_arrangement batch, get_arrangement_overview)
-- Existing theory engine (MCP_Server/theory/): plan builder references key/scale names only; Claude resolves harmony per-section on demand using existing tools
+**Explicitly dropped from scope:**
+- pyloudnorm: requires raw audio samples (NumPy arrays) — MCP Server and Remote Script have no audio buffer access; LUFS measurement is architecturally impossible
+- Spectrum frequency data: LOM exposes only Spectrum device control parameters, not the frequency bin display data; visual-only device
 
 ### Expected Features
 
 **Must have (table stakes):**
-- Per-section energy level (int 1–10) in all 12 genre blueprints — quantifies the energy curve that defines arrangement flow
-- Per-section instrument roles list in blueprints — this IS the execution checklist; tells Claude exactly which elements belong in each section
-- Per-section transition descriptor string in blueprints — tells Claude how to connect sections (riser, filter sweep, impact hit)
-- Production plan builder tool — `generate_production_plan(genre, key, bpm, vibe)` returning a flat, terse plan dict with per-section checklists and calculated beat positions
-- Named locator creation (atomic Remote Script command) — single `create_locator(time, name)` handler that performs seek/toggle/name internally
-- Session scaffolding tool — `scaffold_arrangement(plan)` creating all locators and named tracks in one batch Remote Script call
-- Section checklist tool — `get_section_checklist(plan, section_name)` returning pending elements for a section
+- Device parameter catalog (F1) — foundation for all recipes; without validated API names, every recipe fails
+- Role taxonomy (F2) — lightweight canonical grouping; organizes recipe lookup
+- Role x genre mix recipes for 4 core genres: house, techno, ambient, DnB (F3) — the core value proposition
+- Apply recipe tool (F4) — single-call mixing; eliminates 10-30 sequential tool calls per track
+- Gain staging check (F6) — reads track volumes, flags outliers vs. targets; foundational for any mix assessment
+- Master bus recipes, 12 genres (F8) — mastering is inseparable from mixing in electronic music
+- Master bus apply tool (F9) — thin wrapper over F4 targeting master track
 
-**Should have (competitive):**
-- Transition descriptors between sections — `transition_in` field connecting arrangement to existing automation tools contextually
-- Single-section mode — `generate_section_plan` for targeted work on one section without planning the whole track
-- Context-aware plan modification — plan builder accepts override parameters (shorter breakdown, add bridge)
-- `get_arrangement_overview` Remote Script command — composite read of locators + track names + session length for Claude to re-orient during long workflows
+**Should have (differentiators):**
+- Device state reader / batch get (F5) — collapses 48 individual `get_device_parameters` calls to 1 for a 16-track session
+- Suggest adjustments with reasoning (F7) — reads current state, diffs against recipe, explains each suggestion; the "AI mixing engineer" feature
+- Mix recipe expansion to all 12 genres (F3 remainder) — completion of the data surface
 
-**Defer to post-v1.3:**
-- Arrangement analysis of existing tracks — different domain (stem separation, structural segmentation), different milestone
-- Empty arrangement clip pre-creation — locators provide sufficient visual guidance; clips created during execution
-- Default instrument loading on scaffold tracks — better UX but higher complexity; v1.3.1 candidate
-- Vibe-to-energy preset library — Claude interprets vibes contextually without a lookup table
-- Section reordering support — requires delete-and-rebuild locator workflow; document as known limitation for v1.3
+**Defer to v1.5+:**
+- Section-aware mixing — requires automation infrastructure not present until v1.5
+- Frequency conflict detection — needs audio analysis or sophisticated heuristics beyond LOM access
+- Sidechain routing automation — basic sidechain params belong in recipes, but full routing automation is complex and session-dependent
+- LUFS / Spectrum analysis — architecturally impossible via LOM
 
 ### Architecture Approach
 
-v1.3 extends the existing two-tier architecture (MCP Server / Remote Script) without adding tiers, protocols, or external services. The new `MCP_Server/production/` package follows the identical pattern as `MCP_Server/theory/`: a pure library module (`planner.py`) that is fully unit-testable without Ableton, an orchestration module (`scaffold.py`) that uses `connection.send_command()`, and thin tool wrappers in `tools/production.py`. Genre blueprint extensions flow through the existing catalog auto-discovery and subgenre merge without catalog changes. The Remote Script gains new commands in the existing `handlers/arrangement.py`.
+The `mixing/` package integrates as a peer to `genres/` and `theory/`, never modifying genre blueprints (which would break 12-genre validation and bloat token counts). The architecture keeps intelligence server-side: the Remote Script stays dumb (no new business logic in Ableton's Python sandbox), recipe resolution happens in `mixing/engine.py`, and MCP tools in `tools/mixing.py` are thin wrappers that call the engine then dispatch existing Remote Script commands. The only potential Remote Script modification is a fix to `browser.py` to support `track_type: "master"` in `load_browser_item` — this is an integration gap requiring verification.
 
 **Major components:**
-1. `MCP_Server/production/planner.py` — pure computation: blueprint data + user params to flat ProductionPlan dict with beat positions and per-section checklists; no Ableton dependency; reads via `genres.get_blueprint()`
-2. `MCP_Server/production/scaffold.py` — orchestration: sends `scaffold_arrangement` batch command to Remote Script; handles locator + track creation; returns creation summary
-3. `AbletonMCP_Remote_Script/handlers/arrangement.py` (extended) — new atomic locator creation handler and batch scaffold command; enforces seek/toggle/name atomicity and idempotency; handles time-signature-aware beat positioning
+1. `mixing/catalog.py` — static dict mapping 10-12 Ableton built-in devices to their exact API parameter names, value ranges, and conversion semantics; MUST be bootstrapped from live Ableton queries, not hand-authored
+2. `mixing/recipes/*.py` — per-genre recipe files with auto-discovery (same pkgutil pattern as `genres/`); recipe data references genre IDs but is separate from genre blueprint prose
+3. `mixing/engine.py` — pure computation: recipe lookup, resolution against catalog, diff generation; no Ableton dependency, fully unit-testable
+4. `mixing/gain.py` — gain staging analysis: compare track volumes and meter readings to role/genre targets, produce flagged output
+5. `tools/mixing.py` — MCP tool endpoints: validate inputs, call engine, dispatch existing Remote Script commands, format output
 
 ### Critical Pitfalls
 
-1. **Locator creation is not atomic by default** — `Song.set_or_delete_cue()` toggles at the current playback position; creating 7 locators via separate MCP tool calls causes 21+ round-trips and race conditions. Prevent by implementing a single `scaffold_arrangement` Remote Script command that creates all locators atomically with rollback on partial failure.
+1. **Parameter name mismatch** — Ableton's API uses internal names like `"1 Frequency A"` (not `"Frequency"`), `"Output Gain"` (not `"Makeup"`). Build the catalog by querying `get_device_parameters` on live Ableton devices; never hand-author from documentation or GUI labels. A `verify_catalog` test that loads each device and checks all names is mandatory.
 
-2. **Schema extension must use optional fields** — adding required fields to `ArrangementEntry` TypedDict breaks all 12 genre files and 148 passing tests simultaneously. Prevent by making all new fields (`energy`, `elements`, `transition_in`) optional in schema and validated only when present; existing genres remain valid throughout migration.
+2. **Normalized vs. natural unit values** — EQ Eight frequency is stored as 0.0-1.0 (logarithmic mapping to 20Hz-20kHz), not in Hz. Compressor Attack/Release are likely normalized, not in milliseconds. The catalog must record actual `min`/`max`/`unit` from the API, and the apply-recipe tool must convert human-unit recipe values before calling `set_device_parameter`. Formula: `normalized = (log10(hz) - log10(20)) / (log10(20000) - log10(20))` for frequency.
 
-3. **Context collapse at tool call 30+** — Claude loses the production plan during long sessions. Prevent by making the session itself the plan: locator names and track names in Ableton serve as persistent external memory; a `get_arrangement_overview` progress-check tool lets Claude re-orient in one call without reconstructing state from raw listings.
+3. **Recipe application ordering and atomicity** — Device loading via `load_browser_item` is async; setting parameters immediately in a separate MCP call is fragile. A single Remote Script command that loads, verifies instantiation, resolves `device_index` by `class_name` scan, and sets all params atomically is safer than orchestrating separate Claude tool calls for load + set. This conflicts with ARCHITECTURE.md's preference for orchestrating existing tools — this tension must be resolved during Phase 3 planning via a spike.
 
-4. **Over-engineered plan representation** — arrangement intelligence is intellectually tempting but the plan must stay flat and terse. Prevent by defining the output format before writing any code; a 7-section plan must stay under 400 tokens; no nested phases, dependency graphs, or energy curve polynomials.
+4. **MIDI tracks without instruments** — `track.mixer_device.volume` exists on all tracks but is meaningless for MIDI tracks without instruments. Gain staging tools must check `track.has_audio_output` or `len(track.devices) > 0` and skip/flag empty MIDI tracks. Reuse the instrument-presence check from v1.3 `get_arrangement_progress`.
 
-5. **Time signature arithmetic hardcoded to 4/4** — any literal `* 4` in beat position math breaks for 3/4, 6/8, 5/4 genres. Prevent by using `beats_per_bar = numerator * (4.0 / denominator)` from day one, reading `Song.signature_numerator/denominator` from the session. The fix is one line; there is no acceptable shortcut.
+5. **EQ Eight complete band state** — Setting only `"1 Frequency A"` without also setting `"1 Filter On A"`, `"1 Filter Type A"`, `"1 Gain A"`, and `"1 Resonance A"` produces unpredictable results depending on the device's default state. EQ recipes must specify the complete state for every band they use. Consider a dedicated `apply_eq_recipe` Remote Script command with band-level specification.
 
 ## Implications for Roadmap
 
-The architecture research recommends four phases (25–28) with strict dependency ordering. Each phase is independently shippable and testable.
+Based on combined research, the suggested phase structure follows the hard dependency chain: catalog before recipes, recipes before apply-tool, apply-tool before suggest-adjustments. Data authoring is the largest effort (~250 recipe dicts across 12 genres) and should be parallelized across phases rather than deferred to a single large phase.
 
-### Phase 25: Blueprint Arrangement Extension
+### Phase 1: Device Parameter Catalog and Schema Foundation
 
-**Rationale:** Data-only foundation phase. No Ableton needed, no new modules. Must come first because the plan builder (Phase 26) requires enriched arrangement data to generate meaningful checklists, and schema correctness must be proven before any consumption code is written. Mirrors Phase 20 (Blueprint Infrastructure) in scope and approach.
+**Rationale:** Every other component in v1.4 depends on knowing the exact API parameter names, value ranges, and conversion semantics for 10-12 Ableton built-in devices. Building this incorrectly (from documentation instead of live queries) breaks every subsequent phase. Must be first.
 
-**Delivers:** All 12 genre blueprints enriched with `energy` (int 1–10), `roles`/`elements` (list of instrument role strings), and `transition_in` (str) per section; `ArrangementEntry` TypedDict extended with optional fields; `validate_blueprint()` updated to validate new fields when present; all 148 existing tests still pass with zero changes to genre files.
+**Delivers:** `mixing/schema.py` with TypedDicts; `mixing/catalog.py` with live-verified parameter data for EQ Eight, Compressor, Glue Compressor, Limiter, Utility, Reverb, Delay, Auto Filter, Drum Buss, Multiband Dynamics; UAT verification script that loads each device and cross-checks catalog against live Ableton output.
 
-**Addresses:** Per-section element lists, energy levels, transition descriptors (table stakes features).
+**Addresses:** F1 (Device Parameter Catalog)
 
-**Avoids:** Schema breaking cascade (Pitfall 4) — optional fields only; backward compatibility test verifies all existing genres pass unchanged.
+**Avoids:** Pitfall 1 (parameter name mismatch), Pitfall 2 (normalized vs. natural units), Pitfall 9 (Compressor non-uniform ranges), Pitfall 10 (class_name surprises)
 
-**Research flag:** No deeper research needed. Pattern is identical to v1.2 blueprint work. Standard.
+**Research flag:** NEEDS research-phase — device class names and parameter ranges require live Ableton session verification. Cannot be known ahead of time from documentation alone.
 
-### Phase 26: Production Plan Builder
+### Phase 2: Role Taxonomy and Core Mix Recipes (4 Genres)
 
-**Rationale:** Server-side only, pure Python, fully unit-testable without Ableton. Depends on Phase 25 enriched data for meaningful output. Must precede Phase 27 because the scaffold command consumes the plan structure. Mirrors Phase 21 (Blueprint Tools) in scope.
+**Rationale:** With a verified catalog, recipes can be authored correctly. Starting with 4 high-impact genres (house, techno, ambient, DnB) validates the recipe schema with a manageable data surface before scaling to 12 genres. The role taxonomy is lightweight and needed by both recipes and the gain staging tool.
 
-**Delivers:** `MCP_Server/production/` package; `planner.py` generating flat ProductionPlan dicts with calculated beat positions and per-section checklists; `tools/production.py` exposing `generate_production_plan` and `generate_section_plan` MCP tools; unit tests covering multiple genres, keys, and vibe variants.
+**Delivers:** `mixing/recipes/` subpackage with auto-discovery; `mixing/engine.py` for recipe lookup; house, techno, ambient, DnB recipe files covering 8-10 core roles each; master bus recipes for the same 4 genres; role taxonomy constants.
 
-**Addresses:** Production plan from genre + vibe (table stake), single-section mode (should-have), context-aware plan modification (should-have).
+**Addresses:** F2 (Role Taxonomy), F3 (core 4 genres), F8 (master bus recipes for core 4 genres)
 
-**Avoids:** Over-engineered plan representation (Pitfall 5) — output format defined and validated against 400-token budget before any code; redundant plan builder (Pitfall 9) — vibe and duration parameters ensure output differs from raw blueprint data.
+**Avoids:** Pitfall 8 (EQ band completeness — schema requires full band spec), Pitfall 11 (keeping recipes separate from blueprint prose), Pitfall 3 (recipe load order encoded in recipe definition)
 
-**Research flag:** No deeper research needed. Pure Python computation with well-understood inputs and outputs. Standard.
+**Research flag:** Standard patterns — recipe data authoring follows proven genre blueprint pattern. No new architecture research needed.
 
-### Phase 27: Locator and Scaffolding Commands
+### Phase 3: Apply Recipe Tool and Batch Parameter Setting
 
-**Rationale:** Requires Ableton for integration testing. Depends on Phase 26 plan structure to know what locators and tracks to create. The critical LOM constraint (seek/toggle/name atomicity) makes this the highest-risk phase technically — the implementation detail is fully researched and the exact handler pattern is documented in ARCHITECTURE.md, but it requires live Ableton verification.
+**Rationale:** The apply-recipe tool is the headline feature. Must be built after catalog and recipes so there is real data to test against. The atomicity question (single Remote Script command vs. orchestrated MCP calls) should be resolved here based on a spike.
 
-**Delivers:** `create_locator`, `delete_locator`, `get_arrangement_overview` Remote Script commands in `handlers/arrangement.py`; `scaffold_arrangement` batch command (creates all locators + named tracks + sets tempo in one TCP call); corresponding MCP tool wrappers; `connection.py` updated with new write commands.
+**Delivers:** `tools/mixing.py` with `apply_mix_recipe` and `apply_master_recipe` tools; Remote Script atomic handler (load + verify + set all params in one command); `set_device_parameters_batch` handler for reducing round-trips; possible `browser.py` fix for master track device loading.
 
-**Addresses:** Named locator creation (table stake), session scaffolding tool (table stake), `get_arrangement_overview` progress-check (should-have).
+**Addresses:** F4 (Apply Recipe Tool), F9 (Master Bus Tools)
 
-**Avoids:** Cue point seek-toggle fragility (Pitfall 1) — atomic batch command with rollback; CuePoint.name writability (Pitfall 2) — read-back verification after setting name; time signature arithmetic (Pitfall 6) — `beats_per_bar` formula from day one; scaffold conflicts with existing content (Pitfall 10) — pre-scaffold session state query.
+**Avoids:** Pitfall 3 (atomicity), Pitfall 5 (master bus insert order), Pitfall 12 (return track type), Pitfall 13 (Device On parameter), Pitfall 14 (duplicate devices)
 
-**Research flag:** Integration testing against live Ableton required. LOM constraints are fully researched (HIGH confidence) but the atomic handler behavior must be verified in a live session. Flag for integration validation during phase planning.
+**Research flag:** NEEDS research-phase — the atomicity design is a genuine architectural decision with performance and reliability tradeoffs. Run a spike measuring round-trip latency and async device loading behavior before committing.
 
-### Phase 28: Section Execution and Quality Gate
+### Phase 4: Gain Staging Check and Device State Reader
 
-**Rationale:** Integration phase where all components come together. Depends on all prior phases. Mirrors Phase 24 (Quality Gate) in scope — end-to-end workflow validation rather than new feature development.
+**Rationale:** With recipes applicable, the feedback loop tools come next. Gain staging check provides immediate user value and the batch device state reader enables the suggest-adjustments feature in the next phase.
 
-**Delivers:** `get_section_checklist` MCP tool; end-to-end workflow test (plan to scaffold to execute section checklists); quality gate: full arrangement from genre blueprint to playable Ableton session; progress-check tool validating that scaffolded MIDI tracks have instruments loaded.
+**Delivers:** `mixing/gain.py` with analysis logic; `get_mix_state` tool (batch device state reader); `check_gain_staging` tool; Remote Script `get_track_meters` handler for `output_meter_level/left/right`; Remote Script batch track info command.
 
-**Addresses:** Section execution checklist (table stake), context collapse prevention (Pitfall 3 — progress-check tool ships here, not as an afterthought).
+**Addresses:** F5 (Device State Reader), F6 (Gain Staging Check)
 
-**Avoids:** Context collapse (Pitfall 3) — progress-check tool explicitly validates that Claude can re-orient from session state alone; missing instruments on scaffolded tracks (Pitfall 7) — progress-check flags instrumentless tracks.
+**Avoids:** Pitfall 4 (MIDI tracks without instruments), performance trap of sequential per-track reads
 
-**Research flag:** No deeper research needed. Thin tool wrapper + integration validation. Standard quality gate pattern.
+**Research flag:** Standard patterns — gain analysis math is straightforward; v1.3 instrument-presence check pattern is available for reuse.
+
+### Phase 5: Suggest Adjustments Intelligence Layer
+
+**Rationale:** The "AI mixing engineer" differentiator. Depends on both the recipe layer (F3) and the state reader (F5) being complete and tested. Building this last ensures it has the full foundation.
+
+**Delivers:** `engine.diff_against_recipe()` function; `suggest_mix_adjustments` MCP tool with reasoning output per parameter diff; documentation of the suggest-then-confirm workflow.
+
+**Addresses:** F7 (Suggest Adjustments)
+
+**Avoids:** Black-box automation (always show what will change + reasoning before applying)
+
+**Research flag:** Standard patterns — diff logic is pure computation, no Ableton dependency, well-understood pattern.
+
+### Phase 6: Recipe Expansion to All 12 Genres
+
+**Rationale:** Data scaling phase. Applies the validated schema and patterns to the remaining 8 genres. The recipe authoring infrastructure is proven; this phase is primarily content work.
+
+**Delivers:** Recipe files for synthwave, hip-hop/trap, dubstep, trance, lo-fi, future bass, disco/funk, neo-soul/R&B; master bus recipes for same 8 genres; F3 and F8 completion.
+
+**Addresses:** F3 (full 12-genre expansion), F8 (all master bus recipes)
+
+**Research flag:** Standard patterns — recipe authoring follows Phase 2 pattern. Genre mixing conventions are well-documented in production education sources.
 
 ### Phase Ordering Rationale
 
-- Phase 25 before 26: Blueprint enrichment data is the input to the plan builder; generating meaningful checklists requires `energy` and `roles` to be present in blueprints
-- Phase 26 before 27: The `scaffold_arrangement` batch command needs to know what a ProductionPlan looks like (structure, field names, beat position format) before the Remote Script handler can parse it
-- Phase 27 before 28: Section checklist execution requires locators and named tracks to exist in Ableton; the quality gate validates the full stack
-- Each phase is independently testable: Phase 25 and 26 are pure Python (pytest only); Phase 27 requires live Ableton; Phase 28 requires both
+- Phases 1-3 form a hard dependency chain (catalog -> recipes -> apply-tool); cannot be reordered
+- Phase 4 is prerequisite to Phase 5 (state reader needed for diff engine)
+- Phase 6 is pure data expansion; could begin in parallel with Phase 5 if resources allow
+- Master bus recipes (F8) should be authored alongside per-track recipes in each data phase, not deferred — they share the same catalog and schema
+- Sidechain routing automation is intentionally deferred; sidechain parameters belong in recipes but routing index resolution requires session-dependent logic that is v1.5 scope
 
 ### Research Flags
 
-Phases needing deeper research or integration validation during planning:
-- **Phase 27:** Live Ableton integration testing for the `create_locator` atomic handler. The LOM constraint is fully documented but the seek/toggle/name sequence and CuePoint.name writability in Live 12 must be verified against a live instance. Also verify `scaffold_arrangement` batch command stays under the existing 15-second TIMEOUT_WRITE.
+Phases needing deeper research during planning:
+- **Phase 1:** Live Ableton session required to capture device class names and parameter names/ranges for all 10-12 target devices. This is UAT-first, not code-first.
+- **Phase 3:** Atomicity design decision — single Remote Script apply command vs. orchestrated MCP calls. Run a spike to measure round-trip latency and test whether async device loading causes timing issues before committing to architecture.
 
-Phases with standard, well-documented patterns (skip research-phase):
-- **Phase 25:** Blueprint extension follows identical pattern to v1.2 Phase 20. No new APIs, no new modules.
-- **Phase 26:** Pure Python plan builder follows identical pattern to theory engine. Fully unit-testable, no external dependencies.
-- **Phase 28:** Quality gate follows identical pattern to v1.2 Phase 24.
+Phases with standard patterns (skip research-phase):
+- **Phase 2:** Recipe schema follows existing genre blueprint pattern exactly. Auto-discovery via pkgutil is already proven.
+- **Phase 4:** Gain analysis math is trivial; instrument-presence check pattern already exists in v1.3.
+- **Phase 5:** Diff logic is pure computation with no Ableton dependency.
+- **Phase 6:** Content authoring only; architecture is locked by Phase 2.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Zero new external dependencies confirmed by direct codebase review. Internal module structure derived from existing `MCP_Server/theory/` pattern which is well-established. |
-| Features | HIGH | Table stakes features verified against existing codebase (schema, blueprints, LOM APIs confirmed). Genre arrangement patterns from MEDIUM-confidence external sources but cross-validated against 12 existing blueprints. |
-| Architecture | HIGH | Architecture follows established codebase patterns exactly. LOM constraints verified against official Cycling '74 documentation and existing Remote Script code. Critical locator creation pattern documented with exact handler pseudocode. |
-| Pitfalls | HIGH | All critical pitfalls derived from direct codebase inspection and verified LOM API behavior. CuePoint.name writability in Live 12 confirmed via Cycling '74 forum. Beat position arithmetic and context collapse risks are design constraints, not speculation. |
+| Stack | HIGH | Zero new dependencies confirmed by codebase inspection; pyloudnorm and Spectrum data correctly eliminated with documented rationale |
+| Features | MEDIUM-HIGH | Table stakes features well-established; specific device parameter names are MEDIUM (must be live-verified); genre mixing conventions are HIGH from multiple production education sources |
+| Architecture | HIGH | All integration points verified via source code inspection; one gap: master track device loading via `load_browser_item` needs verification |
+| Pitfalls | HIGH | Parameter naming and normalization pitfalls confirmed via live API behavior documentation and codebase analysis; sidechain routing fragility confirmed by reading existing handler code |
 
-**Overall confidence:** HIGH
+**Overall confidence:** MEDIUM-HIGH
 
 ### Gaps to Address
 
-- **Scaffold batch command timeout:** The `scaffold_arrangement` batch command creating 7 locators + 8 tracks must complete within the existing `TIMEOUT_WRITE` of 15 seconds. This is expected to be well under that limit based on architecture analysis, but should be measured in the first Phase 27 integration test against a live session.
+- **Exact device class names:** Not confirmed for all 10-12 target devices. Only `"OriginalSimpler"` is known from existing tests. All others (Compressor, EQ Eight, Glue Compressor, etc.) must be queried from a live session before Phase 1 can complete. Handle by making catalog bootstrap the first deliverable of Phase 1.
 
-- **CuePoint.name writability syntax:** Research confirms Live 12 makes `CuePoint.name` writable, but the exact Python API syntax (`cp.name = value` vs. a setter method) should be verified in the first integration test. The fallback (locators exist but are unnamed) degrades gracefully but defeats the "session as plan" design.
+- **EQ Eight frequency normalization formula:** The log-frequency mapping formula in PITFALLS.md is a community-sourced approximation. The exact mapping must be verified against Ableton's implementation — small errors in the conversion formula produce audibly wrong frequency values. Include a conversion accuracy test in Phase 1 UAT.
 
-- **Subgenre arrangement override completeness:** Some subgenres (e.g., `progressive_house`) already override `arrangement.sections`. The Phase 25 blueprint enrichment must audit all subgenres to determine which have arrangement overrides and ensure those are enriched consistently. The catalog merge behavior (shallow merge) means subgenre overrides replace the parent arrangement entirely — this is the existing behavior and should be preserved.
+- **Compressor Attack/Release ranges:** PITFALLS.md flags these as "likely normalized 0-1 with non-linear mapping" but this is unconfirmed. Must be captured in Phase 1 live query.
 
-- **Token budget after enrichment:** The v1.2 quality gate (D-13) established a ceiling of 670 tokens per blueprint. Adding per-section enrichment fields may push some genres to ~850 tokens. The Phase 25 quality gate should verify the new ceiling remains acceptable and update the D-13 token budget parameter if needed.
+- **`load_browser_item` master track support:** ARCHITECTURE.md flags this as a potential integration gap. The existing handler indexes into `song.tracks[]`, which excludes the master track. This may require a Remote Script fix; needs verification before Phase 3 begins.
+
+- **Atomicity vs. orchestration tradeoff:** PITFALLS.md recommends a single atomic Remote Script command for recipe application. ARCHITECTURE.md recommends orchestrating existing tools to avoid Remote Script business logic. This unresolved tension must be settled in Phase 3 via a spike based on measured latency and observed async behavior.
+
+- **Recipe parameter values (numeric):** Specific recipe values (e.g., "house kick compressor threshold = -12 dB") are informed by production education sources but have LOW confidence as exact starting points. Treat v1.4 recipes as starting points; the system should make values easily adjustable.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Cycling '74 LOM Reference (Max 9 PDF)](https://cycling74-docs-production.nyc3.cdn.digitaloceanspaces.com/pdfs/9.0.7-rev.1/Max9-LOM-en.pdf) — CuePoint class (page 56), Song class (pages 126–140)
-- [Cycling '74 LOM Documentation](https://docs.cycling74.com/apiref/lom/) — CuePoint.name R/W, CuePoint.time R/O, Song.set_or_delete_cue() behavior, Song.cue_points
-- [Cycling '74 Forum: Setting Locator Names](https://cycling74.com/forums/setting-locator-names) — CuePoint.name writable in Live 12 confirmed
-- [MCP Specification 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25) — stateless tool design, protocol patterns
-- Existing codebase: `MCP_Server/genres/schema.py`, `MCP_Server/genres/catalog.py`, all 12 genre files — confirmed ArrangementEntry schema, catalog auto-discovery, existing arrangement data
-- Existing codebase: `AbletonMCP_Remote_Script/handlers/transport.py` — current cue point implementation (toggle at current position only)
-- Existing codebase: `AbletonMCP_Remote_Script/handlers/arrangement.py` — existing arrangement clip CRUD (4 commands unchanged in v1.3)
-- Existing codebase: `MCP_Server/tools/arrangement.py` — existing MCP arrangement tools
-- Existing codebase: `MCP_Server/connection.py` — TIMEOUT_WRITE (15s), command classification pattern
+- Ableton Live Object Model — Cycling74 docs (Track metering, Device parameter access, confirmed via codebase cross-reference)
+- Ableton Live 12 Audio Effect Reference — official device documentation
+- Existing codebase: `devices.py`, `mixer_helpers.py`, `genres/schema.py`, `genres/catalog.py`, `conftest.py` — all findings verified by direct code inspection
 
 ### Secondary (MEDIUM confidence)
-- [EDM Tips - EDM Song Structure](https://edmtips.com/edm-song-structure/) — section energy and element patterns for drop-based genres
-- [AudioServices - Arrangements in Electronic Music](https://audioservices.studio/blog/understanding-arrangements-in-electronic-music-production) — genre-specific arrangement conventions
-- [Cycling '74 LOM Documentation (Max 8 legacy)](https://docs.cycling74.com/legacy/max8/vignettes/live_object_model) — LOM hierarchy and class relationships
-- [Cymatics - EDM Song Structure](https://cymatics.fm/blogs/production/edm-song-structure) — standard section definitions for house, techno, DnB
+- Remotify Device Parameters reference — community-documented Ableton device parameter names for Live 11 (structure carries to Live 12)
+- iZotope mixing and mastering guides — genre mixing conventions and master bus chain order
+- Toolroom Academy / Audeobox / Loopmasters mixing guides — EDM genre-specific mixing conventions
+- Ableton Forum on Spectrum device — confirms no mappable parameters for frequency data
 
 ### Tertiary (LOW confidence)
-- None — all significant findings were cross-validated against at least two sources or direct codebase inspection.
+- Specific numeric recipe values (thresholds, frequencies, ratios) — informed starting points from production education sources; require ear-testing and iterative refinement in practice
 
 ---
-*Research completed: 2026-03-27*
+*Research completed: 2026-03-28*
 *Ready for roadmap: yes*
