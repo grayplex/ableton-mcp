@@ -46,7 +46,7 @@ Plans:
   3. Scaffold operation completes within the existing 15-second write timeout for a typical 7-section arrangement
 
 Plans:
-- [ ] 27-01-PLAN.md — scaffold_arrangement MCP tool + Remote Script handlers (create_locator_at, scaffold_tracks) + role dedup + bar-to-beat conversion + tests
+- [x] 27-01-PLAN.md — scaffold_arrangement MCP tool + Remote Script handlers (create_locator_at, scaffold_tracks) + role dedup + bar-to-beat conversion + tests
 - [ ] 27-02-PLAN.md — get_arrangement_overview MCP tool + get_arrangement_state handler + beat-to-bar conversion + live Ableton verification checkpoint
 
 **UI hint**: yes

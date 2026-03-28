@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Arrangement Intelligence
 status: Milestone complete
-stopped_at: Completed 26-02-PLAN.md
+stopped_at: Completed 27-01-PLAN.md
 last_updated: "2026-03-28T04:11:27.787Z"
 progress:
   total_phases: 26
@@ -19,20 +19,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-27)
 
 **Core value:** An AI assistant can produce actual music in Ableton — with harmonic intelligence and genre-aware conventions.
-**Current focus:** Phase 26 — production-plan-builder
+**Current focus:** Phase 27 — locator-and-scaffolding-commands
 
 ## Current Position
 
-Phase: 26
-Plan: Not started
+Phase: 27
+Plan: 01 complete
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 2
-- Average duration: 20min
-- Total execution time: 40min
+- Total plans completed: 3
+- Average duration: 16min
+- Total execution time: 47min
 
 ## Accumulated Context
 
@@ -63,6 +63,9 @@ Plan: Not started
 - [Phase 26-02]: Duplicate section name raises ValueError; caller converts to format_error
 - [Phase 26-02]: Nonexistent anchor/name produces warning string (not error) -- plan still returned
 - [Phase 26-02]: Added custom sections have roles=[] and no transition_in (no blueprint data)
+- [Phase 27-01]: Role dedup counts sections containing each role: lead in 3 sections = lead, lead 2, lead 3
+- [Phase 27-01]: Toggle safety: existing cue at target position renamed instead of toggled off
+- [Phase 27-01]: Playhead saved/restored around locator creation to avoid disrupting user position
 
 ### Roadmap Evolution
 
@@ -81,6 +84,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-28T04:05:24Z
-Stopped at: Completed 26-02-PLAN.md
+Last session: 2026-03-28T05:17:00Z
+Stopped at: Completed 27-01-PLAN.md
 Resume file: None
