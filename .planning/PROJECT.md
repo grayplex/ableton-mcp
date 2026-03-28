@@ -24,7 +24,7 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 
 ### Active
 
-(No active requirements — v1.2 complete)
+(v1.3 requirements being defined — see REQUIREMENTS.md)
 
 ### Out of Scope
 
@@ -32,6 +32,17 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - Audio generation/synthesis — Ableton handles audio; MCP handles control
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
+
+## Current Milestone: v1.3 Arrangement Intelligence
+
+**Goal:** Give Claude a systematic production workflow — plan sections from genre conventions, encode the plan into Ableton, and execute section-by-section without dropping the ball at tool call #40.
+
+**Target features:**
+- Arrangement templates in genre blueprints (section names, bar counts, energy curve, per-section elements, automation cues)
+- Production plan builder: genre + vibe → full section plan or single-section plan on demand
+- Session scaffolding: locators + named tracks written into Ableton Arrangement view (the session IS the plan)
+- Section execution checklists: methodical per-section execution (kick, bass, riser, filter sweep...) — nothing skipped under context pressure
+- Either mode: full track end-to-end OR targeted single section
 
 ## Completed Milestone: v1.2 Genre/Style Blueprints (shipped 2026-03-27)
 
@@ -114,4 +125,4 @@ Two-tier: MCP server (FastMCP/Python 3) ↔ TCP socket (length-prefix framing) �
 - Codebase map at `.planning/codebase/`
 
 ---
-*Last updated: 2026-03-27 after v1.2 milestone completion*
+*Last updated: 2026-03-27 — v1.3 Arrangement Intelligence milestone started*
