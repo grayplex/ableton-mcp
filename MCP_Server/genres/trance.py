@@ -38,13 +38,13 @@ GENRE = {
     },
     "arrangement": {
         "sections": [
-            {"name": "intro", "bars": 32},
-            {"name": "buildup", "bars": 16},
-            {"name": "climax", "bars": 32},
-            {"name": "breakdown", "bars": 32},
-            {"name": "buildup2", "bars": 16},
-            {"name": "climax2", "bars": 32},
-            {"name": "outro", "bars": 32},
+            {"name": "intro", "bars": 32, "energy": 2, "roles": ["kick", "hi-hats", "pad"]},
+            {"name": "buildup", "bars": 16, "energy": 6, "roles": ["kick", "hi-hats", "clap", "bass", "pad", "arpeggio", "fx"], "transition_in": "arpeggio entry + filter open"},
+            {"name": "climax", "bars": 32, "energy": 10, "roles": ["kick", "bass", "hi-hats", "clap", "supersaw", "lead", "pad", "fx"], "transition_in": "riser + cymbal crash + supersaw entry"},
+            {"name": "breakdown", "bars": 32, "energy": 3, "roles": ["pad", "lead", "vocal", "fx"], "transition_in": "kick removal + melody solo"},
+            {"name": "buildup2", "bars": 16, "energy": 7, "roles": ["kick", "hi-hats", "clap", "bass", "pad", "arpeggio", "fx"], "transition_in": "snare roll + rising synth"},
+            {"name": "climax2", "bars": 32, "energy": 10, "roles": ["kick", "bass", "hi-hats", "clap", "supersaw", "lead", "pad", "pluck", "fx"], "transition_in": "impact + full anthem drop"},
+            {"name": "outro", "bars": 32, "energy": 2, "roles": ["kick", "hi-hats", "pad"], "transition_in": "gradual element removal"},
         ]
     },
     "mixing": {

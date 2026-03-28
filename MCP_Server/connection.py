@@ -174,6 +174,9 @@ _WRITE_COMMANDS = frozenset(
         "set_wavetable_modulation_value",
         "set_wavetable_oscillator",
         "set_wavetable_voice_config",
+        # Phase 27: Scaffold
+        "create_locator_at",
+        "scaffold_tracks",
     ]
 )
 

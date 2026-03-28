@@ -37,14 +37,14 @@ GENRE = {
     },
     "arrangement": {
         "sections": [
-            {"name": "intro", "bars": 8},
-            {"name": "verse", "bars": 16},
-            {"name": "chorus", "bars": 16},
-            {"name": "verse2", "bars": 16},
-            {"name": "chorus2", "bars": 16},
-            {"name": "bridge", "bars": 8},
-            {"name": "chorus3", "bars": 16},
-            {"name": "outro", "bars": 8},
+            {"name": "intro", "bars": 8, "energy": 2, "roles": ["analog_synth_pad", "arpeggio_lead", "fx"]},
+            {"name": "verse", "bars": 16, "energy": 5, "roles": ["drum_machine", "bass_synth", "arpeggio_lead", "analog_synth_pad", "hi-hats"], "transition_in": "drum machine entry"},
+            {"name": "chorus", "bars": 16, "energy": 8, "roles": ["drum_machine", "bass_synth", "arpeggio_lead", "analog_synth_pad", "gated_reverb_snare", "lead", "hi-hats"], "transition_in": "lead synth entry + energy lift"},
+            {"name": "verse2", "bars": 16, "energy": 5, "roles": ["drum_machine", "bass_synth", "arpeggio_lead", "analog_synth_pad", "hi-hats", "percussion"], "transition_in": "lead drop + groove return"},
+            {"name": "chorus2", "bars": 16, "energy": 8, "roles": ["drum_machine", "bass_synth", "arpeggio_lead", "analog_synth_pad", "gated_reverb_snare", "lead", "hi-hats", "strings"], "transition_in": "lead + strings entry"},
+            {"name": "bridge", "bars": 8, "energy": 4, "roles": ["analog_synth_pad", "arpeggio_lead", "fx"], "transition_in": "drum break + atmosphere"},
+            {"name": "chorus3", "bars": 16, "energy": 9, "roles": ["drum_machine", "bass_synth", "arpeggio_lead", "analog_synth_pad", "gated_reverb_snare", "lead", "hi-hats", "strings", "fx"], "transition_in": "full synth wall + final chorus"},
+            {"name": "outro", "bars": 8, "energy": 3, "roles": ["analog_synth_pad", "arpeggio_lead", "fx"], "transition_in": "synth fadeout"},
         ]
     },
     "mixing": {
