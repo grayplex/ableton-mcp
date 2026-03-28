@@ -64,9 +64,9 @@
 | APPLY-02 | Phase 31 | Complete |
 | APPLY-03 | Phase 31 | Complete |
 | SIDE-01 | Phase 31 | Pending |
-| STATE-01 | Phase 32 | Pending |
-| GAIN-01 | Phase 32 | Pending |
-| GAIN-02 | Phase 32 | Pending |
+| STATE-01 | Phase 32 | In progress (RS handler done in 32-01) |
+| GAIN-01 | Phase 32 | In progress (RS handler done in 32-01) |
+| GAIN-02 | Phase 32 | In progress (MIDI exclusion guard done in 32-01) |
 | INTEL-01 | Phase 33 | Pending |
 | RECIP-02 | Phase 34 | Pending |
 | MSTR-01 | Phase 34 | Pending |
