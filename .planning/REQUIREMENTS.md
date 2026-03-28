@@ -1,59 +1,72 @@
-# Requirements — v1.3 Arrangement Intelligence
+# Requirements — v1.4 Mix/Master Intelligence
 
-**Milestone:** v1.3 Arrangement Intelligence
+**Milestone:** v1.4 Mix/Master Intelligence
 **Status:** Active
-**Last updated:** 2026-03-27
+**Last updated:** 2026-03-28
 
-## Milestone v1.3 Requirements
+## Milestone v1.4 Requirements
 
-### Blueprint Arrangement Data
+### Foundation
 
-- [ ] **ARNG-01**: User can retrieve per-section energy level (int 1–10) from genre blueprints — quantifying the energy curve across all 12 genres and their subgenres
-- [ ] **ARNG-02**: User can retrieve per-section instrument roles list from genre blueprints — defining which elements are active per section (e.g. [kick, bass, lead, riser])
-- [ ] **ARNG-03**: User can retrieve per-section transition descriptor from genre blueprints — describing how to enter each section (e.g. "filter sweep + riser", "impact hit", "gradual strip-back")
+- [ ] **CATL-01**: User can look up exact Ableton API parameter names, value ranges, and normalized-to-natural-unit conversion formulas for EQ Eight, Compressor, Glue Compressor, Drum Buss, Multiband Dynamics, Reverb, Delay, Auto Filter, Gate, Limiter, Envelope Follower, and Utility — catalog bootstrapped from live Ableton queries, not documentation
+- [ ] **ROLE-01**: User can retrieve the canonical mixing role taxonomy — the role identifiers (kick, bass, lead, pad, chords, vocal, atmospheric, return, master) used as keys for recipe lookup across all genres
+- [ ] **BATCH-01**: User can set multiple device parameters in a single socket call via a Remote Script batch handler — reducing recipe application from N sequential round-trips to one
 
-### Production Planning
+### Mix Recipes
 
-- [x] **PLAN-01**: User can generate a full production plan from genre + key + BPM + vibe — returns all sections with calculated beat positions and per-section checklists in under 400 tokens
-- [x] **PLAN-02**: User can generate a targeted plan for a single section without planning the full track
-- [ ] **PLAN-03**: User can customize a plan with overrides — shorter/longer sections, add/remove bridge, change section bar counts
+- [ ] **RECIP-01**: User can retrieve a role×genre mix recipe for any of the 4 core genres (house, techno, ambient, DnB) — returns EQ, compression, reverb/delay, panning, and dynamics parameter values for the specified role
+- [ ] **RECIP-02**: User can retrieve a role×genre mix recipe for all 12 genres — extends RECIP-01 to synthwave, hip-hop/trap, dubstep, trance, lo-fi, future bass, disco/funk, and neo-soul/R&B
+- [ ] **MSTR-01**: User can retrieve a master bus recipe for any of the 12 genres — returns parameter settings for a Glue Compressor + Multiband Dynamics + Limiter chain appropriate to that genre's loudness and tonal conventions
 
-### Session Scaffolding
+### Apply Tools
 
-- [x] **SCAF-01**: User can scaffold a full arrangement into Ableton — creates all named locators and named tracks in Arrangement view from a production plan in one atomic operation
-- [x] **SCAF-02**: User can retrieve an arrangement overview from the active Ableton session — returns locators (with positions), track names, and session length for mid-session re-orientation
+- [ ] **APPLY-01**: User can apply a role×genre mix recipe to an Ableton track in one MCP tool call — loads the required devices and sets all parameters without requiring multiple sequential tool calls from Claude
+- [ ] **APPLY-02**: User can apply a genre master bus recipe to the Ableton master track in one MCP tool call
+- [ ] **APPLY-03**: Recipe application is atomic with respect to device loading — parameters are set only after the device is confirmed as instantiated in the Ableton session (no race condition on async device load)
 
-### Section Execution
+### State Analysis
 
-- [x] **EXEC-01**: User can get a per-section execution checklist — returns pending instrument roles for a given section so Claude can execute methodically
-- [x] **EXEC-02**: User can check arrangement progress — flags scaffolded MIDI tracks that have no instrument loaded, preventing silent empty tracks
+- [ ] **STATE-01**: User can retrieve current device parameters for every device on every track in a single MCP tool call — returns a complete snapshot of the session's mix state without N sequential reads
+- [ ] **GAIN-01**: User can run a gain staging check — returns per-track dBFS estimates from track meter levels, compares to role-based targets, and flags tracks significantly above or below target
+- [ ] **GAIN-02**: Gain staging check excludes MIDI tracks with no instrument loaded from analysis — no false-positive flags on empty scaffold tracks
+
+### Mix Intelligence
+
+- [ ] **INTEL-01**: User can request mix adjustment suggestions for a track — returns a list of parameter diffs (current value → suggested value) with a one-sentence reason per change, based on comparing current device state against the role×genre recipe
+
+### Sidechain Routing
+
+- [ ] **SIDE-01**: User can set a compressor's sidechain input source by track name — resolves the source track to the correct index at apply time rather than requiring hardcoded track indices
 
 ## Future Requirements
 
-- Arrangement analysis of existing tracks — stem separation/structural segmentation (different domain, v1.4+)
-- Default instrument loading on scaffold tracks — auto-load instruments per role (better UX, v1.3.1 candidate)
-- Section reordering — delete-and-rebuild locator workflow, document as known limitation for v1.3
-- Vibe-to-energy preset library — Claude interprets vibes contextually, formal preset system deferred
-- Empty arrangement clip pre-creation — locators provide sufficient visual guidance for v1.3
+- Section-aware mixing — apply different mix settings per arrangement section (e.g. louder drop vs. breakdown); requires automation infrastructure (v1.5+)
+- Frequency conflict detection — detect masking between competing tracks; requires audio analysis beyond LOM meter access (v1.5+)
+- Full sidechain chain automation — auto-wire all genre-conventional sidechain connections (e.g. bass → kick, lead → kick) in one call (v1.5+)
+- Per-instrument default device loading on scaffold tracks — auto-load instruments when scaffolding (v1.4.1 candidate)
 
 ## Out of Scope
 
-- **Arrangement analysis of existing tracks** — Different problem domain (audio analysis, stem separation). v1.3 is about planning and building, not analyzing.
-- **Non-4/4 time signatures in scaffolding** — Beat position arithmetic uses `beats_per_bar = numerator * (4.0 / denominator)` from the session, but UI for non-standard signatures is out of scope.
-- **Arrangement view audio clip automation** — v1.3 scaffolding creates MIDI tracks + locators only; audio clips and automation lanes are out of scope.
-- **Server-side plan persistence** — MCP is stateless; Claude holds the plan in context. No server-side plan storage.
+- **Spectrum frequency analysis** — Ableton's Spectrum device exposes no frequency bin data via the LOM; visualization-only device. Dropped from v1.4.
+- **LUFS metering** — Requires raw audio sample arrays (NumPy); MCP Server and Remote Script have no audio buffer access. Use output_meter_level as gain staging proxy instead.
+- **Automated mixing without human confirmation** — suggest_mix_adjustments always returns diffs for user review before apply; no unsupervised bulk rewrite.
+- **Non-Ableton device support** — Recipes cover Ableton built-in devices only; third-party VST/AU parameter naming is outside catalog scope.
 
 ## Traceability
 
 | REQ-ID | Phase | Notes |
 |--------|-------|-------|
-| ARNG-01 | Phase 25 | Blueprint energy levels |
-| ARNG-02 | Phase 25 | Blueprint instrument roles |
-| ARNG-03 | Phase 25 | Blueprint transition descriptors |
-| PLAN-01 | Phase 26 | Full production plan generation |
-| PLAN-02 | Phase 26 | Single-section plan generation |
-| PLAN-03 | Phase 26 | Plan overrides/customization |
-| SCAF-01 | Phase 27 | Atomic scaffold into Ableton |
-| SCAF-02 | Phase 27 | Arrangement overview readback |
-| EXEC-01 | Phase 28 | Section execution checklist |
-| EXEC-02 | Phase 28 | Arrangement progress check |
+| CATL-01 | — | |
+| ROLE-01 | — | |
+| BATCH-01 | — | |
+| RECIP-01 | — | |
+| RECIP-02 | — | |
+| MSTR-01 | — | |
+| APPLY-01 | — | |
+| APPLY-02 | — | |
+| APPLY-03 | — | |
+| STATE-01 | — | |
+| GAIN-01 | — | |
+| GAIN-02 | — | |
+| INTEL-01 | — | |
+| SIDE-01 | — | |
