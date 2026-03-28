@@ -60,11 +60,11 @@ Genre blueprint system: 5 phases, 9 plans, 23 requirements, 12 genres, 3 MCP too
   2. User can call get_genre_blueprint and see a list of instrument roles (e.g. [kick, bass, lead, pad]) for each arrangement section
   3. User can call get_genre_blueprint and see a transition_in descriptor string (e.g. "filter sweep + riser") for each arrangement section
   4. All 148 existing genre tests pass without modification (backward-compatible schema extension)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 25-01: TBD
-- [ ] 25-02: TBD
+- [ ] 25-01-PLAN.md — Schema extension, validator update, house reference implementation, test suite
+- [ ] 25-02-PLAN.md — Author arrangement data for remaining 11 genres + 3 subgenre overrides
 
 ### Phase 26: Production Plan Builder
 **Goal**: Users can generate concrete, token-efficient production plans from genre conventions and personal preferences -- full track or single section, with customizable overrides
@@ -118,7 +118,7 @@ Phases execute in numeric order: 25 → 26 → 27 → 28
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 25. Blueprint Arrangement Extension | v1.3 | 0/2 | Not started | - |
+| 25. Blueprint Arrangement Extension | v1.3 | 0/2 | Planned | - |
 | 26. Production Plan Builder | v1.3 | 0/2 | Not started | - |
 | 27. Locator and Scaffolding Commands | v1.3 | 0/2 | Not started | - |
 | 28. Section Execution and Quality Gate | v1.3 | 0/2 | Not started | - |
@@ -128,4 +128,4 @@ Phases execute in numeric order: 25 → 26 → 27 → 28
 | v1.0 MVP | 1-13 | 33 | 53 | Complete | 2026-03-23 |
 | v1.1 Theory Engine | 14-19 | 12 | 24 | Complete | 2026-03-26 |
 | v1.2 Genre/Style Blueprints | 20-24 | 9 | 23 | Complete | 2026-03-27 |
-| v1.3 Arrangement Intelligence | 25-28 | TBD | 10 | In progress | - |
+| v1.3 Arrangement Intelligence | 25-28 | 8 | 10 | In progress | - |
