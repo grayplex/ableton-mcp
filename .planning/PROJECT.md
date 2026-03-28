@@ -25,10 +25,12 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - ✓ PLAN-01..03: generate_production_plan and generate_section_plan MCP tools with override support (resize/add/remove sections) — v1.3 Phase 26
 - ✓ SCAF-01..02: scaffold_arrangement (writes locators + MIDI tracks to Arrangement view) and get_arrangement_overview (reads back arrangement state) MCP tools — v1.3 Phase 27
 - ✓ EXEC-01..02: get_section_checklist (per-role instrument status for a named section) and get_arrangement_progress (tracks with no instrument loaded) MCP tools — v1.3 Phase 28
+- ✓ CATL-01: Device parameter catalog — 12 built-in Ableton devices with 327 real parameters from live session; get_device_catalog MCP tool — v1.4 Phase 29
+- ✓ ROLE-01: Role taxonomy — 9 canonical mixing roles; get_role_taxonomy MCP tool — v1.4 Phase 29
 
 ### Active
 
-(v1.3 complete — see REQUIREMENTS.md for full traceability)
+(v1.4 in progress — Phase 29 complete — see REQUIREMENTS.md for full traceability)
 
 ### Out of Scope
 
