@@ -2,16 +2,20 @@
 
 ## v1.2 Genre/Style Blueprints (Shipped: 2026-03-27)
 
-**Phases completed:** 5 phases, 9 plans, 16 tasks
+**Phases completed:** 5 phases (20-24), 9 plans
+**Requirements:** 23/23 complete
+**Git range:** feat(20-01) → feat(24-02), 40+ commits
+**Timeline:** 2 days (2026-03-26 → 2026-03-27)
+
+**Delivered:** Curated genre reference system giving Claude consistent knowledge of 12 electronic music genres — instrumentation, harmony, rhythm, arrangement, and mixing — delivered via MCP with theory engine integration.
 
 **Key accomplishments:**
 
-- 1. [Rule 1 - Bug] Adapted chord type test to avoid music21 dependency
-- Two MCP tools (list_genre_blueprints + get_genre_blueprint) exposing Phase 20 genre catalog with section filtering, subgenre support, and alias resolution
-- Synthwave (4 subgenres) and lo-fi (3 subgenres) blueprints with D-05 alias migration from hip-hop/trap
-- Future bass (5 subgenres) and disco/funk (4 subgenres) blueprints completing the full 12-genre catalog
-- get_genre_palette MCP tool bridging genre blueprint harmony data to theory engine with key-resolved chord names, scale names, and progression resolution
-- TestTokenBudget (QUAL-01):
+- Blueprint schema (TypedDict) and auto-discovery catalog (pkgutil) with alias resolution, shallow subgenre merge, and import-time validation
+- Two MCP tools: `list_genre_blueprints` + `get_genre_blueprint` with section filtering, subgenre support, and alias resolution
+- Full 12-genre catalog: P0 (house, techno, hip-hop/trap, ambient), P1 (DnB, dubstep, trance, neo-soul/R&B), P2 (synthwave, lo-fi, future bass, disco/funk) — 35+ subgenres total
+- `get_genre_palette` MCP tool bridging blueprint harmony data to theory engine with key-resolved chord names, scales, and progressions
+- Centralized quality gate: all 12 genres validated against token budget (537-670 tokens, under 1200 limit) and theory engine name registry
 
 ---
 

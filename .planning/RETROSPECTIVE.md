@@ -45,6 +45,46 @@
 
 ---
 
+## Milestone: v1.2 — Genre/Style Blueprints
+
+**Shipped:** 2026-03-27
+**Phases:** 5 (20-24) | **Plans:** 9 | **Requirements:** 23/23
+
+### What Was Built
+- Blueprint schema (TypedDict) and pkgutil auto-discovery catalog with alias resolution and subgenre merge
+- `list_genre_blueprints` + `get_genre_blueprint` MCP tools with section filtering and subgenre support
+- Full 12-genre catalog across 3 tiers: P0 house/techno/hip-hop/ambient, P1 DnB/dubstep/trance/neo-soul, P2 synthwave/lo-fi/future bass/disco-funk
+- `get_genre_palette` bridging blueprint harmony to theory engine for key-resolved chord/scale/progression output
+- Centralized quality gate: token budget + theory name cross-validation across all 12 genres
+
+### What Worked
+- Pure data genre files (no imports, no functions) — zero dependency issues, easy to test in isolation
+- pkgutil auto-discovery means adding a genre requires zero registration code — dropped straight in
+- Building on existing theory engine (v1.1) gave palette bridge for free — `build_chord`, `get_scale_pitches`, `generate_progression` already existed
+- Phased genre rollout (P0→P1→P2) kept each plan focused and fast — each plan was 3-5 genre files
+
+### What Was Inefficient
+- QUAL-01 token budget lower bound had to be revised from 800 → 400 mid-milestone — should define realistic bounds from a sample blueprint before locking requirements
+- Phase 23 plan 02 (future bass + disco/funk) started before plan 01 (synthwave + lo-fi) was complete — small ordering confusion in progress tracking
+
+### Patterns Established
+- Pure data genre modules (no code, just a dict) with separate catalog for all logic
+- `_QUALITY_MAP` direct lookup for chord type validation (avoids music21 import in genre files)
+- Unknown subgenre graceful fallback to base genre (not an error)
+- Alias normalization: lowercase + replace spaces/hyphens with underscores before lookup
+
+### Key Lessons
+1. Pure data modules + auto-discovery is the right pattern for extensible catalogs — zero boilerplate when adding new genres
+2. Define token budgets empirically (measure a real example) before writing requirements — avoid mid-milestone revisions
+3. Quality gate with theory engine cross-validation catches naming errors early — worth building upfront for data-heavy phases
+
+### Cost Observations
+- Model mix: ~80% opus (execution), ~20% sonnet (planning/research agents)
+- Sessions: ~5 sessions across 2 days
+- Notable: 9 plans × 5 phases delivered in 2 days — pure data phases are fast; no Remote Script changes needed
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -53,6 +93,7 @@
 |-----------|--------|-------|------------|
 | v1.0 MVP | 13 | 33 | Established mixin/handler/tool architecture |
 | v1.1 Theory Engine | 6 | 12 | Library-then-tools pattern, server-side only |
+| v1.2 Genre Blueprints | 5 | 9 | Pure data modules + auto-discovery, quality gate cross-validation |
 
 ### Cumulative Quality
 
@@ -60,8 +101,10 @@
 |-----------|-------|-----------|-------------|
 | v1.0 | 204 | 174 | 174 |
 | v1.1 | 224 | 23 | 197 |
+| v1.2 | 148 genre tests | 3 | 200 |
 
 ### Top Lessons (Verified Across Milestones)
 
-1. Consistent patterns accelerate delivery — mixin pattern (v1.0) and aliased-import pattern (v1.1) both proved this
+1. Consistent patterns accelerate delivery — mixin pattern (v1.0), aliased-import pattern (v1.1), pure data + auto-discovery (v1.2) all proved this
 2. Server-side logic that doesn't touch Remote Script ships faster — no Ableton restart overhead
+3. Build quality gates into infrastructure phases — token budget + theory name validation (v1.2) caught issues early across all subsequent genre files
