@@ -62,11 +62,11 @@ Plans:
   3. Parameters are set only after the device is confirmed as instantiated -- no race condition where parameters are written to a device that hasn't finished loading
   4. User can set a compressor's sidechain input source by track name rather than hardcoded track index
   5. Batch parameter setting completes in a single socket round-trip rather than N sequential calls
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 31-01: TBD
-- [ ] 31-02: TBD
+- [ ] 31-01-PLAN.md -- Conversion module, master recipe data, and tests
+- [ ] 31-02-PLAN.md -- RS handlers, MCP tools, and integration tests
 
 ### Phase 32: Device State Reader and Gain Staging
 **Goal**: Users can snapshot the entire session's mix state and run a gain staging check that flags tracks outside role-based target ranges
@@ -149,8 +149,8 @@ Phases execute in numeric order: 29 -> 30 -> 31 -> 32 -> 33 -> 34
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 29. Device Parameter Catalog and Role Taxonomy | 2/2 | Complete    | 2026-03-28 |
-| 30. Core Mix Recipes | 2/2 | Complete   | 2026-03-28 |
-| 31. Apply Recipe and Batch Parameter Tools | 0/TBD | Not started | - |
+| 30. Core Mix Recipes | 2/2 | Complete    | 2026-03-28 |
+| 31. Apply Recipe and Batch Parameter Tools | 0/2 | Not started | - |
 | 32. Device State Reader and Gain Staging | 0/TBD | Not started | - |
 | 33. Mix Adjustment Intelligence | 0/TBD | Not started | - |
 | 34. Full Genre Recipe Expansion | 0/TBD | Not started | - |
