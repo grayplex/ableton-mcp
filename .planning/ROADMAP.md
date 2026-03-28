@@ -5,6 +5,7 @@
 - ✅ **v1.0 MVP** — Phases 1-13 (shipped 2026-03-23)
 - ✅ **v1.1 Theory Engine** — Phases 14-19 (shipped 2026-03-26)
 - ✅ **v1.2 Genre/Style Blueprints** — Phases 20-24 (shipped 2026-03-27)
+- 🔄 **v1.3 Arrangement Intelligence** — Phases 25-28 (in progress)
 
 ## Phases
 
@@ -35,6 +36,13 @@ Genre blueprint system: 5 phases, 9 plans, 23 requirements, 12 genres, 3 MCP too
 
 </details>
 
+## v1.3 Arrangement Intelligence (Phases 25-28)
+
+- [x] Phase 25: Blueprint Arrangement Extension (2/2 plans) — completed 2026-03-27
+- [ ] Phase 26: Production Plan Builder (2/2 plans done) — in progress 2026-03-28
+- [ ] Phase 27: Arrangement Scaffolder
+- [ ] Phase 28: Arrangement Intelligence QA
+
 ## Progress
 
 | Milestone | Phases | Plans | Requirements | Status | Shipped |
@@ -42,3 +50,4 @@ Genre blueprint system: 5 phases, 9 plans, 23 requirements, 12 genres, 3 MCP too
 | v1.0 MVP | 1-13 | 33 | 53 | Complete | 2026-03-23 |
 | v1.1 Theory Engine | 14-19 | 12 | 24 | Complete | 2026-03-26 |
 | v1.2 Genre/Style Blueprints | 20-24 | 9 | 23 | Complete | 2026-03-27 |
+| v1.3 Arrangement Intelligence | 25-28 | 8 | — | In Progress | — |
