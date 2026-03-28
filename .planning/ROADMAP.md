@@ -46,10 +46,11 @@ Plans:
   1. User can retrieve a mix recipe for any role in house, techno, ambient, or DnB and receive device parameter values (referencing catalog entries) for EQ, compression, reverb/delay, panning, and dynamics
   2. Recipe values reference validated catalog parameter names -- no recipe can specify a parameter name absent from the catalog
   3. Recipe auto-discovery works via the same pkgutil pattern used by genre blueprints -- adding a new genre recipe file requires zero registration code
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 30-01: TBD
+- [ ] 30-01-PLAN.md -- Mixing package infrastructure, tests, house and techno recipes
+- [ ] 30-02-PLAN.md -- Ambient and DnB recipes, get_mix_recipe MCP tool
 
 ### Phase 31: Apply Recipe and Batch Parameter Tools
 **Goal**: Users can apply a track mix recipe or master bus recipe to an Ableton track in one MCP call with atomic device loading, and set multiple parameters in a single socket round-trip
@@ -148,7 +149,7 @@ Phases execute in numeric order: 29 -> 30 -> 31 -> 32 -> 33 -> 34
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 29. Device Parameter Catalog and Role Taxonomy | 2/2 | Complete    | 2026-03-28 |
-| 30. Core Mix Recipes | 0/TBD | Not started | - |
+| 30. Core Mix Recipes | 0/2 | Not started | - |
 | 31. Apply Recipe and Batch Parameter Tools | 0/TBD | Not started | - |
 | 32. Device State Reader and Gain Staging | 0/TBD | Not started | - |
 | 33. Mix Adjustment Intelligence | 0/TBD | Not started | - |
