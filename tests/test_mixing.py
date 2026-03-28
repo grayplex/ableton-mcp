@@ -406,3 +406,138 @@ class TestGetMasterRecipe:
     def test_nonexistent_returns_none(self):
         result = get_master_recipe("nonexistent_genre")
         assert result is None
+
+
+# ---------------------------------------------------------------------------
+# Phase 31-02: Apply Recipe MCP Tool Tests
+# ---------------------------------------------------------------------------
+
+from unittest.mock import MagicMock, patch  # noqa: E402
+
+from MCP_Server.tools.mixing import (  # noqa: E402
+    apply_mix_recipe,
+    apply_master_recipe,
+    set_sidechain_source,
+)
+
+
+class TestApplyMixRecipe:
+    """Verify apply_mix_recipe MCP tool converts recipe and sends single command."""
+
+    def test_valid_recipe_calls_send_command(self):
+        mock_conn = MagicMock()
+        mock_conn.send_command.return_value = {"applied": True, "devices": []}
+        with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
+            result = apply_mix_recipe(None, 0, "kick", "house")
+        mock_conn.send_command.assert_called_once()
+        call_args = mock_conn.send_command.call_args
+        assert call_args[0][0] == "apply_recipe"
+        payload = call_args[0][1]
+        assert payload["track_type"] == "track"
+        assert payload["track_index"] == 0
+        assert isinstance(payload["devices"], list)
+        assert len(payload["devices"]) > 0
+
+    def test_invalid_role_returns_error(self):
+        result = apply_mix_recipe(None, 0, "invalid_role", "house")
+        assert "Error" in result
+        assert "No recipe found" in result
+
+    def test_payload_has_correct_structure(self):
+        mock_conn = MagicMock()
+        mock_conn.send_command.return_value = {"applied": True}
+        with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
+            apply_mix_recipe(None, 0, "kick", "house")
+        payload = mock_conn.send_command.call_args[0][1]
+        for device_spec in payload["devices"]:
+            assert "class_name" in device_spec, "Each device must have class_name"
+            assert "params" in device_spec, "Each device must have params"
+            assert isinstance(device_spec["params"], dict)
+
+    def test_payload_params_are_normalized(self):
+        """Params should be converted from natural units to normalized 0.0-1.0."""
+        mock_conn = MagicMock()
+        mock_conn.send_command.return_value = {"applied": True}
+        with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
+            apply_mix_recipe(None, 0, "kick", "house")
+        payload = mock_conn.send_command.call_args[0][1]
+        for device_spec in payload["devices"]:
+            for param_name, value in device_spec["params"].items():
+                assert isinstance(value, (int, float)), (
+                    f"Param {param_name} value should be numeric, got {type(value)}"
+                )
+
+
+class TestApplyMasterRecipe:
+    """Verify apply_master_recipe MCP tool applies to master track."""
+
+    def test_valid_genre_calls_with_master_track_type(self):
+        mock_conn = MagicMock()
+        mock_conn.send_command.return_value = {"applied": True, "devices": []}
+        with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
+            result = apply_master_recipe(None, "house")
+        mock_conn.send_command.assert_called_once()
+        call_args = mock_conn.send_command.call_args
+        assert call_args[0][0] == "apply_recipe"
+        payload = call_args[0][1]
+        assert payload["track_type"] == "master"
+
+    def test_master_recipe_contains_expected_devices(self):
+        mock_conn = MagicMock()
+        mock_conn.send_command.return_value = {"applied": True}
+        with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
+            apply_master_recipe(None, "house")
+        payload = mock_conn.send_command.call_args[0][1]
+        class_names = {d["class_name"] for d in payload["devices"]}
+        assert "GlueCompressor" in class_names
+        assert "MultibandDynamics" in class_names
+        assert "Limiter" in class_names
+
+    def test_invalid_genre_returns_error(self):
+        result = apply_master_recipe(None, "invalid_genre")
+        assert "Error" in result
+        assert "No master recipe" in result
+
+
+class TestSidechainSource:
+    """Verify set_sidechain_source MCP tool sends correct command."""
+
+    def test_valid_params_calls_send_command(self):
+        mock_conn = MagicMock()
+        mock_conn.send_command.return_value = {
+            "device_name": "Compressor",
+            "source_track": "Kick",
+            "routing_type": "Kick",
+            "routing_channel": "Post FX",
+        }
+        with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
+            result = set_sidechain_source(None, 1, 0, "Kick")
+        mock_conn.send_command.assert_called_once()
+        call_args = mock_conn.send_command.call_args
+        assert call_args[0][0] == "set_sidechain_source"
+        payload = call_args[0][1]
+        assert payload["source_track_name"] == "Kick"
+        assert payload["track_index"] == 1
+        assert payload["device_index"] == 0
+
+    def test_custom_track_type(self):
+        mock_conn = MagicMock()
+        mock_conn.send_command.return_value = {"device_name": "Compressor"}
+        with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
+            set_sidechain_source(None, 0, 0, "Kick", track_type="return")
+        payload = mock_conn.send_command.call_args[0][1]
+        assert payload["track_type"] == "return"
+
+
+class TestBatchParameterSetting:
+    """Verify apply_mix_recipe sends all params in a single send_command call."""
+
+    def test_single_send_command_call(self):
+        """apply_mix_recipe should call send_command exactly once (not N times)."""
+        mock_conn = MagicMock()
+        mock_conn.send_command.return_value = {"applied": True}
+        with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
+            apply_mix_recipe(None, 0, "kick", "house")
+        assert mock_conn.send_command.call_count == 1, (
+            f"Expected 1 send_command call, got {mock_conn.send_command.call_count}"
+        )

@@ -16,7 +16,7 @@
 
 - [ ] **Phase 29: Device Parameter Catalog and Role Taxonomy** - Live-verified parameter catalog for 12 built-in devices plus canonical mixing role definitions
 - [ ] **Phase 30: Core Mix Recipes** - Role x genre track recipes for 4 core genres (house, techno, ambient, DnB)
-- [ ] **Phase 31: Apply Recipe and Batch Parameter Tools** - Single-call recipe application with atomic device loading and batch parameter setting
+- [x] **Phase 31: Apply Recipe and Batch Parameter Tools** - Single-call recipe application with atomic device loading and batch parameter setting
 - [ ] **Phase 32: Device State Reader and Gain Staging** - Session-wide device state snapshot and role-based gain staging analysis
 - [ ] **Phase 33: Mix Adjustment Intelligence** - Suggest parameter changes by diffing current state against recipe targets
 - [ ] **Phase 34: Full Genre Recipe Expansion** - Extend track and master bus recipes to all 12 genres
@@ -62,11 +62,11 @@ Plans:
   3. Parameters are set only after the device is confirmed as instantiated -- no race condition where parameters are written to a device that hasn't finished loading
   4. User can set a compressor's sidechain input source by track name rather than hardcoded track index
   5. Batch parameter setting completes in a single socket round-trip rather than N sequential calls
-**Plans**: 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 31-01-PLAN.md -- Conversion module, master recipe data, and tests
-- [ ] 31-02-PLAN.md -- RS handlers, MCP tools, and integration tests
+- [x] 31-02-PLAN.md -- RS handlers, MCP tools, and integration tests
 
 ### Phase 32: Device State Reader and Gain Staging
 **Goal**: Users can snapshot the entire session's mix state and run a gain staging check that flags tracks outside role-based target ranges
@@ -150,7 +150,7 @@ Phases execute in numeric order: 29 -> 30 -> 31 -> 32 -> 33 -> 34
 |-------|----------------|--------|-----------|
 | 29. Device Parameter Catalog and Role Taxonomy | 2/2 | Complete    | 2026-03-28 |
 | 30. Core Mix Recipes | 2/2 | Complete    | 2026-03-28 |
-| 31. Apply Recipe and Batch Parameter Tools | 1/2 | In Progress|  |
+| 31. Apply Recipe and Batch Parameter Tools | 2/2 | Complete | 2026-03-28 |
 | 32. Device State Reader and Gain Staging | 0/TBD | Not started | - |
 | 33. Mix Adjustment Intelligence | 0/TBD | Not started | - |
 | 34. Full Genre Recipe Expansion | 0/TBD | Not started | - |
