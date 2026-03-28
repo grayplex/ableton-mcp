@@ -70,6 +70,55 @@ def natural_to_normalized(
     return float(natural_value)
 
 
+def normalized_to_natural(
+    device_class: str, param_name: str, normalized_value: float
+) -> float | None:
+    """Convert normalized 0.0-1.0 value back to natural units.
+
+    Inverse of natural_to_normalized(). Used for human-readable display
+    of parameter values (Hz, dB, ms, etc.).
+
+    Args:
+        device_class: CATALOG key (e.g. "Eq8", "Compressor2").
+        param_name: Parameter name as it appears in CATALOG.
+        normalized_value: Value in 0.0-1.0 normalized range.
+
+    Returns:
+        Natural-unit float, or None if device/param not in CATALOG.
+    """
+    device_entry = CATALOG.get(device_class)
+    if device_entry is None:
+        return None
+
+    param_info = None
+    for p in device_entry["parameters"]:
+        if p["name"] == param_name:
+            param_info = p
+            break
+
+    if param_info is None:
+        return None
+
+    conv = param_info.get("conversion")
+
+    if conv is None:
+        # No conversion -- value is in device range [min, max]
+        return param_info["min"] + normalized_value * (param_info["max"] - param_info["min"])
+
+    natural_min = conv["natural_min"]
+    natural_max = conv["natural_max"]
+    conv_type = conv["type"]
+
+    if conv_type == "log":
+        safe_min = natural_min if natural_min > 0 else 1e-10
+        return safe_min * (natural_max / safe_min) ** normalized_value
+
+    if conv_type in ("linear", "linear_db"):
+        return natural_min + normalized_value * (natural_max - natural_min)
+
+    return None
+
+
 def convert_recipe_to_payload(recipe: Dict[str, Dict[str, float]]) -> List[dict]:
     """Transform a recipe dict into normalized RS payload format.
 

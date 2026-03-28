@@ -32,7 +32,7 @@
 
 ### Mix Intelligence
 
-- [ ] **INTEL-01**: User can request mix adjustment suggestions for a track — returns a list of parameter diffs (current value → suggested value) with a one-sentence reason per change, based on comparing current device state against the role×genre recipe
+- [x] **INTEL-01**: User can request mix adjustment suggestions for a track — returns a list of parameter diffs (current value → suggested value) with a one-sentence reason per change, based on comparing current device state against the role×genre recipe
 
 ### Sidechain Routing
 
@@ -67,6 +67,6 @@
 | STATE-01 | Phase 32 | In progress (RS handler done in 32-01) |
 | GAIN-01 | Phase 32 | In progress (RS handler done in 32-01) |
 | GAIN-02 | Phase 32 | In progress (MIDI exclusion guard done in 32-01) |
-| INTEL-01 | Phase 33 | Pending |
+| INTEL-01 | Phase 33 | Complete |
 | RECIP-02 | Phase 34 | Pending |
 | MSTR-01 | Phase 34 | Pending |
