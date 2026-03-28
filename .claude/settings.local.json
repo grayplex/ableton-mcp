@@ -24,8 +24,7 @@
       "Bash(cd:*)",
       "Read",
       "Bash(pip show:*)",
-      "Skill(gsd:discuss-phase)",
-      "Bash(python scripts/bootstrap_catalog.py)"
+      "Skill(gsd:discuss-phase)"
     ]
   }
 }
