@@ -34,8 +34,12 @@ if "MCP_Server.server" not in sys.modules:
     sys.modules["MCP_Server.server"] = _mock_app_server
 
 from MCP_Server.devices.catalog import CATALOG, ROLES  # noqa: E402
-from MCP_Server.mixing import get_recipe, list_recipes  # noqa: E402
-from MCP_Server.mixing.catalog import _ensure_initialized, _registry  # noqa: E402
+from MCP_Server.mixing import get_master_recipe, get_recipe, list_recipes  # noqa: E402
+from MCP_Server.mixing.catalog import (  # noqa: E402
+    _ensure_initialized,
+    _master_registry,
+    _registry,
+)
 from MCP_Server.tools.mixing import get_mix_recipe  # noqa: E402
 
 
@@ -305,3 +309,100 @@ class TestMixRecipeTool:
         data = json.loads(result)
         assert "Eq8" in data
         assert isinstance(data["Eq8"], dict)
+
+
+# ---------------------------------------------------------------------------
+# Master Recipe Data Validation
+# ---------------------------------------------------------------------------
+
+_MASTER_DEVICE_KEYS = {"GlueCompressor", "MultibandDynamics", "Limiter"}
+_MASTER_GENRES = ["house", "techno", "ambient", "drum_and_bass"]
+
+
+def _get_device_param_names(device_class: str) -> set:
+    """Get all parameter names for a device from the catalog."""
+    entry = CATALOG.get(device_class)
+    if entry is None:
+        return set()
+    return {p["name"] for p in entry["parameters"]}
+
+
+class TestMasterRecipeData:
+    """Validate all genre MASTER_RECIPE constants against CATALOG."""
+
+    @pytest.fixture(autouse=True)
+    def init_registry(self):
+        _ensure_initialized()
+
+    def test_all_genres_have_master_recipe(self):
+        for genre in _MASTER_GENRES:
+            assert genre in _master_registry, (
+                f"Genre '{genre}' missing from _master_registry"
+            )
+
+    def test_master_recipe_has_required_device_keys(self):
+        for genre in _MASTER_GENRES:
+            recipe = _master_registry[genre]
+            assert set(recipe.keys()) == _MASTER_DEVICE_KEYS, (
+                f"Genre '{genre}' MASTER_RECIPE keys: {set(recipe.keys())} "
+                f"!= expected {_MASTER_DEVICE_KEYS}"
+            )
+
+    def test_all_master_recipe_params_in_catalog(self):
+        for genre in _MASTER_GENRES:
+            recipe = _master_registry[genre]
+            for device_class, params in recipe.items():
+                assert device_class in CATALOG, (
+                    f"{genre}: device '{device_class}' not in CATALOG"
+                )
+                valid_names = _get_device_param_names(device_class)
+                for param_name in params:
+                    assert param_name in valid_names, (
+                        f"{genre}/{device_class}: param '{param_name}' "
+                        f"not in catalog. Valid: {sorted(valid_names)}"
+                    )
+
+    def test_master_recipe_values_are_numeric(self):
+        for genre in _MASTER_GENRES:
+            recipe = _master_registry[genre]
+            for device_class, params in recipe.items():
+                for param_name, value in params.items():
+                    assert isinstance(value, (int, float)), (
+                        f"{genre}/{device_class}/{param_name}: "
+                        f"expected numeric, got {type(value)}: {value}"
+                    )
+
+
+class TestGetMasterRecipe:
+    """Test get_master_recipe public API."""
+
+    def test_house_returns_dict_with_device_keys(self):
+        result = get_master_recipe("house")
+        assert result is not None
+        assert set(result.keys()) == _MASTER_DEVICE_KEYS
+
+    def test_techno_returns_dict(self):
+        result = get_master_recipe("techno")
+        assert result is not None
+        assert "GlueCompressor" in result
+
+    def test_ambient_returns_dict(self):
+        result = get_master_recipe("ambient")
+        assert result is not None
+        assert "Limiter" in result
+
+    def test_drum_and_bass_returns_dict(self):
+        result = get_master_recipe("drum_and_bass")
+        assert result is not None
+        assert "MultibandDynamics" in result
+
+    def test_alias_dnb(self):
+        """'dnb' alias resolves to drum_and_bass master recipe."""
+        result = get_master_recipe("dnb")
+        direct = get_master_recipe("drum_and_bass")
+        assert result is not None
+        assert result == direct
+
+    def test_nonexistent_returns_none(self):
+        result = get_master_recipe("nonexistent_genre")
+        assert result is None
