@@ -37,6 +37,21 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
 
+## Current Milestone: v1.4 Mix/Master Intelligence
+
+**Goal:** Give Claude reliable mixing and mastering in Ableton by eliminating parameter guessing — role×genre recipes map principles to exact device values; analysis tools close the feedback loop.
+
+**Target features:**
+- Device parameter catalog (priority built-in devices mapped to API param names + value ranges)
+- Role × genre mix recipes (EQ, comp, reverb/delay, panning, dynamics per role per genre)
+- Apply recipe tool (load device + set all params in one MCP call)
+- Device state reader (get current params on any track's device chain)
+- Gain staging check (read volumes + clip levels, flag tracks outside target range)
+- Suggest adjustments (read current state → param diff with reasoning)
+- Spectrum analysis (frequency snapshot if LOM exposes it)
+- Master bus recipes per genre (multiband dynamics, glue comp, limiter with specific values)
+- Master bus tools (apply chain, read state)
+
 ## Completed Milestone: v1.3 Arrangement Intelligence (shipped 2026-03-28)
 
 **Goal:** Give Claude a systematic production workflow — plan sections from genre conventions, encode the plan into Ableton, and execute section-by-section without dropping the ball at tool call #40.
@@ -129,5 +144,22 @@ Two-tier: MCP server (FastMCP/Python 3) ↔ TCP socket (length-prefix framing) �
 - v1.2 milestone archived at `.planning/milestones/v1.2-ROADMAP.md`
 - Codebase map at `.planning/codebase/`
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd:transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-03-27 — v1.3 Arrangement Intelligence milestone started*
+*Last updated: 2026-03-28 — v1.4 Mix/Master Intelligence milestone started*
