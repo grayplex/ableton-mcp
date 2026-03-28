@@ -1,5 +1,24 @@
 # Milestones
 
+## v1.3 Arrangement Intelligence (Shipped: 2026-03-28)
+
+**Phases completed:** 4 phases (25-28), 8 plans
+**Requirements:** 10/10 complete
+**Git range:** feat(25-01) → feat(28-01), 20+ commits
+**Timeline:** 1 day (2026-03-28)
+
+**Delivered:** Systematic production workflow for Ableton — plan sections from genre conventions, encode the plan as locators and tracks, execute section-by-section with checklist guidance.
+
+**Key accomplishments:**
+
+- ArrangementEntry schema extended with optional energy (1-10), roles, and transition_in fields — backward-compatible across all 12 genres and 148 tests
+- `generate_production_plan` and `generate_section_plan` MCP tools transforming genre blueprints into token-efficient flat JSON plans with bar positions and override support
+- `scaffold_arrangement` MCP tool writing production plans into Ableton as named locators and MIDI tracks in one atomic operation
+- `get_arrangement_overview` MCP tool reading back locators, tracks, and session length for mid-session re-orientation
+- `get_section_checklist` and `get_arrangement_progress` tools enabling methodical per-section execution — nothing skipped under context pressure
+
+---
+
 ## v1.2 Genre/Style Blueprints (Shipped: 2026-03-27)
 
 **Phases completed:** 5 phases (20-24), 9 plans

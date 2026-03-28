@@ -45,6 +45,46 @@
 
 ---
 
+## Milestone: v1.3 — Arrangement Intelligence
+
+**Shipped:** 2026-03-28
+**Phases:** 4 (25-28) | **Plans:** 8 | **Requirements:** 10/10
+
+### What Was Built
+- ArrangementEntry schema extended with energy/roles/transition_in — all 12 genres + 4 subgenre overrides authored
+- `generate_production_plan` + `generate_section_plan` — blueprint → flat JSON plans with cumulative bar positions and section overrides
+- `scaffold_arrangement` — writes production plan into Ableton as locators + MIDI tracks in one atomic call
+- `get_arrangement_overview` — reads locators, tracks, session length back from Ableton for re-orientation
+- `get_section_checklist` + `get_arrangement_progress` — per-section execution guidance and empty-track detection
+
+### What Worked
+- Schema extension was backward-compatible: 148 existing genre tests required zero changes — optional fields with defaults
+- Pure-computation plan builder (no Ableton calls) made phases 25-26 fast and fully testable without Ableton running
+- Splitting scaffold (write) and overview (read) into separate plans kept scope tight and both plans under 2 hours
+- Live Ableton checkpoint in phase 28 caught no regressions — the mock-based unit tests were sufficient
+
+### What Was Inefficient
+- Phase 28 plan 02 (live verification checkpoint) was auto-approved without a live Ableton session — VERIFICATION.md left in human_needed state; should close these explicitly or drop as a separate plan type
+- Missing SUMMARY.md for 28-02 — absorbed into phase completion notes but not formally recorded
+- ARNG-01..03 and PLAN-03 were left unchecked in REQUIREMENTS.md at v1.4 start — requirements should be checked off immediately at plan completion, not caught during retroactive audit
+
+### Patterns Established
+- Plan split: pure-computation plans (no Ableton) execute in isolation; Ableton-dependent plans in separate plan
+- Deduplicated MIDI track names on scaffold (roles may repeat across sections — only create once)
+- Beat position math: bar_count × beats_per_bar for locator positioning, divide by beats_per_bar for display
+
+### Key Lessons
+1. Backward-compatible schema extensions are free when fields are optional — add Optional fields, keep defaults, skip migration
+2. Pure-computation phases need no live Ableton setup — test them with mock data; reserve live checkpoints for integration phases
+3. Mark requirements as complete immediately at plan execution — retroactive audits are slower and more error-prone
+
+### Cost Observations
+- Model mix: ~80% opus (execution), ~20% sonnet (planning/research agents)
+- Sessions: ~4 sessions in 1 day
+- Notable: 4-phase milestone completed in a single day — arrangement data authoring (phase 25) was the bulk; tools phases were fast
+
+---
+
 ## Milestone: v1.2 — Genre/Style Blueprints
 
 **Shipped:** 2026-03-27
@@ -94,6 +134,7 @@
 | v1.0 MVP | 13 | 33 | Established mixin/handler/tool architecture |
 | v1.1 Theory Engine | 6 | 12 | Library-then-tools pattern, server-side only |
 | v1.2 Genre Blueprints | 5 | 9 | Pure data modules + auto-discovery, quality gate cross-validation |
+| v1.3 Arrangement Intelligence | 4 | 8 | Pure-computation + Ableton-write split, backward-compatible schema extension |
 
 ### Cumulative Quality
 
@@ -102,9 +143,11 @@
 | v1.0 | 204 | 174 | 174 |
 | v1.1 | 224 | 23 | 197 |
 | v1.2 | 148 genre tests | 3 | 200 |
+| v1.3 | ~30 arrangement tests | 6 | 206 |
 
 ### Top Lessons (Verified Across Milestones)
 
 1. Consistent patterns accelerate delivery — mixin pattern (v1.0), aliased-import pattern (v1.1), pure data + auto-discovery (v1.2) all proved this
 2. Server-side logic that doesn't touch Remote Script ships faster — no Ableton restart overhead
 3. Build quality gates into infrastructure phases — token budget + theory name validation (v1.2) caught issues early across all subsequent genre files
+4. Split pure-computation and Ableton-write work into separate plans — computation plans are fast, fully testable, and don't need live Ableton
