@@ -158,3 +158,90 @@ class TestConvertRecipeToPayload:
         """Empty recipe returns empty list."""
         result = convert_recipe_to_payload({})
         assert result == []
+
+
+# ---------------------------------------------------------------------------
+# normalized_to_natural (reverse conversion)
+# ---------------------------------------------------------------------------
+
+
+class TestNormalizedToNatural:
+    """Test normalized_to_natural reverse conversion with known CATALOG entries."""
+
+    def test_log_conversion_at_min(self):
+        """Eq8 '1 Frequency A' at normalized 0.0 returns ~20 Hz (natural_min)."""
+        from MCP_Server.devices.convert import normalized_to_natural
+
+        result = normalized_to_natural("Eq8", "1 Frequency A", 0.0)
+        assert result is not None
+        assert abs(result - 20.0) < 0.01
+
+    def test_log_conversion_at_max(self):
+        """Eq8 '1 Frequency A' at normalized 1.0 returns ~22050 Hz (natural_max)."""
+        from MCP_Server.devices.convert import normalized_to_natural
+
+        result = normalized_to_natural("Eq8", "1 Frequency A", 1.0)
+        assert result is not None
+        assert abs(result - 22050.0) < 1.0
+
+    def test_round_trip_log(self):
+        """Round-trip: natural_to_normalized then normalized_to_natural returns original."""
+        from MCP_Server.devices.convert import normalized_to_natural
+
+        original = 1000.0
+        norm = natural_to_normalized("Eq8", "1 Frequency A", original)
+        recovered = normalized_to_natural("Eq8", "1 Frequency A", norm)
+        assert recovered is not None
+        assert abs(recovered - original) < 0.01
+
+    def test_round_trip_linear_db(self):
+        """Round-trip for linear_db: Compressor2 Threshold."""
+        from MCP_Server.devices.convert import normalized_to_natural
+
+        original = -18.0
+        norm = natural_to_normalized("Compressor2", "Threshold", original)
+        recovered = normalized_to_natural("Compressor2", "Threshold", norm)
+        assert recovered is not None
+        assert abs(recovered - original) < 0.01
+
+    def test_linear_db_conversion(self):
+        """Compressor2 'Threshold': linear_db from [-40, 0] dB."""
+        from MCP_Server.devices.convert import normalized_to_natural
+
+        # normalized 0.55 -> -40 + 0.55 * (0 - (-40)) = -40 + 22 = -18
+        result = normalized_to_natural("Compressor2", "Threshold", 0.55)
+        assert result is not None
+        assert abs(result - (-18.0)) < 0.01
+
+    def test_no_conversion_param(self):
+        """Compressor2 'Ratio' has conversion=None, min=0, max=1."""
+        from MCP_Server.devices.convert import normalized_to_natural
+
+        result = normalized_to_natural("Compressor2", "Ratio", 0.6)
+        assert result is not None
+        assert abs(result - 0.6) < 0.01
+
+    def test_log_safe_min_guard(self):
+        """Log conversion with natural_min=0 uses safe_min=1e-10."""
+        from MCP_Server.devices.convert import normalized_to_natural
+
+        # DrumBuss 'Boom Freq' has natural_min=20 (>0), so test with Eq8
+        # which has natural_min=20 (>0). The safe_min guard is for future params.
+        # Just verify it doesn't crash with normalized=0.5 on a log param.
+        result = normalized_to_natural("Eq8", "1 Frequency A", 0.5)
+        assert result is not None
+        assert result > 0
+
+    def test_unknown_device_returns_none(self):
+        """Unknown device class returns None."""
+        from MCP_Server.devices.convert import normalized_to_natural
+
+        result = normalized_to_natural("FakeDevice", "FakeParam", 0.5)
+        assert result is None
+
+    def test_unknown_param_returns_none(self):
+        """Unknown param name for known device returns None."""
+        from MCP_Server.devices.convert import normalized_to_natural
+
+        result = normalized_to_natural("Eq8", "Nonexistent Param", 0.5)
+        assert result is None
