@@ -39,14 +39,15 @@ Plans:
 **Goal**: Users can write a production plan into Ableton Arrangement view as named locators and named tracks in one operation, and re-orient mid-session by reading the arrangement state back
 **Depends on**: Phase 26
 **Requirements**: SCAF-01, SCAF-02
+**Plans:** 2 plans
 **Success Criteria** (what must be TRUE):
   1. User can call scaffold_arrangement with a production plan and see named locators at correct beat positions and named tracks created in Ableton Arrangement view in one atomic operation
   2. User can call get_arrangement_overview and receive a summary of all locators (with positions), track names, and session length for mid-session re-orientation
   3. Scaffold operation completes within the existing 15-second write timeout for a typical 7-section arrangement
 
 Plans:
-- [ ] 27-01: TBD
-- [ ] 27-02: TBD
+- [ ] 27-01-PLAN.md — scaffold_arrangement MCP tool + Remote Script handlers (create_locator_at, scaffold_tracks) + role dedup + bar-to-beat conversion + tests
+- [ ] 27-02-PLAN.md — get_arrangement_overview MCP tool + get_arrangement_state handler + beat-to-bar conversion + live Ableton verification checkpoint
 
 **UI hint**: yes
 
