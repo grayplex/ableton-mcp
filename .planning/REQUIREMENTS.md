@@ -54,19 +54,19 @@
 
 ## Traceability
 
-| REQ-ID | Phase | Notes |
-|--------|-------|-------|
-| CATL-01 | — | |
-| ROLE-01 | — | |
-| BATCH-01 | — | |
-| RECIP-01 | — | |
-| RECIP-02 | — | |
-| MSTR-01 | — | |
-| APPLY-01 | — | |
-| APPLY-02 | — | |
-| APPLY-03 | — | |
-| STATE-01 | — | |
-| GAIN-01 | — | |
-| GAIN-02 | — | |
-| INTEL-01 | — | |
-| SIDE-01 | — | |
+| REQ-ID | Phase | Status |
+|--------|-------|--------|
+| CATL-01 | Phase 29 | Pending |
+| ROLE-01 | Phase 29 | Pending |
+| RECIP-01 | Phase 30 | Pending |
+| BATCH-01 | Phase 31 | Pending |
+| APPLY-01 | Phase 31 | Pending |
+| APPLY-02 | Phase 31 | Pending |
+| APPLY-03 | Phase 31 | Pending |
+| SIDE-01 | Phase 31 | Pending |
+| STATE-01 | Phase 32 | Pending |
+| GAIN-01 | Phase 32 | Pending |
+| GAIN-02 | Phase 32 | Pending |
+| INTEL-01 | Phase 33 | Pending |
+| RECIP-02 | Phase 34 | Pending |
+| MSTR-01 | Phase 34 | Pending |
