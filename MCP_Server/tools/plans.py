@@ -18,18 +18,93 @@ from MCP_Server.server import mcp
 from MCP_Server.genres import get_blueprint
 
 
-def _build_plan_sections(sections: list) -> list:
-    """Build output section list with cumulative bar_start values.
+def _build_plan_sections(
+    sections: list,
+    section_bar_overrides: dict | None = None,
+    add_sections: list | None = None,
+    remove_sections: list | None = None,
+) -> tuple:
+    """Build output section list with optional overrides and cumulative bar_start values.
+
+    Override application order (D-09):
+      1. Remove sections by name
+      2. Insert new sections after specified anchor
+      3. Resize sections via bar count overrides
+      4. Calculate cumulative bar_start positions
 
     Args:
         sections: List of ArrangementEntry dicts from a genre blueprint.
                   Must be a deep copy (call copy.deepcopy before passing).
+        section_bar_overrides: Optional dict of section_name -> new bar count.
+        add_sections: Optional list of dicts with keys: name, bars, after (anchor name).
+        remove_sections: Optional list of section names to drop.
 
     Returns:
-        List of dicts with keys: name, bar_start, bars, roles, and
-        optionally transition_in (only when present in source entry).
-        bar_start values are 1-based and cumulative.
+        Tuple of (plan_sections, warnings) where plan_sections is a list of dicts
+        with keys: name, bar_start, bars, roles, and optionally transition_in.
+        warnings is a list of warning strings for nonexistent references.
+
+    Raises:
+        ValueError: When add_sections contains a name that duplicates an existing section.
     """
+    warnings = []
+
+    # Step 1: Remove sections by name
+    if remove_sections:
+        existing_names = {s["name"] for s in sections}
+        for name in remove_sections:
+            if name not in existing_names:
+                warnings.append(
+                    f"remove_sections: '{name}' not found in blueprint"
+                )
+        remove_set = set(remove_sections)
+        sections = [s for s in sections if s["name"] not in remove_set]
+
+    # Step 2: Add sections after named anchor
+    if add_sections:
+        for entry in add_sections:
+            new_name = entry["name"]
+            anchor = entry["after"]
+            # Check for duplicate name
+            existing_names = {s["name"] for s in sections}
+            if new_name in existing_names:
+                raise ValueError(
+                    f"Duplicate section name: '{new_name}' already exists in arrangement"
+                )
+            # Find anchor index
+            anchor_idx = next(
+                (i for i, s in enumerate(sections) if s["name"] == anchor),
+                None,
+            )
+            if anchor_idx is None:
+                warnings.append(
+                    f"add_sections: anchor '{anchor}' not found, skipping '{new_name}'"
+                )
+                continue
+            new_section = {
+                "name": new_name,
+                "bars": entry["bars"],
+                "energy": 5,
+                "roles": [],
+                # No transition_in for custom sections (no blueprint data)
+            }
+            sections.insert(anchor_idx + 1, new_section)
+
+    # Step 3: Resize sections via bar count overrides
+    if section_bar_overrides:
+        existing_names = {s["name"] for s in sections}
+        for name, bar_count in section_bar_overrides.items():
+            if name not in existing_names:
+                warnings.append(
+                    f"section_bar_overrides: '{name}' not found in blueprint"
+                )
+                continue
+            for s in sections:
+                if s["name"] == name:
+                    s["bars"] = bar_count
+                    break
+
+    # Step 4: Build output entries with cumulative bar_start positions
     result = []
     bar = 1
     for s in sections:
@@ -39,12 +114,14 @@ def _build_plan_sections(sections: list) -> list:
             "bars": s["bars"],
             "roles": s.get("roles", []),
         }
-        # Only include transition_in when present in source (intro never has one)
+        # Only include transition_in when present in source (intro never has one,
+        # custom added sections never have one either)
         if "transition_in" in s:
             entry["transition_in"] = s["transition_in"]
         result.append(entry)
         bar += s["bars"]
-    return result
+
+    return result, warnings
 
 
 @mcp.tool()
@@ -83,7 +160,19 @@ def generate_production_plan(
         # Deep copy prevents blueprint registry mutation across repeated calls
         sections = copy.deepcopy(blueprint["arrangement"]["sections"])
 
-        plan_sections = _build_plan_sections(sections)
+        try:
+            plan_sections, warnings = _build_plan_sections(
+                sections,
+                section_bar_overrides=section_bar_overrides,
+                add_sections=add_sections,
+                remove_sections=remove_sections,
+            )
+        except ValueError as e:
+            return format_error(
+                "Duplicate section name",
+                detail=str(e),
+                suggestion="Use a unique name for added sections",
+            )
 
         result = {
             "genre": blueprint["id"],
@@ -96,6 +185,10 @@ def generate_production_plan(
         # Vibe is conditional: include only when caller provides it
         if vibe is not None:
             result["vibe"] = vibe
+
+        # Warnings are conditional: include only when overrides referenced nonexistent sections
+        if warnings:
+            result["warnings"] = warnings
 
         return json.dumps(result)
     except Exception as e:

@@ -223,6 +223,174 @@ class TestSectionPlan:
 
 
 # ---------------------------------------------------------------------------
+# Override tests (Plan 02)
+# ---------------------------------------------------------------------------
+
+class TestOverrides:
+    """Override support: remove, add, and resize sections with recalculated positions."""
+
+    def test_override_remove_section(self):
+        """Remove two sections; remaining 5 sections have correct recalculated bar_starts.
+
+        House: intro(16), buildup(8), drop(32), breakdown(16), buildup2(8), drop2(32), outro(16)
+        Remove buildup2 and drop2 -> intro(16), buildup(8), drop(32), breakdown(16), outro(16)
+        bar_starts: 1, 17, 25, 57, 73
+        """
+        result = generate_production_plan(
+            ctx=None, genre="house", key="Am", bpm=125,
+            remove_sections=["buildup2", "drop2"],
+        )
+        plan = json.loads(result)
+        sections = plan["sections"]
+        assert len(sections) == 5
+        names = [s["name"] for s in sections]
+        assert names == ["intro", "buildup", "drop", "breakdown", "outro"]
+        starts = [s["bar_start"] for s in sections]
+        assert starts == [1, 17, 25, 57, 73], (
+            f"Expected [1, 17, 25, 57, 73], got {starts}"
+        )
+
+    def test_override_add_section(self):
+        """Add bridge section after breakdown; 8 sections with correct bar_starts.
+
+        House base: intro(16), buildup(8), drop(32), breakdown(16), buildup2(8), drop2(32), outro(16)
+        Add bridge(8) after breakdown -> ..., breakdown(16), bridge(8), buildup2(8), drop2(32), outro(16)
+        breakdown bar_start=57, bridge=73, buildup2=81, drop2=89, outro=121
+        """
+        result = generate_production_plan(
+            ctx=None, genre="house", key="Am", bpm=125,
+            add_sections=[{"name": "bridge", "bars": 8, "after": "breakdown"}],
+        )
+        plan = json.loads(result)
+        sections = plan["sections"]
+        assert len(sections) == 8
+        names = [s["name"] for s in sections]
+        assert names == ["intro", "buildup", "drop", "breakdown", "bridge", "buildup2", "drop2", "outro"]
+        bridge = next(s for s in sections if s["name"] == "bridge")
+        assert bridge["bar_start"] == 73, f"Expected bridge bar_start=73, got {bridge['bar_start']}"
+        buildup2 = next(s for s in sections if s["name"] == "buildup2")
+        assert buildup2["bar_start"] == 81, f"Expected buildup2 bar_start=81, got {buildup2['bar_start']}"
+
+    def test_override_resize_section(self):
+        """Resize breakdown from 16 to 8 bars; subsequent bar_starts shift by -8.
+
+        House base breakdown bar_start=57 bars=16 -> after resize: bars=8
+        Before: buildup2=73, drop2=81, outro=113
+        After:  buildup2=65, drop2=73, outro=105
+        """
+        result = generate_production_plan(
+            ctx=None, genre="house", key="Am", bpm=125,
+            section_bar_overrides={"breakdown": 8},
+        )
+        plan = json.loads(result)
+        sections = plan["sections"]
+        assert len(sections) == 7
+        breakdown = next(s for s in sections if s["name"] == "breakdown")
+        assert breakdown["bars"] == 8, f"Expected bars=8, got {breakdown['bars']}"
+        buildup2 = next(s for s in sections if s["name"] == "buildup2")
+        assert buildup2["bar_start"] == 65, f"Expected buildup2 bar_start=65, got {buildup2['bar_start']}"
+        drop2 = next(s for s in sections if s["name"] == "drop2")
+        assert drop2["bar_start"] == 73, f"Expected drop2 bar_start=73, got {drop2['bar_start']}"
+        outro = next(s for s in sections if s["name"] == "outro")
+        assert outro["bar_start"] == 105, f"Expected outro bar_start=105, got {outro['bar_start']}"
+
+    def test_override_combined(self):
+        """Combine all three override types; apply in order: remove -> add -> resize -> recalculate.
+
+        Base: intro(16), buildup(8), drop(32), breakdown(16), buildup2(8), drop2(32), outro(16)
+        1. Remove drop2: intro(16), buildup(8), drop(32), breakdown(16), buildup2(8), outro(16)
+        2. Add bridge(8) after breakdown: ..., breakdown(16), bridge(8), buildup2(8), outro(16)
+        3. Resize breakdown to 8: intro(16), buildup(8), drop(32), breakdown(8), bridge(8), buildup2(8), outro(16)
+        bar_starts: 1, 17, 25, 57, 65, 73, 81
+        """
+        result = generate_production_plan(
+            ctx=None, genre="house", key="Am", bpm=125,
+            remove_sections=["drop2"],
+            add_sections=[{"name": "bridge", "bars": 8, "after": "breakdown"}],
+            section_bar_overrides={"breakdown": 8},
+        )
+        plan = json.loads(result)
+        sections = plan["sections"]
+        names = [s["name"] for s in sections]
+        assert names == ["intro", "buildup", "drop", "breakdown", "bridge", "buildup2", "outro"]
+        starts = [s["bar_start"] for s in sections]
+        assert starts == [1, 17, 25, 57, 65, 73, 81], (
+            f"Expected [1, 17, 25, 57, 65, 73, 81], got {starts}"
+        )
+        breakdown = next(s for s in sections if s["name"] == "breakdown")
+        assert breakdown["bars"] == 8
+
+    def test_override_remove_nonexistent_warns(self):
+        """Removing a nonexistent section name produces a warnings list with the name."""
+        result = generate_production_plan(
+            ctx=None, genre="house", key="Am", bpm=125,
+            remove_sections=["nonexistent"],
+        )
+        plan = json.loads(result)
+        assert "warnings" in plan, "Expected 'warnings' key in plan"
+        assert isinstance(plan["warnings"], list)
+        assert any("nonexistent" in w for w in plan["warnings"]), (
+            f"Expected 'nonexistent' in warnings, got: {plan['warnings']}"
+        )
+
+    def test_override_add_missing_anchor_warns(self):
+        """Adding a section with nonexistent anchor produces a warning; section NOT added."""
+        result = generate_production_plan(
+            ctx=None, genre="house", key="Am", bpm=125,
+            add_sections=[{"name": "bridge", "bars": 8, "after": "nonexistent"}],
+        )
+        plan = json.loads(result)
+        assert "warnings" in plan, "Expected 'warnings' key in plan"
+        assert any("nonexistent" in w for w in plan["warnings"])
+        names = [s["name"] for s in plan["sections"]]
+        assert "bridge" not in names, "bridge should not be added when anchor not found"
+        assert len(plan["sections"]) == 7  # unchanged house layout
+
+    def test_override_resize_nonexistent_warns(self):
+        """Resizing a nonexistent section name produces a warnings list with the name."""
+        result = generate_production_plan(
+            ctx=None, genre="house", key="Am", bpm=125,
+            section_bar_overrides={"nonexistent": 8},
+        )
+        plan = json.loads(result)
+        assert "warnings" in plan, "Expected 'warnings' key in plan"
+        assert any("nonexistent" in w for w in plan["warnings"])
+
+    def test_override_add_duplicate_name_errors(self):
+        """Adding a section with a duplicate name returns an error string."""
+        result = generate_production_plan(
+            ctx=None, genre="house", key="Am", bpm=125,
+            add_sections=[{"name": "intro", "bars": 8, "after": "breakdown"}],
+        )
+        assert isinstance(result, str)
+        assert result.startswith("Error:"), (
+            f"Expected error string, got: {result[:100]}"
+        )
+
+    def test_override_added_section_has_empty_roles(self):
+        """Added section via add_sections has roles=[] (no blueprint data)."""
+        result = generate_production_plan(
+            ctx=None, genre="house", key="Am", bpm=125,
+            add_sections=[{"name": "bridge", "bars": 8, "after": "breakdown"}],
+        )
+        plan = json.loads(result)
+        bridge = next(s for s in plan["sections"] if s["name"] == "bridge")
+        assert bridge["roles"] == [], f"Expected roles=[], got {bridge['roles']}"
+
+    def test_override_added_section_no_transition_in(self):
+        """Added section via add_sections does NOT have 'transition_in' key."""
+        result = generate_production_plan(
+            ctx=None, genre="house", key="Am", bpm=125,
+            add_sections=[{"name": "bridge", "bars": 8, "after": "breakdown"}],
+        )
+        plan = json.loads(result)
+        bridge = next(s for s in plan["sections"] if s["name"] == "bridge")
+        assert "transition_in" not in bridge, (
+            "Added section should not have transition_in (no blueprint data)"
+        )
+
+
+# ---------------------------------------------------------------------------
 # Blueprint mutation safety test
 # ---------------------------------------------------------------------------
 
