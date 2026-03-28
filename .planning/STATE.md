@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Mix/Master Intelligence
 status: executing
-stopped_at: Completed 29-01-PLAN.md
-last_updated: "2026-03-28T16:51:43.168Z"
+stopped_at: "Checkpoint: 29-02-PLAN.md Task 2 — awaiting human Ableton bootstrap run"
+last_updated: "2026-03-28T16:57:36.597Z"
 last_activity: 2026-03-28
 progress:
   total_phases: 10
@@ -53,6 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 29 P01 | 15 | 2 tasks | 5 files |
+| Phase 29 P02 | 2min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,8 @@ Recent decisions affecting current work:
 - [Phase 29]: CATALOG keyed by Ableton class name with case-insensitive display name fallback in get_catalog_entry()
 - [Phase 29]: ROLES is a bare string list in Phase 29; gain targets deferred to Phase 32
 - [Phase 29]: Placeholder parameter data committed now; bootstrap script (Plan 02) replaces with live Ableton-validated data
+- [Phase 29]: Bootstrap script uses substring matching in KNOWN_CONVERSIONS to handle compound EQ Eight param names like '1 Frequency A'
+- [Phase 29]: Bootstrap validates all 12 TARGET_DEVICES found before writing catalog.py — exits code 1 on any missing device
 
 ### Roadmap Evolution
 
@@ -88,6 +91,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-28T16:51:43.164Z
-Stopped at: Completed 29-01-PLAN.md
+Last session: 2026-03-28T16:57:36.594Z
+Stopped at: Checkpoint: 29-02-PLAN.md Task 2 — awaiting human Ableton bootstrap run
 Resume file: None
