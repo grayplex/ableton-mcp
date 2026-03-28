@@ -8,6 +8,7 @@ Validates that:
 - Recipe data structure is correct (role -> device_class -> param_dict)
 """
 
+import json
 import sys
 import types
 from unittest.mock import MagicMock
@@ -35,6 +36,7 @@ if "MCP_Server.server" not in sys.modules:
 from MCP_Server.devices.catalog import CATALOG, ROLES  # noqa: E402
 from MCP_Server.mixing import get_recipe, list_recipes  # noqa: E402
 from MCP_Server.mixing.catalog import _ensure_initialized, _registry  # noqa: E402
+from MCP_Server.tools.mixing import get_mix_recipe  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -263,3 +265,43 @@ class TestListRecipes:
         result = list_recipes()
         for genre_id in _registry:
             assert genre_id in result
+
+
+# ---------------------------------------------------------------------------
+# MCP Tool Tests
+# ---------------------------------------------------------------------------
+
+
+class TestMixRecipeTool:
+    """Verify get_mix_recipe MCP tool returns JSON or error."""
+
+    def test_valid_recipe_returns_json(self):
+        result = get_mix_recipe(None, "kick", "house")
+        data = json.loads(result)
+        assert isinstance(data, dict)
+        assert len(data) > 0
+
+    def test_invalid_returns_error(self):
+        result = get_mix_recipe(None, "invalid", "house")
+        assert "Error:" in result
+
+    def test_invalid_genre_returns_error(self):
+        result = get_mix_recipe(None, "kick", "invalid_genre")
+        assert "Error:" in result
+
+    def test_alias_resolution_dnb(self):
+        result = get_mix_recipe(None, "kick", "dnb")
+        data = json.loads(result)
+        assert isinstance(data, dict)
+        assert "Eq8" in data or "Compressor2" in data
+
+    def test_alias_resolution_vocals(self):
+        result = get_mix_recipe(None, "vocals", "house")
+        data = json.loads(result)
+        assert isinstance(data, dict)
+
+    def test_result_contains_device_params(self):
+        result = get_mix_recipe(None, "pad", "ambient")
+        data = json.loads(result)
+        assert "Eq8" in data
+        assert isinstance(data["Eq8"], dict)
