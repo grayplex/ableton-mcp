@@ -183,7 +183,7 @@ def get_arrangement_overview(ctx: Context) -> str:
 
         return json.dumps({
             "locators": locators,
-            "tracks": state["tracks"],
+            "tracks": [t["name"] for t in state["tracks"]],
             "session_length_bars": session_length_bars,
         })
     except Exception as e:

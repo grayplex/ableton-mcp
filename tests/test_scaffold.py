@@ -271,7 +271,11 @@ def _mock_overview_factory(cue_points=None, tracks=None, song_length=256.0,
     if cue_points is None:
         cue_points = [{"name": "intro", "time": 0.0}, {"name": "drop", "time": 64.0}]
     if tracks is None:
-        tracks = ["kick", "bass", "lead"]
+        tracks = [
+            {"name": "kick", "has_devices": True},
+            {"name": "bass", "has_devices": True},
+            {"name": "lead", "has_devices": True},
+        ]
 
     def side_effect(cmd, params=None):
         if cmd == "get_arrangement_state":
