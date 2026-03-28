@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Genre/Style Blueprints
-status: v1.2 milestone complete
-stopped_at: Completed 24-01-PLAN.md
-last_updated: "2026-03-27T17:57:46.238Z"
+milestone: v1.3
+milestone_name: Arrangement Intelligence
+status: in-progress
+stopped_at: Completed 25-01-PLAN.md
+last_updated: "2026-03-28T01:49:19.000Z"
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 9
-  completed_plans: 9
+  total_phases: 1
+  completed_phases: 0
+  total_plans: 2
+  completed_plans: 1
 ---
 
 # Project State
@@ -19,20 +19,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** An AI assistant can produce actual music in Ableton — with harmonic intelligence and genre-aware conventions.
-**Current focus:** Phase 24 — palette-bridge-quality-gate
+**Current focus:** Phase 25 — blueprint-arrangement-extension
 
 ## Current Position
 
-Phase: 24
-Plan: Not started
+Phase: 25
+Plan: 01 (complete), 02 (next)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: —
+- Total plans completed: 1
+- Average duration: 3 min
+- Total execution time: 3 min
 
 ## Accumulated Context
 
@@ -55,12 +55,17 @@ Plan: Not started
 - [Phase 24]: Token budget lower bound adjusted from 800 to 400 -- actual blueprints are 537-670 tokens (cl100k_base)
 - [Phase 24]: Progression chord names use short quality forms (maj/min/dim/aug) stripped of octave digits from generate_progression output
 - [Phase 24]: Scale type heuristic: lowercase first Roman numeral = natural_minor, uppercase = major
+- [Phase 25-01]: TypedDict split: _ArrangementEntryRequired + ArrangementEntry(total=False) for optional energy/roles/transition_in fields
+- [Phase 25-01]: Intro/first section omits transition_in entirely (D-04 convention) — absence, not empty string
+- [Phase 25-01]: House energy curve: intro=2, buildup=5/6, drop=9, breakdown=3-4, outro=2-3 (reference for Plan 02)
+- [Phase 25-01]: progressive_house subgenre fully re-authored (not inherited) — bar counts differ, energy/roles authored directly
 
 ### Roadmap Evolution
 
 - v1.0: Phases 1-13 (shipped 2026-03-23)
 - v1.1: Phases 14-19 (shipped 2026-03-26)
-- v1.2: Phases 20-24 (in progress)
+- v1.2: Phases 20-24 (shipped 2026-03-27)
+- v1.3: Phase 25 (in progress — Plan 01 complete)
 
 ### Pending Todos
 
@@ -72,6 +77,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-27T17:10:17.385Z
-Stopped at: Completed 24-01-PLAN.md
+Last session: 2026-03-28T01:49:19.000Z
+Stopped at: Completed 25-01-PLAN.md
 Resume file: None

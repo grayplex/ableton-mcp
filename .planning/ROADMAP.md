@@ -35,6 +35,12 @@ Genre blueprint system: 5 phases, 9 plans, 23 requirements, 12 genres, 3 MCP too
 
 </details>
 
+## Active: v1.3 Arrangement Intelligence (Phase 25)
+
+- [x] Phase 25: Blueprint Arrangement Extension (1/2 plans) — Plan 01 complete 2026-03-28
+  - [x] Plan 01: Schema extension + house reference implementation
+  - [ ] Plan 02: Author arrangement data for remaining 11 genres
+
 ## Progress
 
 | Milestone | Phases | Plans | Requirements | Status | Shipped |
@@ -42,3 +48,4 @@ Genre blueprint system: 5 phases, 9 plans, 23 requirements, 12 genres, 3 MCP too
 | v1.0 MVP | 1-13 | 33 | 53 | Complete | 2026-03-23 |
 | v1.1 Theory Engine | 14-19 | 12 | 24 | Complete | 2026-03-26 |
 | v1.2 Genre/Style Blueprints | 20-24 | 9 | 23 | Complete | 2026-03-27 |
+| v1.3 Arrangement Intelligence | 25 | 2 | 3 | In Progress | — |
