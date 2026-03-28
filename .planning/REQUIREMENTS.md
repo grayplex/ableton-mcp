@@ -14,7 +14,7 @@
 
 ### Mix Recipes
 
-- [ ] **RECIP-01**: User can retrieve a role×genre mix recipe for any of the 4 core genres (house, techno, ambient, DnB) — returns EQ, compression, reverb/delay, panning, and dynamics parameter values for the specified role
+- [x] **RECIP-01**: User can retrieve a role×genre mix recipe for any of the 4 core genres (house, techno, ambient, DnB) — returns EQ, compression, reverb/delay, panning, and dynamics parameter values for the specified role
 - [ ] **RECIP-02**: User can retrieve a role×genre mix recipe for all 12 genres — extends RECIP-01 to synthwave, hip-hop/trap, dubstep, trance, lo-fi, future bass, disco/funk, and neo-soul/R&B
 - [ ] **MSTR-01**: User can retrieve a master bus recipe for any of the 12 genres — returns parameter settings for a Glue Compressor + Multiband Dynamics + Limiter chain appropriate to that genre's loudness and tonal conventions
 
@@ -58,7 +58,7 @@
 |--------|-------|--------|
 | CATL-01 | Phase 29 | Complete |
 | ROLE-01 | Phase 29 | Complete |
-| RECIP-01 | Phase 30 | Pending |
+| RECIP-01 | Phase 30 | Complete |
 | BATCH-01 | Phase 31 | Pending |
 | APPLY-01 | Phase 31 | Pending |
 | APPLY-02 | Phase 31 | Pending |
