@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Genre/Style Blueprints
 status: v1.2 milestone complete
-stopped_at: Completed 24-01-PLAN.md
+stopped_at: Completed 27-02-PLAN.md
 last_updated: "2026-03-27T17:57:46.238Z"
 progress:
   total_phases: 5
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** An AI assistant can produce actual music in Ableton — with harmonic intelligence and genre-aware conventions.
-**Current focus:** Phase 24 — palette-bridge-quality-gate
+**Current focus:** Phase 27 — locator-and-scaffolding-commands
 
 ## Current Position
 
-Phase: 24
-Plan: Not started
+Phase: 27
+Plan: 2 of 2 complete
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Plan: Not started
 - [Phase 24]: Token budget lower bound adjusted from 800 to 400 -- actual blueprints are 537-670 tokens (cl100k_base)
 - [Phase 24]: Progression chord names use short quality forms (maj/min/dim/aug) stripped of octave digits from generate_progression output
 - [Phase 24]: Scale type heuristic: lowercase first Roman numeral = natural_minor, uppercase = major
+- [Phase 27]: get_arrangement_state is read-only handler; session_length_bars uses int() division not _beat_to_bar (length vs position)
 
 ### Roadmap Evolution
 
@@ -72,6 +73,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-27T17:10:17.385Z
-Stopped at: Completed 24-01-PLAN.md
+Last session: 2026-03-28T05:24:15Z
+Stopped at: Completed 27-02-PLAN.md
 Resume file: None

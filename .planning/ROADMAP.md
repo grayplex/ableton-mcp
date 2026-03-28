@@ -2,7 +2,7 @@
 
 - [x] **Phase 25: Blueprint Arrangement Extension** - Schema extension + arrangement data for all 12 genres + 4 subgenres
 - [x] **Phase 26: Production Plan Builder** - MCP tools to generate full-track and single-section production plans with override support
-- [ ] **Phase 27: Locator and Scaffolding Commands** - Atomic locator creation and batch scaffold command writing the plan into Ableton Arrangement view
+- [x] **Phase 27: Locator and Scaffolding Commands** - Atomic locator creation and batch scaffold command writing the plan into Ableton Arrangement view (completed 2026-03-28)
 - [ ] **Phase 28: Section Execution and Quality Gate** - Per-section execution checklists and arrangement progress checking for methodical, complete production
 
 ## Phase Details
@@ -39,7 +39,7 @@ Plans:
 **Goal**: Users can write a production plan into Ableton Arrangement view as named locators and named tracks in one operation, and re-orient mid-session by reading the arrangement state back
 **Depends on**: Phase 26
 **Requirements**: SCAF-01, SCAF-02
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 **Success Criteria** (what must be TRUE):
   1. User can call scaffold_arrangement with a production plan and see named locators at correct beat positions and named tracks created in Ableton Arrangement view in one atomic operation
   2. User can call get_arrangement_overview and receive a summary of all locators (with positions), track names, and session length for mid-session re-orientation
@@ -47,7 +47,7 @@ Plans:
 
 Plans:
 - [x] 27-01-PLAN.md — scaffold_arrangement MCP tool + Remote Script handlers (create_locator_at, scaffold_tracks) + role dedup + bar-to-beat conversion + tests
-- [ ] 27-02-PLAN.md — get_arrangement_overview MCP tool + get_arrangement_state handler + beat-to-bar conversion + live Ableton verification checkpoint
+- [x] 27-02-PLAN.md — get_arrangement_overview MCP tool + get_arrangement_state handler + beat-to-bar conversion + live Ableton verification checkpoint
 
 **UI hint**: yes
 
