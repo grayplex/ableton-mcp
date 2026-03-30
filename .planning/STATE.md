@@ -2,35 +2,35 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: Mix/Master Intelligence
-status: executing
-stopped_at: Completed 34-02-PLAN.md
-last_updated: "2026-03-30T23:20:06.028Z"
+status: milestone_complete
+stopped_at: Phase 34 complete — v1.4 milestone complete
+last_updated: "2026-03-30T23:30:00.000Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 10
   completed_phases: 10
   total_plans: 19
   completed_plans: 19
-  percent: 10
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-28)
+See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** An AI assistant can produce actual music in Ableton -- with mix/master intelligence that eliminates parameter guessing.
-**Current focus:** Phase 34 — full-genre-recipe-expansion
+**Current focus:** v1.4 milestone complete — ready for /gsd:complete-milestone
 
 ## Current Position
 
-Phase: 34
-Plan: Not started
-Status: Executing Phase 34
+Phase: 34 (complete — last phase)
+Plan: All plans complete (2/2)
+Status: Milestone complete
 Last activity: 2026-03-30
 
-Progress: [█░░░░░░░░░] 10%
+Progress: [████████████████████] 73/73 plans (100%)
 
 ## Performance Metrics
 
@@ -89,6 +89,8 @@ Recent decisions affecting current work:
 - [Phase 31-02]: set_sidechain_source uses case-insensitive substring match on display_name for routing resolution
 - [Phase 32]: Round meter_db to 1 decimal before comparing against gain targets — avoids float boundary issues (0.316 → -10.009 rounds to -10.0 which is within kick target -10.0..-4.0)
 - [Phase 32]: no_signal status takes precedence over role inference — meter_db=None check happens before role check
+- [Phase 34]: AutoFilter device class corrected to AutoFilter2 with different param names (Type not Filter Type, Env Amount not Envelope Amount) — caught and auto-fixed by both executor agents
+- [Phase 34]: Tool docstrings use dynamic list_recipes() instead of hardcoded genre list — future genres auto-appear in Claude's tool knowledge
 
 ### Roadmap Evolution
 
@@ -96,7 +98,7 @@ Recent decisions affecting current work:
 - v1.1: Phases 14-19 (shipped 2026-03-26)
 - v1.2: Phases 20-24 (shipped 2026-03-27)
 - v1.3: Phases 25-28 (shipped 2026-03-28)
-- v1.4: Phases 29-34 (in progress)
+- v1.4: Phases 29-34 (shipped 2026-03-30)
 
 ### Pending Todos
 
@@ -104,11 +106,10 @@ None.
 
 ### Blockers/Concerns
 
-- Phase 29 requires a live Ableton session to verify device class names and parameter names/ranges
-- Phase 31 atomicity design (single Remote Script command vs. orchestrated MCP calls) needs spike resolution
+None — all v1.4 phases complete.
 
 ## Session Continuity
 
-Last session: 2026-03-30T23:09:14Z
-Stopped at: Completed 34-02-PLAN.md
+Last session: 2026-03-30
+Stopped at: Phase 34 complete — v1.4 milestone complete
 Resume file: None
