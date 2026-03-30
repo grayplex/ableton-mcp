@@ -6,7 +6,7 @@ from mcp.server.fastmcp import Context
 
 from MCP_Server.connection import format_error, get_ableton_connection
 from MCP_Server.devices.convert import convert_recipe_to_payload
-from MCP_Server.mixing.catalog import get_master_recipe, get_recipe
+from MCP_Server.mixing.catalog import get_master_recipe, get_recipe, list_recipes
 from MCP_Server.server import mcp
 
 
@@ -17,14 +17,14 @@ def get_mix_recipe(ctx: Context, role: str, genre: str) -> str:
 
     Parameters:
     - role: Mixing role (kick, bass, lead, pad, chords, vocal, atmospheric, return, master)
-    - genre: Genre (house, techno, ambient, dnb/drum_and_bass)
+    - genre: Genre (use list_recipes() to see all available genres)
     """
     result = get_recipe(role, genre)
     if result is None:
         return format_error(
             f"No recipe found for role='{role}', genre='{genre}'",
-            suggestion="Roles: kick, bass, lead, pad, chords, vocal, atmospheric, return, master. "
-                       "Genres: house, techno, ambient, dnb",
+            suggestion=f"Roles: kick, bass, lead, pad, chords, vocal, atmospheric, return, master. "
+                       f"Genres: {', '.join(list_recipes())}",
         )
     return json.dumps(result, indent=2)
 
@@ -39,14 +39,14 @@ def apply_mix_recipe(ctx: Context, track_index: int, role: str, genre: str) -> s
     Parameters:
     - track_index: Index of the track to apply the recipe to
     - role: Mixing role (kick, bass, lead, pad, chords, vocal, atmospheric, return)
-    - genre: Genre (house, techno, ambient, dnb/drum_and_bass)
+    - genre: Genre (use list_recipes() to see all available genres)
     """
     recipe = get_recipe(role, genre)
     if recipe is None:
         return format_error(
             f"No recipe found for role='{role}', genre='{genre}'",
-            suggestion="Roles: kick, bass, lead, pad, chords, vocal, atmospheric, return, master. "
-                       "Genres: house, techno, ambient, dnb",
+            suggestion=f"Roles: kick, bass, lead, pad, chords, vocal, atmospheric, return, master. "
+                       f"Genres: {', '.join(list_recipes())}",
         )
 
     devices_payload = convert_recipe_to_payload(recipe)
@@ -66,13 +66,13 @@ def apply_master_recipe(ctx: Context, genre: str) -> str:
     MultibandDynamics, and Limiter with genre-appropriate settings.
 
     Parameters:
-    - genre: Genre (house, techno, ambient, dnb/drum_and_bass)
+    - genre: Genre (use list_recipes() to see all available genres)
     """
     recipe = get_master_recipe(genre)
     if recipe is None:
         return format_error(
             f"No master recipe found for genre='{genre}'",
-            suggestion="Genres with master recipes: house, techno, ambient, dnb",
+            suggestion=f"Genres with master recipes: {', '.join(list_recipes())}",
         )
 
     devices_payload = convert_recipe_to_payload(recipe)

@@ -7,7 +7,7 @@ from mcp.server.fastmcp import Context
 from MCP_Server.connection import get_ableton_connection, format_error
 from MCP_Server.devices.catalog import CATALOG
 from MCP_Server.devices.convert import natural_to_normalized, normalized_to_natural
-from MCP_Server.mixing.catalog import get_recipe
+from MCP_Server.mixing.catalog import get_recipe, list_recipes
 from MCP_Server.server import mcp
 from MCP_Server.tools.analysis import _infer_role
 
@@ -100,7 +100,7 @@ def suggest_mix_adjustments(
 
     Args:
         track_name: Track name (case-insensitive substring match)
-        genre: Genre for recipe lookup (house, techno, ambient, dnb)
+        genre: Genre for recipe lookup (use list_recipes() to see all available genres)
         role: Mixing role (kick, bass, lead, etc.). Inferred from track name if omitted.
     """
     # 1. Get mix state via RS command directly (NOT the MCP tool wrapper)
@@ -130,7 +130,7 @@ def suggest_mix_adjustments(
     if recipe is None:
         return format_error(
             f"No recipe for role='{resolved_role}' genre='{genre}'",
-            suggestion="Available genres: house, techno, ambient, dnb",
+            suggestion=f"Available genres: {', '.join(list_recipes())}",
         )
 
     # 5. Build device param lookup from track state: {class_name: {param_name: normalized_value}}
