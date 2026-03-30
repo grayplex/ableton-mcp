@@ -2434,8 +2434,8 @@ class DeviceHandlers:
                     })
                     continue
 
-                # Clamp value to min/max
-                clamped = max(param.min, min(param.max, float(value)))
+                # Clamp to normalized 0..1 range (payload from convert_recipe_to_payload)
+                clamped = max(0.0, min(1.0, float(value)))
                 param.value = clamped
                 results.append({
                     "parameter_name": param.name,
@@ -2723,7 +2723,7 @@ class DeviceHandlers:
                 name_lower = param_name.lower()
                 for p in device.parameters:
                     if p.name.lower() == name_lower:
-                        clamped = max(p.min, min(p.max, float(value)))
+                        clamped = max(0.0, min(1.0, float(value)))
                         p.value = clamped
                         params_set += 1
                         break

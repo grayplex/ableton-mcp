@@ -294,7 +294,7 @@ RECIPE = {
             "Resonance": 0.2,
             "Type": 0,           # Low-pass
             "LFO Amount": 0.15,
-            "LFO Rate": 0.2,           # slow movement
+            "LFO Freq": 0.2,           # slow movement
             "LFO Phase": 0.5,
             "LFO Offset": 0.5,
             "Env Amount": 0.1,
@@ -569,7 +569,7 @@ RECIPE = {
             "Resonance": 0.15,
             "Type": 0,           # Low-pass
             "LFO Amount": 0.1,
-            "LFO Rate": 0.15,
+            "LFO Freq": 0.15,
             "LFO Phase": 0.5,
             "LFO Offset": 0.5,
             "Env Amount": 0.05,

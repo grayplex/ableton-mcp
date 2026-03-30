@@ -541,7 +541,7 @@ RECIPE = {
             "Resonance": 0.25,
             "Type": 0,                  # low-pass
             "LFO Amount": 0.15,
-            "LFO Rate": 0.2,
+            "LFO Freq": 0.2,
             "LFO Phase": 0.5,
             "LFO Offset": 0.0,
             "Env Amount": 0.1,
