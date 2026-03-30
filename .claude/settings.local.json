@@ -24,7 +24,9 @@
       "Bash(cd:*)",
       "Read",
       "Bash(pip show:*)",
-      "Skill(gsd:discuss-phase)"
+      "Skill(gsd:discuss-phase)",
+      "Skill(gsd:plan-phase)",
+      "Skill(gsd:execute-phase)"
     ]
   }
 }
