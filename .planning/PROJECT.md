@@ -37,10 +37,12 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - ✓ GAIN-01: check_gain_staging MCP tool — per-track dBFS estimates vs role-aware target ranges — v1.4 Phase 32
 - ✓ GAIN-02: MIDI scaffold track exclusion in get_track_meters RS handler — v1.4 Phase 32
 - ✓ INTEL-01: suggest_mix_adjustments MCP tool — diffs current device state against role×genre recipe; per-parameter suggestions with one-sentence reasoning; read-only, no auto-apply — v1.4 Phase 33
+- ✓ RECIP-02: Full genre recipe expansion — 8 new genre recipe files (synthwave, dubstep, trance, future_bass, hip_hop_trap, disco_funk, neo_soul_rnb, lo_fi); pkgutil auto-discovery; all 12 genres available via get_mix_recipe — v1.4 Phase 34
+- ✓ MSTR-01: Master bus recipes for all 12 genres — MASTER_RECIPE constants (GlueCompressor + MultibandDynamics + Limiter) per genre; dynamic _get_master_genres() replaces hardcoded list — v1.4 Phase 34
 
 ### Active
 
-(v1.4 in progress — Phase 33 complete — see REQUIREMENTS.md for full traceability)
+(v1.4 milestone complete — all 10 phases done — see REQUIREMENTS.md for full traceability)
 
 ### Out of Scope
 
@@ -174,4 +176,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-28 (Phase 33 complete)
+*Last updated: 2026-03-30 (Phase 34 complete — v1.4 milestone complete)
