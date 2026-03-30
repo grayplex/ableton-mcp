@@ -103,10 +103,11 @@ Plans:
   1. User can retrieve a role x genre mix recipe for any of the 12 genres (adding synthwave, hip-hop/trap, dubstep, trance, lo-fi, future bass, disco/funk, neo-soul/R&B to the core 4)
   2. User can retrieve a master bus recipe for any of the 12 genres returning Glue Compressor + Multiband Dynamics + Limiter parameter settings appropriate to that genre's loudness and tonal conventions
   3. All 12 genre recipes pass schema validation and reference only catalog-verified parameter names
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 34-01: TBD
+- [ ] 34-01-PLAN.md -- Electronic genre recipes (synthwave, dubstep, trance, future_bass), genre aliases, dynamic master tests
+- [ ] 34-02-PLAN.md -- Groove/organic genre recipes (hip_hop_trap, disco_funk, neo_soul_rnb, lo_fi), tool docstring updates
 
 <details>
 <summary>v1.3 Arrangement Intelligence (Phases 25-28) - SHIPPED 2026-03-28</summary>
@@ -154,4 +155,4 @@ Phases execute in numeric order: 29 -> 30 -> 31 -> 32 -> 33 -> 34
 | 31. Apply Recipe and Batch Parameter Tools | 2/2 | Complete    | 2026-03-28 |
 | 32. Device State Reader and Gain Staging | 2/2 | Complete    | 2026-03-28 |
 | 33. Mix Adjustment Intelligence | 1/1 | Complete    | 2026-03-28 |
-| 34. Full Genre Recipe Expansion | 0/TBD | Not started | - |
+| 34. Full Genre Recipe Expansion | 0/2 | Not started | - |
