@@ -46,6 +46,8 @@ _GENRE_ALIASES: Dict[str, str] = {
     "d_n_b": "drum_and_bass",
     "d&b": "drum_and_bass",
     "jungle": "drum_and_bass",
+    "hip_hop": "hip_hop_trap",
+    "r_b": "neo_soul_rnb",
 }
 
 

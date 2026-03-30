@@ -316,7 +316,10 @@ class TestMixRecipeTool:
 # ---------------------------------------------------------------------------
 
 _MASTER_DEVICE_KEYS = {"GlueCompressor", "MultibandDynamics", "Limiter"}
-_MASTER_GENRES = ["house", "techno", "ambient", "drum_and_bass"]
+def _get_master_genres():
+    """Dynamic list of all genres with MASTER_RECIPE."""
+    _ensure_initialized()
+    return sorted(_master_registry.keys())
 
 
 def _get_device_param_names(device_class: str) -> set:
@@ -335,13 +338,13 @@ class TestMasterRecipeData:
         _ensure_initialized()
 
     def test_all_genres_have_master_recipe(self):
-        for genre in _MASTER_GENRES:
+        for genre in _get_master_genres():
             assert genre in _master_registry, (
                 f"Genre '{genre}' missing from _master_registry"
             )
 
     def test_master_recipe_has_required_device_keys(self):
-        for genre in _MASTER_GENRES:
+        for genre in _get_master_genres():
             recipe = _master_registry[genre]
             assert set(recipe.keys()) == _MASTER_DEVICE_KEYS, (
                 f"Genre '{genre}' MASTER_RECIPE keys: {set(recipe.keys())} "
@@ -349,7 +352,7 @@ class TestMasterRecipeData:
             )
 
     def test_all_master_recipe_params_in_catalog(self):
-        for genre in _MASTER_GENRES:
+        for genre in _get_master_genres():
             recipe = _master_registry[genre]
             for device_class, params in recipe.items():
                 assert device_class in CATALOG, (
@@ -363,7 +366,7 @@ class TestMasterRecipeData:
                     )
 
     def test_master_recipe_values_are_numeric(self):
-        for genre in _MASTER_GENRES:
+        for genre in _get_master_genres():
             recipe = _master_registry[genre]
             for device_class, params in recipe.items():
                 for param_name, value in params.items():
