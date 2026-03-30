@@ -106,8 +106,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [x] 34-01-PLAN.md -- Electronic genre recipes (synthwave, dubstep, trance, future_bass), genre aliases, dynamic master tests
-- [ ] 34-02-PLAN.md -- Groove/organic genre recipes (hip_hop_trap, disco_funk, neo_soul_rnb, lo_fi), tool docstring updates
+- [ ] 34-01-PLAN.md -- Electronic genre recipes (synthwave, dubstep, trance, future_bass), genre aliases, dynamic master tests
+- [x] 34-02-PLAN.md -- Groove/organic genre recipes (hip_hop_trap, disco_funk, neo_soul_rnb, lo_fi), tool docstring updates
 
 <details>
 <summary>v1.3 Arrangement Intelligence (Phases 25-28) - SHIPPED 2026-03-28</summary>
