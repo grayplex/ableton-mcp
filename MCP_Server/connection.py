@@ -30,6 +30,8 @@ _BROWSER_COMMANDS = frozenset(
         "load_instrument_or_effect",
         # Phase 7: Session State (iterates all tracks/devices)
         "get_session_state",
+        # Phase 31: Recipe application (multi-device load)
+        "apply_recipe",
     ]
 )
 
@@ -177,6 +179,9 @@ _WRITE_COMMANDS = frozenset(
         # Phase 27: Scaffold
         "create_locator_at",
         "scaffold_tracks",
+        # Phase 31: Batch parameters and sidechain routing
+        "set_device_parameters",
+        "set_sidechain_source",
     ]
 )
 

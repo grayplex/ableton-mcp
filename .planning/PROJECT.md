@@ -25,10 +25,24 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - ✓ PLAN-01..03: generate_production_plan and generate_section_plan MCP tools with override support (resize/add/remove sections) — v1.3 Phase 26
 - ✓ SCAF-01..02: scaffold_arrangement (writes locators + MIDI tracks to Arrangement view) and get_arrangement_overview (reads back arrangement state) MCP tools — v1.3 Phase 27
 - ✓ EXEC-01..02: get_section_checklist (per-role instrument status for a named section) and get_arrangement_progress (tracks with no instrument loaded) MCP tools — v1.3 Phase 28
+- ✓ CATL-01: Device parameter catalog — 12 built-in Ableton devices with 327 real parameters from live session; get_device_catalog MCP tool — v1.4 Phase 29
+- ✓ ROLE-01: Role taxonomy — 9 canonical mixing roles; get_role_taxonomy MCP tool — v1.4 Phase 29
+- ✓ RECIP-01: Core mix recipes — 4 genres × 9 roles, natural-unit parameter values for EQ/compression/reverb/panning/dynamics; get_mix_recipe MCP tool with alias support; pkgutil auto-discovery — v1.4 Phase 30
+- ✓ BATCH-01: set_device_parameters RS command — batch parameter set in single socket round-trip; registered in _WRITE_COMMANDS — v1.4 Phase 31
+- ✓ APPLY-01: apply_mix_recipe MCP tool — loads devices + converts natural-unit recipe to normalized payload + sends apply_recipe command in one call — v1.4 Phase 31
+- ✓ APPLY-02: apply_master_recipe MCP tool — applies full GlueCompressor + MultibandDynamics + Limiter chain to master track; MASTER_RECIPE constants for 4 core genres — v1.4 Phase 31
+- ✓ APPLY-03: apply_recipe RS handler with self_scheduling=True — recursive load + verify pattern guarantees atomicity; no race condition — v1.4 Phase 31
+- ✓ SIDE-01: set_sidechain_source RS handler + MCP tool — resolves source track by name via case-insensitive substring match on routing display names — v1.4 Phase 31
+- ✓ STATE-01: get_mix_state RS command + MCP tool — full device parameter snapshot for all tracks in one call — v1.4 Phase 32
+- ✓ GAIN-01: check_gain_staging MCP tool — per-track dBFS estimates vs role-aware target ranges — v1.4 Phase 32
+- ✓ GAIN-02: MIDI scaffold track exclusion in get_track_meters RS handler — v1.4 Phase 32
+- ✓ INTEL-01: suggest_mix_adjustments MCP tool — diffs current device state against role×genre recipe; per-parameter suggestions with one-sentence reasoning; read-only, no auto-apply — v1.4 Phase 33
+- ✓ RECIP-02: Full genre recipe expansion — 8 new genre recipe files (synthwave, dubstep, trance, future_bass, hip_hop_trap, disco_funk, neo_soul_rnb, lo_fi); pkgutil auto-discovery; all 12 genres available via get_mix_recipe — v1.4 Phase 34
+- ✓ MSTR-01: Master bus recipes for all 12 genres — MASTER_RECIPE constants (GlueCompressor + MultibandDynamics + Limiter) per genre; dynamic _get_master_genres() replaces hardcoded list — v1.4 Phase 34
 
 ### Active
 
-(v1.3 complete — see REQUIREMENTS.md for full traceability)
+(v1.4 milestone complete — define next milestone with `/gsd:new-milestone`)
 
 ### Out of Scope
 
@@ -36,6 +50,10 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - Audio generation/synthesis — Ableton handles audio; MCP handles control
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
+
+## Completed Milestone: v1.4 Mix/Master Intelligence (shipped 2026-03-30)
+
+**Delivered:** Full mixing and mastering intelligence — device parameter catalog (327 params, 12 devices), role×genre recipes for all 12 genres, one-call recipe application with atomic device loading, session mix state snapshot, gain staging analysis, and AI-driven parameter adjustment suggestions.
 
 ## Completed Milestone: v1.3 Arrangement Intelligence (shipped 2026-03-28)
 
@@ -54,17 +72,13 @@ Curated genre reference documents giving Claude consistent knowledge of 12 elect
 
 ## Current State
 
-**Shipped: v1.1 Theory Engine** (2026-03-26)
-**Shipped: v1.2 Genre/Style Blueprints** (2026-03-27) — Phases 20-24 complete
-**Shipped: v1.3 Arrangement Intelligence** (2026-03-28) — Phases 25-28 complete
+**Shipped: v1.4 Mix/Master Intelligence** (2026-03-30) — Phases 29-34 complete
 
-- **202 MCP tools** across 19 tool modules (added `get_section_checklist`, `get_arrangement_progress` in Phase 28)
-- **181 Remote Script handler commands** across 15 domain modules (added `scaffold_tracks`, `create_locator_at`, `get_arrangement_state` in Phase 27)
-- **23 theory functions** in 6 library modules (pitch, chords, scales, progressions, analysis, voicing/rhythm)
-- **12-genre catalog complete** — all genres validated against theory engine
-- **148 genre tests** (palette bridge + quality gate) + 204 v1.0 + 224 theory — all passing
-- **100 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2)
-- **12 genre blueprints**: house, techno, hip-hop/trap, ambient, DnB, dubstep, trance, neo-soul/R&B, synthwave, lo-fi, future bass, disco/funk
+- **Mix/master intelligence**: 12-genre recipe system + apply tools + gain staging + adjustment suggestions
+- **42,517 lines Python** total codebase
+- **114 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2 + 10 v1.3 + 14 v1.4)
+- **12 genre mix recipes** with 9 roles each + master bus recipes (GlueCompressor + MultibandDynamics + Limiter)
+- **MCP tools**: `get_device_catalog`, `get_role_taxonomy`, `get_mix_recipe`, `apply_mix_recipe`, `apply_master_recipe`, `set_sidechain_source`, `get_mix_state`, `check_gain_staging`, `suggest_mix_adjustments`
 
 ### Capabilities
 
@@ -124,10 +138,25 @@ Two-tier: MCP server (FastMCP/Python 3) ↔ TCP socket (length-prefix framing) �
 
 ## Context
 
-- v1.0 milestone archived at `.planning/milestones/v1.0-ROADMAP.md`
-- v1.1 milestone archived at `.planning/milestones/v1.1-ROADMAP.md`
-- v1.2 milestone archived at `.planning/milestones/v1.2-ROADMAP.md`
+- v1.0–v1.4 milestones archived at `.planning/milestones/`
 - Codebase map at `.planning/codebase/`
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd:transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-03-27 — v1.3 Arrangement Intelligence milestone started*
+*Last updated: 2026-03-30 after v1.4 milestone*

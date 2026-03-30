@@ -1,5 +1,8 @@
 """Device handlers: parameter control, rack chain navigation, device deletion, session state."""
 
+import queue
+import traceback
+
 from AbletonMCP_Remote_Script.handlers.mixer_helpers import _to_db, _pan_label
 from AbletonMCP_Remote_Script.handlers.tracks import (
     _get_color_name,
@@ -7,6 +10,22 @@ from AbletonMCP_Remote_Script.handlers.tracks import (
     _resolve_track,
 )
 from AbletonMCP_Remote_Script.registry import command
+
+# Browser paths for built-in devices, keyed by CATALOG class name (D-02)
+DEVICE_PATHS = {
+    "Eq8": "audio_effects/EQ Eight",
+    "Compressor2": "audio_effects/Compressor",
+    "GlueCompressor": "audio_effects/Glue Compressor",
+    "DrumBuss": "audio_effects/Drum Buss",
+    "MultibandDynamics": "audio_effects/Multiband Dynamics",
+    "Reverb": "audio_effects/Reverb",
+    "Delay": "audio_effects/Delay",
+    "AutoFilter2": "audio_effects/Auto Filter",
+    "Gate": "audio_effects/Gate",
+    "Limiter": "audio_effects/Limiter",
+    "EnvelopeFollower": "audio_effects/Envelope Follower",
+    "StereoGain": "audio_effects/Utility",
+}
 
 
 class DeviceHandlers:
@@ -2375,4 +2394,446 @@ class DeviceHandlers:
             return result
         except Exception as e:
             self.log_message(f"Error getting session state: {e}")
+            raise
+
+    # --- Phase 31: Recipe Application & Batch Parameters ---
+
+    @command("set_device_parameters", write=True)
+    def _set_device_parameters(self, params):
+        """Set multiple device parameters in one call (BATCH-01).
+
+        Params:
+            track_index: int
+            device_index: int
+            track_type: "track" | "return" | "master" (default "track")
+            parameters: dict of {param_name: value}
+            chain_index: Optional
+            chain_device_index: Optional
+        """
+        parameters = params.get("parameters", {})
+        if not parameters:
+            raise ValueError("No parameters provided")
+
+        try:
+            device, _track = self._resolve_device(params)
+
+            results = []
+            for param_name, value in parameters.items():
+                # Case-insensitive first-match lookup
+                name_lower = param_name.lower()
+                param = None
+                for p in device.parameters:
+                    if p.name.lower() == name_lower:
+                        param = p
+                        break
+
+                if param is None:
+                    results.append({
+                        "parameter_name": param_name,
+                        "error": f"Not found on device '{device.name}'",
+                    })
+                    continue
+
+                # Clamp to normalized 0..1 range (payload from convert_recipe_to_payload)
+                clamped = max(0.0, min(1.0, float(value)))
+                param.value = clamped
+                results.append({
+                    "parameter_name": param.name,
+                    "value": param.value,
+                })
+
+            return {
+                "device_name": device.name,
+                "parameters_set": sum(1 for r in results if "error" not in r),
+                "results": results,
+            }
+        except Exception as e:
+            self.log_message(f"Error setting device parameters: {e}")
+            raise
+
+    @command("set_sidechain_source", write=True)
+    def _set_sidechain_source(self, params):
+        """Set compressor sidechain source by track name (SIDE-01).
+
+        Resolves source_track_name to the correct routing type by
+        substring match on available_input_routing_types display names.
+
+        Params:
+            track_index: int (track containing the compressor)
+            device_index: int
+            track_type: "track" | "return" | "master" (default "track")
+            source_track_name: str
+            chain_index: Optional
+            chain_device_index: Optional
+        """
+        source_track_name = params.get("source_track_name", "")
+        if not source_track_name:
+            raise ValueError("source_track_name is required")
+
+        try:
+            device, _track = self._resolve_device(params)
+
+            if not hasattr(device, "available_input_routing_types"):
+                raise ValueError(
+                    f"Device '{device.name}' does not support sidechain routing"
+                )
+
+            # Find matching routing type by substring (case-insensitive)
+            matched_type = None
+            source_lower = source_track_name.lower()
+            for rt in device.available_input_routing_types:
+                if source_lower in rt.display_name.lower():
+                    matched_type = rt
+                    break
+
+            if matched_type is None:
+                available = [
+                    rt.display_name for rt in device.available_input_routing_types
+                ]
+                raise ValueError(
+                    f"No routing type matching '{source_track_name}'. "
+                    f"Available: {available}"
+                )
+
+            device.input_routing_type = matched_type
+
+            # Set channel to first available if channels exist
+            channel_name = ""
+            if hasattr(device, "available_input_routing_channels"):
+                channels = device.available_input_routing_channels
+                if channels:
+                    device.input_routing_channel = channels[0]
+                    channel_name = channels[0].display_name
+
+            return {
+                "device_name": device.name,
+                "source_track": source_track_name,
+                "routing_type": matched_type.display_name,
+                "routing_channel": channel_name,
+            }
+        except Exception as e:
+            self.log_message(f"Error setting sidechain source: {e}")
+            raise
+
+    @command("apply_recipe", write=True, self_scheduling=True)
+    def _apply_recipe(self, params):
+        """Atomically load missing devices and set all parameters (APPLY-03).
+
+        Uses the self_scheduling pattern (response_queue + schedule_message)
+        to guarantee devices are instantiated before params are set.
+
+        Params:
+            track_index: int (ignored if track_type="master")
+            track_type: "track" | "return" | "master"
+            devices: list of {"class_name": str, "params": {param_name: normalized_value}}
+        """
+        track_index = params.get("track_index", 0)
+        track_type = params.get("track_type", "track")
+        devices_spec = params.get("devices", [])
+
+        if not devices_spec:
+            raise ValueError("No devices provided in recipe")
+
+        track = _resolve_track(self._song, track_type, track_index)
+
+        # Build existing device map: {class_name: device} (first match per D-04/D-05)
+        existing = {}
+        for d in track.devices:
+            cn = d.class_name
+            if cn not in existing:
+                existing[cn] = d
+
+        # Split into to_load (missing) and track which specs need loading
+        to_load = []
+        for spec in devices_spec:
+            cn = spec["class_name"]
+            if cn not in existing:
+                if cn not in DEVICE_PATHS:
+                    raise ValueError(
+                        f"Unknown device class '{cn}' -- not in DEVICE_PATHS"
+                    )
+                to_load.append(spec)
+
+        response_queue = queue.Queue()
+
+        if not to_load:
+            # All devices exist -- set params directly (no async needed)
+            try:
+                result = self._apply_all_params(track, devices_spec, existing)
+                return result
+            except Exception as e:
+                self.log_message(f"Error applying params: {e}")
+                raise
+        else:
+            # Need to load devices -- use schedule_message pattern
+            try:
+                self.schedule_message(
+                    0,
+                    lambda: self._load_next_device(
+                        track, to_load, 0, devices_spec, existing, response_queue
+                    ),
+                )
+            except AssertionError:
+                # If schedule_message fails (not in main thread), call directly
+                self._load_next_device(
+                    track, to_load, 0, devices_spec, existing, response_queue
+                )
+
+            try:
+                result = response_queue.get(timeout=30.0)
+                if isinstance(result, dict) and result.get("status") == "error":
+                    raise Exception(result.get("message", "Unknown error"))
+                return result
+            except queue.Empty:
+                return {
+                    "applied": False,
+                    "error": "Timeout waiting for device loading",
+                }
+
+    def _load_next_device(
+        self, track, to_load, load_index, all_specs, existing, response_queue
+    ):
+        """Load the next device in the queue, or set params if all loaded."""
+        if load_index >= len(to_load):
+            # All devices loaded -- refresh existing map and set params
+            try:
+                # Rebuild existing map with newly loaded devices
+                for d in track.devices:
+                    cn = d.class_name
+                    if cn not in existing:
+                        existing[cn] = d
+                result = self._apply_all_params(track, all_specs, existing)
+                response_queue.put(result)
+            except Exception as e:
+                self.log_message(f"Error in _load_next_device (params): {e}")
+                self.log_message(traceback.format_exc())
+                response_queue.put({"status": "error", "message": str(e)})
+            return
+
+        spec = to_load[load_index]
+        class_name = spec["class_name"]
+        browser_path = DEVICE_PATHS[class_name]
+
+        try:
+            app = self.application()
+            item = self._resolve_browser_path(app.browser, browser_path)
+            if not item:
+                response_queue.put({
+                    "status": "error",
+                    "message": f"Browser item not found for '{browser_path}'",
+                })
+                return
+
+            devices_before = len(track.devices)
+
+            # Select track and load item in same callback
+            self._song.view.selected_track = track
+            app.browser.load_item(item)
+
+            # Schedule verification on next tick
+            self.schedule_message(
+                1,
+                lambda: self._verify_recipe_load(
+                    track, devices_before, class_name, to_load,
+                    load_index, all_specs, existing, response_queue,
+                ),
+            )
+        except Exception as e:
+            self.log_message(f"Error loading device '{class_name}': {e}")
+            self.log_message(traceback.format_exc())
+            response_queue.put({"status": "error", "message": str(e)})
+
+    def _verify_recipe_load(
+        self, track, devices_before, class_name, to_load,
+        load_index, all_specs, existing, response_queue,
+    ):
+        """Verify device loaded, then continue to next device."""
+        try:
+            devices_after = len(track.devices)
+            if devices_after > devices_before:
+                # Device loaded -- continue to next
+                self._load_next_device(
+                    track, to_load, load_index + 1, all_specs, existing, response_queue
+                )
+            else:
+                # Retry once after a short delay
+                self.log_message(
+                    f"[WARN] apply_recipe: device count unchanged after loading "
+                    f"'{class_name}', retrying..."
+                )
+                self.schedule_message(
+                    1,
+                    lambda: self._verify_recipe_load_retry(
+                        track, devices_before, class_name, to_load,
+                        load_index, all_specs, existing, response_queue,
+                    ),
+                )
+        except Exception as e:
+            self.log_message(f"Error verifying recipe load: {e}")
+            self.log_message(traceback.format_exc())
+            response_queue.put({"status": "error", "message": str(e)})
+
+    def _verify_recipe_load_retry(
+        self, track, devices_before, class_name, to_load,
+        load_index, all_specs, existing, response_queue,
+    ):
+        """Second verification attempt after retry delay."""
+        try:
+            devices_after = len(track.devices)
+            if devices_after > devices_before:
+                self._load_next_device(
+                    track, to_load, load_index + 1, all_specs, existing, response_queue
+                )
+            else:
+                response_queue.put({
+                    "status": "error",
+                    "message": (
+                        f"Failed to load device '{class_name}' on track "
+                        f"'{track.name}'. Device count unchanged ({devices_after})."
+                    ),
+                })
+        except Exception as e:
+            self.log_message(f"Error in retry verification: {e}")
+            response_queue.put({"status": "error", "message": str(e)})
+
+    def _apply_all_params(self, track, all_specs, existing):
+        """Set parameters for all devices in the recipe.
+
+        Args:
+            track: The Ableton track object.
+            all_specs: List of {"class_name": str, "params": {...}}.
+            existing: Dict of {class_name: device} for devices on the track.
+
+        Returns:
+            Result dict with applied device info.
+        """
+        applied = []
+        for spec in all_specs:
+            cn = spec["class_name"]
+            device = existing.get(cn)
+            if device is None:
+                applied.append({
+                    "class_name": cn,
+                    "error": f"Device '{cn}' not found on track after loading",
+                })
+                continue
+
+            params_set = 0
+            for param_name, value in spec["params"].items():
+                name_lower = param_name.lower()
+                for p in device.parameters:
+                    if p.name.lower() == name_lower:
+                        clamped = max(0.0, min(1.0, float(value)))
+                        p.value = clamped
+                        params_set += 1
+                        break
+
+            applied.append({
+                "class_name": cn,
+                "device_name": device.name,
+                "parameters_set": params_set,
+            })
+
+        return {
+            "applied": True,
+            "track_name": track.name,
+            "devices": applied,
+        }
+
+    # --- Phase 32: Device State Reader and Gain Staging ---
+
+    @command("get_mix_state")
+    def _get_mix_state(self, params=None):
+        """Get device parameter snapshot for every device on every track.
+
+        Returns device params only (no mixer state, no clips, no sends).
+        Includes all tracks — tracks with zero devices return devices: [].
+
+        Returns:
+            tracks: list of {index, name, type, devices}
+            return_tracks: list of {index, name, type, devices}
+            master_track: {name, type, devices}
+        """
+        try:
+            result = {"tracks": [], "return_tracks": [], "master_track": {}}
+
+            def build_track_device_state(track, track_type_hint=None):
+                type_str = _get_track_type_str(track, track_type_hint=track_type_hint)
+                devices = []
+                for di, d in enumerate(track.devices):
+                    devices.append({
+                        "index": di,
+                        "class_name": d.class_name,
+                        "device_name": d.name,
+                        "parameters": [
+                            {"name": p.name, "value": p.value}
+                            for p in d.parameters
+                        ],
+                    })
+                return {"name": track.name, "type": type_str, "devices": devices}
+
+            for i, track in enumerate(self._song.tracks):
+                state = build_track_device_state(track)
+                state["index"] = i
+                result["tracks"].append(state)
+
+            for i, track in enumerate(self._song.return_tracks):
+                state = build_track_device_state(track, "return")
+                state["index"] = i
+                result["return_tracks"].append(state)
+
+            result["master_track"] = build_track_device_state(
+                self._song.master_track, "master"
+            )
+            return result
+        except Exception as e:
+            self.log_message(f"Error getting mix state: {e}")
+            raise
+
+    @command("get_track_meters")
+    def _get_track_meters(self, params=None):
+        """Get output meter levels for all tracks (for gain staging analysis).
+
+        Reads output_meter_level (0.0-1.0 peak hold) from every track.
+        MIDI tracks with no instrument/device are excluded (GAIN-02).
+        Conversion to dBFS is performed on the MCP Server side.
+
+        Returns:
+            tracks: list of {index, name, type, meter_level}
+            return_tracks: list of {index, name, type, meter_level}
+            master_track: {name, type, meter_level}
+        """
+        try:
+            result = {"tracks": [], "return_tracks": [], "master_track": {}}
+
+            for i, track in enumerate(self._song.tracks):
+                # GAIN-02: exclude empty MIDI scaffold tracks
+                is_midi = hasattr(track, "has_midi_input") and track.has_midi_input
+                if is_midi and len(track.devices) == 0:
+                    continue
+                type_str = _get_track_type_str(track)
+                result["tracks"].append({
+                    "index": i,
+                    "name": track.name,
+                    "type": type_str,
+                    "meter_level": track.output_meter_level,
+                })
+
+            for i, track in enumerate(self._song.return_tracks):
+                result["return_tracks"].append({
+                    "index": i,
+                    "name": track.name,
+                    "type": "return",
+                    "meter_level": track.output_meter_level,
+                })
+
+            master = self._song.master_track
+            result["master_track"] = {
+                "name": master.name,
+                "type": "master",
+                "meter_level": master.output_meter_level,
+            }
+            return result
+        except Exception as e:
+            self.log_message(f"Error getting track meters: {e}")
             raise

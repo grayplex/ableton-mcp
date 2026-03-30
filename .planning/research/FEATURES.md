@@ -1,262 +1,385 @@
-# Feature Landscape: v1.3 Arrangement Intelligence
+# Feature Landscape: Mix/Master Intelligence (v1.4)
 
-**Domain:** AI-assisted arrangement planning and session scaffolding for Ableton Live MCP server
-**Researched:** 2026-03-27
-**Confidence:** HIGH (existing codebase well understood, Ableton API verified, domain patterns established)
+**Domain:** AI-assisted mixing and mastering for electronic music production via Ableton Live MCP
+**Researched:** 2026-03-28
+**Confidence:** MEDIUM-HIGH (domain knowledge well-established; Ableton LOM parameter details need runtime validation)
 
 ## Table Stakes
 
-Features users expect when they hear "arrangement intelligence." Missing = product feels incomplete.
+Features that users expect from any AI mixing assistant. Missing = product feels incomplete.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Per-section element lists in arrangement templates | Users need to know WHAT goes in each section, not just the name/length | Medium | Extend existing `arrangement.sections` dicts with `roles` list per section |
-| Energy level per section | Energy curve is the fundamental concept of arrangement -- determines intensity, mixing, and listener journey | Low | Integer 1-10 per section dict |
-| Automation cues per section | Filter sweeps, risers, and impacts are what differentiate sections sonically | Medium | Descriptive `transition_in` string per section |
-| Production plan from genre + vibe | "Give me a plan for a dark techno track" is the entry-point use case | Medium | Combines genre blueprint arrangement data with user intent |
-| Locator scaffolding in Ableton | Arrangement plan must be represented in the DAW to be useful | Medium | Create named cue points at section boundaries |
-| Named track creation from plan | DAW should be pre-configured with the right tracks for the genre | Low | Orchestration of existing `create_midi_track`/`create_audio_track` + `rename_track` |
-| Section execution checklist | "What do I still need to do in this section?" prevents Claude from dropping elements under context pressure | Medium | Per-section element list derived from `roles` |
-| Single-section mode | Users often want to work on just one section, not plan a whole track | Low | Plan builder returns one section's data on demand |
+| Role x genre mix recipes | Core value prop -- eliminates parameter guessing for AI | High | 12 genres x ~15 roles x ~6 device types = large data surface |
+| Apply recipe tool (load + set params) | One-call mixing is the whole point; multi-call load+set is fragile | Medium | Depends on existing `load_instrument_or_effect` + `set_device_parameter` |
+| Device state reader (current params) | Cannot suggest adjustments without reading current state | Low | `get_device_parameters` already exists; may need batch/summary wrapper |
+| Gain staging check | Every mixing guide starts with gain staging; foundational | Medium | Read all track volumes + output meters, flag outliers |
+| Master bus recipes per genre | Mastering is inseparable from mixing in electronic music | Medium | ~12 genre-specific chains, each 4-6 devices |
+| Master bus apply tool | Must be able to apply master chain, not just individual devices | Medium | Chain ordering matters: EQ > Comp > Multiband > Limiter |
 
 ## Differentiators
 
-Features that set this apart from static arrangement guides. Not expected, but high-value.
+Features that set the product apart. Not expected from basic mixing tools, but highly valued.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Transition descriptors between sections | Tells Claude HOW to connect sections (e.g., "riser into drop," "filter sweep out of breakdown") | Medium | `transition_in` field on each section dict |
-| Per-section harmony guidance | Links arrangement to existing harmony engine -- "breakdown uses iv chord, chorus modulates up" | Medium | Plan builder maps `harmony.common_progressions` to sections at generation time |
-| Subgenre arrangement overrides | Deep house has longer intros than tech house; progressive house has 32-bar breakdowns | Low | Already partially implemented -- some subgenres override `arrangement.sections` |
-| Context-aware plan modification | "Make the breakdown shorter" or "add a bridge" adjusts the plan dynamically | Medium | Plan builder accepts override parameters |
-| Atomic named-locator creation | Single Remote Script command to create a locator at a specific position with a name -- avoids multi-step workflow | Medium | New command, not just orchestration of existing tools |
+| Suggest adjustments (diff with reasoning) | AI reads current state, compares to recipe, outputs param diffs with WHY | High | Requires device state reader + recipe lookup + diff logic |
+| Frequency conflict detection | Identifies overlapping frequency ranges between roles (e.g., kick vs bass sub) | High | Needs per-track EQ analysis or heuristic from role assignments |
+| Sidechain routing setup | Automates sidechain compression routing (kick > bass/pad compressor) | Medium | Uses existing routing tools + compressor sidechain params |
+| Section-aware mixing | Different mix settings per arrangement section (breakdown = more reverb, drop = tighter) | High | Builds on v1.3 section/arrangement infrastructure |
+| Mix validation checklist | "Is this mix ready?" -- checks gain staging, stereo field, frequency balance | Medium | Aggregates multiple checks into single report |
 
 ## Anti-Features
 
-Features to explicitly NOT build. Tempting but wrong for this milestone.
+Features to explicitly NOT build.
 
 | Anti-Feature | Why Avoid | What to Do Instead |
 |--------------|-----------|-------------------|
-| Auto-composition of all sections | This is a planning/scaffolding milestone, not a composition engine. Claude composes using existing MIDI/theory tools. | Provide checklists and templates that GUIDE Claude through composition |
-| Arrangement analysis of existing tracks | Requires stem separation, beat detection, structural segmentation -- different domain entirely | Defer to future milestone. v1.3 creates arrangements, does not analyze them |
-| Per-bar automation curves baked into templates | Existing `write_automation_envelope` tool handles automation. Pre-baking curves is over-specification that breaks when users have different plugins. | Keep automation cues as descriptive strings ("filter sweep 0-100% over 8 bars") that Claude interprets |
-| Visual arrangement diagrams / ASCII art | Token-expensive, fragile, not actionable in MCP context | Use structured data (dict/JSON) that tools consume directly |
-| Arrangement region moving in Ableton | Ableton LOM has no API for moving arrangement regions -- clips must be individually repositioned | Build scaffolding at plan time; rearranging means re-scaffolding |
-| Vibe preset library | Mapping "dark and brooding" to energy curves is nice but Claude can interpret natural language vibes without a lookup table | Let Claude use the energy levels as guidance, interpret vibe descriptions contextually |
-| Genre-specific arrangement tools | `create_house_arrangement()`, `create_techno_arrangement()` -- combinatorial explosion | One generic `scaffold_arrangement(plan)` tool works for all genres |
+| Real-time audio analysis / metering | LOM does not expose real-time audio buffers; Ableton's meter values are limited | Use heuristic analysis based on device params and role knowledge |
+| Full spectrum analyzer | LOM has no FFT / spectrum data access | Provide frequency guidance through recipes and role-based EQ conventions |
+| Reference track matching | Requires audio analysis capabilities outside LOM scope | Provide genre-specific target values that encode reference conventions |
+| Automatic mix without user confirmation | Users want AI assistance, not black-box automation | Always show what will change + reasoning; apply on confirmation |
+| VST/AU plugin parameter control | Parameter names are unpredictable across plugins | Focus exclusively on Ableton built-in devices where params are known |
 
-## Arrangement Template Data Schema
+---
 
-### Current State (v1.2)
+## Detailed Feature Specifications
 
-Each genre blueprint's `arrangement.sections` is a list of dicts with two fields:
+### F1: Device Parameter Catalog
 
-```python
-{"name": "intro", "bars": 16}
+**What:** Static data mapping of priority Ableton built-in devices to their API parameter names, value ranges, and semantic meaning.
+
+**Priority devices (12):**
+
+| Device | Key Parameters (80/20 rule) | Notes |
+|--------|---------------------------|-------|
+| **EQ Eight** | Band 1-8 Frequency, Gain, Q, Filter Type, Band On/Off; Adaptive Q; Scale | 8 bands, each with ~5 params; only 3-4 bands typically active per recipe |
+| **Compressor** | Threshold, Ratio, Attack, Release, Knee, Makeup, Dry/Wet, Model (Peak/RMS/Expand), Sidechain | Core dynamics control; sidechain is critical for electronic music |
+| **Glue Compressor** | Threshold, Ratio, Attack, Release, Makeup, Range, Dry/Wet, Soft Clip | SSL-style bus glue; the "Range" param is unique and important |
+| **Drum Buss** | Drive, Crunch, Damp, Transients, Boom, Boom Freq, Decay, Dry/Wet | All-in-one drum processing; Boom is the secret weapon |
+| **Multiband Dynamics** | Low/Mid/High Threshold Above/Below, Ratio, Attack, Release; Crossover frequencies; Output Gain | 3-band dynamics; Above = compression, Below = expansion |
+| **Reverb** | Decay Time, Size, Pre-Delay, Diffusion, Dry/Wet, Hi/Lo Shelf Freq, Hi/Lo Shelf Gain, Input Filter | Wet/Dry critical; pre-delay separates source from space |
+| **Delay** | Delay Time L/R, Feedback, Dry/Wet, Filter Freq, Filter Width | Sync mode vs free time; ping-pong variant |
+| **Auto Filter** | Frequency, Resonance, Filter Type, Envelope Amount, LFO Amount, LFO Rate, Drive | Filter sweeps are bread and butter of electronic music |
+| **Gate** | Threshold, Return, Attack, Hold, Release, Floor | Noise gate for cleaning up; useful on breaks/samples |
+| **Limiter** | Gain, Ceiling, Release | Few params but critical for mastering; ceiling typically -0.3dB |
+| **Utility** | Gain, Balance, Width, Mono, Mute, Phase-L, Phase-R | Gain staging workhorse; Width for stereo control |
+| **Envelope Follower** | Rise, Fall, Map min/max | Sidechain-style dynamics without compressor; modulation source |
+
+**Complexity:** Medium (data authoring, not code complexity)
+**Depends on:** Existing `get_device_parameters` for runtime validation
+**Implementation note:** Parameter names must match what `set_device_parameter` accepts. The existing tool uses case-insensitive name matching. Catalog data should be authored, then validated against actual Ableton devices at test time.
+
+---
+
+### F2: Role Categories (Standardized)
+
+**What:** Canonical role taxonomy covering all 12 genres, with role groupings for mix recipe organization.
+
+**Role groups and their members (union across all genre blueprints):**
+
+| Group | Roles | Mix Treatment |
+|-------|-------|---------------|
+| **Low-end** | kick, bass, sub_bass, 303_bass | Mono below ~120Hz; sidechain relationships; frequency separation |
+| **Drums** | snare, clap, hi-hats, percussion, break, amen_break | Transient shaping; stereo placement; bus compression |
+| **Melodic** | lead, stab, synth_stab, chords, arp | Mid-range EQ space; stereo width; delay/reverb sends |
+| **Harmonic bed** | pad, strings, drone, texture | Wide stereo; high-pass to avoid low-end mud; long reverb |
+| **Vocal** | vocal, vocal_chop | De-essing; compression; mid-range presence; reverb/delay |
+| **Atmospheric** | fx, noise, field_recording, granular, riser | Variable; often wide stereo; filtered; automated |
+| **Tonal color** | bell, piano | Genre-specific; often needs carving EQ space |
+
+**Complexity:** Low (taxonomy design, no new code infrastructure)
+**Depends on:** Existing `instrumentation.roles` in genre blueprints
+
+---
+
+### F3: Role x Genre Mix Recipes
+
+**What:** For each (role, genre) pair, a recipe specifying which devices to load and what parameter values to set.
+
+**Recipe structure per role per genre:**
+
 ```
-
-The schema validator (`schema.py` line 190-197) requires `name` (str) and `bars` (int), but silently accepts additional keys. This means the extension is **backward-compatible** -- no existing data breaks.
-
-### Proposed Extension (v1.3)
-
-Add three new optional fields per section dict:
-
-```python
-{
-    "name": "buildup",
-    "bars": 8,
-    "energy": 7,                    # 1-10, energy level at this section
-    "roles": ["kick", "hi-hats", "bass", "riser", "fx"],
-    "transition_in": "riser + filter sweep from breakdown"
-}
-```
-
-### Field Rationale
-
-| Field | Type | Required | Why |
-|-------|------|----------|-----|
-| `name` | `str` | Yes (existing) | Section identifier, used as locator name in Ableton |
-| `bars` | `int` | Yes (existing) | Duration, used to calculate beat positions for locators |
-| `energy` | `int` (1-10) | Yes (new) | Quantified energy enables curve reasoning and mixing decisions. Integer is unambiguous and sortable. |
-| `roles` | `list[str]` | Yes (new) | References `instrumentation.roles`. This IS the checklist -- tells Claude exactly which elements belong in this section. |
-| `transition_in` | `str` | No (new) | Descriptive string for section entry approach. Claude interprets this using existing automation tools. First section typically has no transition. |
-
-### Why NOT More Fields
-
-- **`chords`/`progression`**: Arrangement templates should reference the genre's harmony section, not duplicate it. Plan builder maps progressions to sections at generation time.
-- **`automation_values`**: Too specific. "Filter sweep 0-100%" is better than `{"param": "Auto Filter Frequency", "start": 20, "end": 20000}` because the latter breaks with different filter plugins.
-- **`bars_alt`**: Variable bar counts per vibe belong in plan builder logic, not hardcoded in every blueprint.
-
-## Production Plan Schema
-
-The plan builder generates a concrete plan from a genre template + user parameters. This is a runtime output, not stored in blueprints.
-
-```python
-{
+recipe = {
+    "role": "bass",
     "genre": "house",
-    "subgenre": "deep_house",
-    "key": "Dm",
-    "bpm": 122,
-    "vibe": "warm late-night",
-    "total_bars": 128,
-    "sections": [
+    "devices": [
         {
-            "name": "intro",
-            "start_bar": 1,
-            "bars": 16,
-            "start_beat": 0.0,       # beat position for Ableton API (0-indexed, in beats)
-            "energy": 3,
-            "roles": ["kick", "hi-hats", "pad"],
-            "transition_in": "fade in from silence",
-            "checklist": [
-                {"element": "kick", "status": "pending"},
-                {"element": "hi-hats", "status": "pending"},
-                {"element": "pad", "status": "pending"},
-            ]
+            "device_name": "EQ Eight",       # matches load_instrument_or_effect path
+            "params": {
+                "1 Filter On A": 1,           # high-pass to separate from kick
+                "1 Frequency A": 80.0,        # Hz
+                "1 Filter Type A": 1,         # high-pass
+                ...
+            }
         },
-        # ... more sections
-    ],
-    "tracks": [
-        {"name": "Kick", "type": "midi", "role": "kick"},
-        {"name": "Bass", "type": "midi", "role": "bass"},
-        {"name": "Hi-Hats", "type": "midi", "role": "hi-hats"},
-        {"name": "Pad", "type": "midi", "role": "pad"},
-        {"name": "FX", "type": "audio", "role": "fx"},
+        {
+            "device_name": "Compressor",
+            "params": {
+                "Threshold": -18.0,
+                "Ratio": 4.0,
+                "Attack": 10.0,
+                "Release": 100.0,
+                ...
+            }
+        }
     ]
 }
 ```
 
-### Beat Position Calculation
+**Genre-specific mixing conventions (key differentiators):**
 
-`start_beat = sum(previous_sections_bars) * beats_per_bar`
+| Genre | Signature Mix Characteristic | Key Devices |
+|-------|------------------------------|-------------|
+| **House** | Pumping sidechain on bass/pads from kick; warm low-end; offbeat hat brightness | Compressor (sidechain), Glue Compressor, EQ Eight |
+| **Techno** | Heavy sidechain; aggressive parallel drum compression; filtered textures | Compressor (sidechain), Drum Buss, Auto Filter |
+| **Ambient** | Long reverb tails; minimal compression; wide stereo; very dynamic | Reverb (high wet), Delay, Utility (width), EQ Eight |
+| **DnB** | Tight fast compression on breaks; heavy sub-bass; snare crack emphasis | Compressor (fast attack), Drum Buss, EQ Eight |
+| **Dubstep** | Aggressive mid-range bass processing; heavy limiting; sidechain on everything | Multiband Dynamics, Compressor, Auto Filter |
+| **Trance** | Gated reverb on leads; supersaw layering width; pumping compression | Gate, Reverb, Compressor (sidechain), Utility (width) |
+| **Hip-hop/Trap** | 808 sub-bass saturation; crisp hi-hats; vocal presence carving | Drum Buss (boom), EQ Eight, Compressor |
+| **Lo-fi** | Warm saturation; rolled-off highs; gentle compression | Auto Filter (low-pass), Compressor, EQ Eight |
+| **Synthwave** | Wide synths; gated reverb on snare; chorus-like stereo | Reverb, Utility (width), Compressor |
+| **Neo-soul/R&B** | Warm analog compression; smooth EQ; vocal-forward mix | Glue Compressor, EQ Eight, Reverb |
+| **Future bass** | Heavy sidechain; bright supersaws; wide stereo image | Compressor (sidechain), Multiband Dynamics, Utility |
+| **Disco/Funk** | Natural dynamics; warm compression; live feel preservation | Glue Compressor, EQ Eight, Reverb |
 
-For 4/4 time: `beats_per_bar = 4`, so a section starting at bar 17 has `start_beat = 16 * 4 = 64.0`.
+**Complexity:** HIGH (largest data surface in v1.4; ~12 genres x ~10 core roles x 2-4 devices each)
+**Depends on:** F1 (device parameter catalog), F2 (role taxonomy)
+**Implementation strategy:** Start with 3-4 most-used genres (house, techno, ambient, DnB), expand to remaining 8. Each recipe is a Python dict, same pattern as genre blueprints.
 
-## Session Scaffolding (Ableton Representation)
+---
 
-The plan becomes real in Ableton through two mechanisms:
+### F4: Apply Recipe Tool
 
-### 1. Locators (Cue Points)
+**What:** Single MCP tool call that loads all devices in a recipe and sets all their parameters on a target track.
 
-One locator per section boundary, named with the section name (e.g., "intro", "buildup", "drop").
+**Interface:**
+```
+apply_mix_recipe(track_index, role, genre, [subgenre])
+  -> loads EQ Eight, Compressor, etc. onto track
+  -> sets all params per recipe
+  -> returns: devices loaded, params set, any warnings
+```
 
-**API constraint (CRITICAL, verified):** `CuePoint.name` is writable but `CuePoint.time` is READ-ONLY. `Song.set_or_delete_cue()` creates a cue at the CURRENT playback position (`Song.current_song_time`). To create locators at specific positions:
+**Complexity:** Medium
+**Depends on:** F3 (recipes), existing `load_instrument_or_effect`, existing `set_device_parameter`
+**Key constraint:** Device loading order matters. EQ before compressor is standard. Must wait for each device load before setting params (Ableton's async device loading).
 
-1. Set `Song.current_song_time` to the target beat position
-2. Call `Song.set_or_delete_cue()` to create the locator
-3. Set the `name` property on the new cue point
+---
 
-**Implication:** Need a new Remote Script command `create_named_locator(time, name)` that performs steps 1-3 atomically. This avoids race conditions and reduces MCP round-trips from 3+ to 1.
+### F5: Device State Reader (Batch)
 
-### 2. Named Tracks
+**What:** Read all device params across all tracks (or a subset) in one call, returning a structured snapshot of the current mix state.
 
-One track per unique instrument role across all sections. Existing tools cover this:
-- `create_midi_track(index)` or `create_audio_track(index)`
-- `rename_track(track_index, name)`
+**Interface:**
+```
+get_mix_state([track_indices], [track_type])
+  -> for each track: device chain with all param names + current values
+  -> returns: structured dict, not individual get_device_parameters calls
+```
 
-### 3. Empty Arrangement Clips (deferred)
+**Complexity:** Low-Medium
+**Depends on:** Existing `get_device_parameters` (wraps multiple calls)
+**Why needed:** Claude currently must call `get_device_parameters` per device per track. For a 16-track session with 3 devices each, that is 48 tool calls. A batch reader reduces this to 1.
 
-Pre-creating empty MIDI clips at each section position on each track would give visual guidance. However, this adds complexity for marginal benefit since locators already mark sections visually. Defer to post-v1.3 or make optional.
+---
 
-## Typical Genre Arrangement Patterns
+### F6: Gain Staging Check
 
-Research confirms these cross-genre patterns for populating the 12 existing blueprints:
+**What:** Reads all track volumes and output levels, compares to target gain staging conventions, flags issues.
 
-### Drop-based genres (House, Techno, DnB, Dubstep, Future Bass, Trance)
+**Conventions (genre-independent baseline):**
+- Individual tracks: -6 to -12 dB headroom (volume fader ~0.70-0.85)
+- Kick: loudest element, typically -6 dB
+- Bass: -8 to -10 dB
+- Master bus: peaks at -3 to -6 dB before limiting
+- No track clipping (output > 0 dB)
 
-| Section | Typical Bars | Energy | Active Elements | Typical Transition |
-|---------|-------------|--------|----------------|-------------------|
-| Intro | 8-32 | 2-4 | Stripped drums, atmosphere, maybe bass | Fade in or DJ-mixable beat |
-| Buildup | 8-16 | 5-8 | Riser, snare roll, filter sweep opening | Increasing density + pitch |
-| Drop | 16-32 | 9-10 | Full drums, bass, lead/hook, all elements | Impact hit, brief silence |
-| Breakdown | 8-32 | 3-5 | Drums stripped, pads, atmosphere, melody | Gradual element removal |
-| Buildup 2 | 8-16 | 6-9 | Same as buildup, often more intense | More layers than first |
-| Drop 2 | 16-32 | 9-10 | Full elements + variation from drop 1 | Second impact |
-| Outro | 8-32 | 2-3 | Stripped drums, elements removed | Mirror of intro for DJ mixing |
+**Interface:**
+```
+check_gain_staging([genre])
+  -> reads all track volumes via existing mixer tools
+  -> reads master output level
+  -> returns: per-track status (ok/too-hot/too-quiet), overall assessment
+```
 
-### Song-form genres (Hip-Hop, Neo-Soul, Synthwave, Disco/Funk)
+**Complexity:** Medium
+**Depends on:** Existing `set_track_volume` / track info tools, F2 (role taxonomy for role-specific targets)
+**Limitation:** LOM exposes track.mixer_device.volume (fader position) but NOT real-time peak metering. Gain staging check is based on fader positions and Utility gain values, not actual signal level. This is still highly useful -- the most common gain staging mistake is wrong fader positions.
 
-| Section | Typical Bars | Energy | Active Elements | Typical Transition |
-|---------|-------------|--------|----------------|-------------------|
-| Intro | 4-8 | 2-3 | Melodic hook preview or drum intro | Sets tone |
-| Verse | 16 | 5-6 | Drums, bass, chords, space for vocals | Develops from intro |
-| Pre-chorus | 8 | 6-7 | Rising energy, new harmonic movement | Tension before chorus |
-| Chorus | 8-16 | 8-9 | Full instrumentation, hook | Release of tension |
-| Bridge | 8 | 4-6 | Different harmony, texture change | Contrast |
-| Outro | 4-8 | 2-3 | Fading elements or hard stop | Resolution |
+---
 
-### Non-standard form genres (Ambient, Lo-fi)
+### F7: Suggest Adjustments
 
-| Section | Typical Bars | Energy | Active Elements | Typical Transition |
-|---------|-------------|--------|----------------|-------------------|
-| Intro | 4-16 | 1-2 | Texture, atmosphere | Gradual emergence |
-| Movement/Loop | 16-32 | 3-6 | Core loop with slow evolution | Subtle layering |
-| Transition | 8-16 | 2-4 | Textural shift, new element | Crossfade or filter |
-| Outro | 4-16 | 1-2 | Dissolving elements | Fade or decay |
+**What:** Reads current device state on a track, compares to the recipe for that role/genre, outputs a diff with reasoning for each parameter change.
+
+**Interface:**
+```
+suggest_mix_adjustments(track_index, role, genre)
+  -> reads current device params
+  -> looks up recipe
+  -> returns: list of {param, current_value, suggested_value, reason}
+```
+
+**Example output:**
+```json
+{
+  "suggestions": [
+    {
+      "device": "EQ Eight",
+      "param": "1 Frequency A",
+      "current": 50.0,
+      "suggested": 80.0,
+      "reason": "High-pass at 80Hz for house bass separates from kick sub (40-60Hz)"
+    },
+    {
+      "device": "Compressor",
+      "param": "Ratio",
+      "current": 2.0,
+      "suggested": 4.0,
+      "reason": "House bass needs tighter compression to sit under the kick"
+    }
+  ]
+}
+```
+
+**Complexity:** High (diff logic + reasoning text generation)
+**Depends on:** F5 (device state reader), F3 (recipes)
+
+---
+
+### F8: Master Bus Recipes
+
+**What:** Genre-specific master bus chains with device order and parameter values.
+
+**Standard master bus chain order:**
+
+```
+1. EQ Eight (subtractive) -- cut rumble, fix resonances
+2. Glue Compressor -- gentle 2-4 dB glue
+3. Multiband Dynamics -- balance frequency bands
+4. EQ Eight (additive) -- final tonal shaping (optional)
+5. Limiter -- ceiling at -0.3 dB, target 2-4 dB reduction
+```
+
+**Genre-specific variations:**
+
+| Genre | Chain Modifications | Key Settings |
+|-------|--------------------|-------------|
+| **Techno** | More aggressive Glue Comp (4:1 ratio); Multiband with tight low-end control | Ceiling -0.1 dB, 4-6 dB limiting |
+| **House** | Moderate Glue Comp (2:1); wider Multiband crossovers | Ceiling -0.3 dB, 2-4 dB limiting |
+| **Ambient** | Skip Glue Comp or very gentle; skip Multiband; preserve dynamics | Ceiling -1.0 dB, minimal limiting |
+| **DnB** | Fast-attack Compressor instead of Glue; tight Multiband on lows | Ceiling -0.3 dB, 4-6 dB limiting |
+| **Dubstep** | Aggressive Multiband; mid-range boost on final EQ | Ceiling -0.1 dB, 6+ dB limiting |
+| **Hip-hop/Trap** | Warm Glue Comp; bass-forward EQ; moderate limiting | Ceiling -0.3 dB, 3-5 dB limiting |
+| **Trance** | Similar to house but more aggressive limiting for loudness | Ceiling -0.1 dB, 4-6 dB limiting |
+| **Lo-fi** | Very gentle; maybe just EQ + Limiter; preserve character | Ceiling -1.0 dB, 1-2 dB limiting |
+| **Synthwave** | Warm compression; slight mid-scoop on EQ | Ceiling -0.3 dB, 2-4 dB limiting |
+| **Neo-soul** | Gentle Glue Comp; warm EQ; preserve dynamics | Ceiling -0.5 dB, 2-3 dB limiting |
+| **Future bass** | Aggressive Multiband; bright top-end EQ | Ceiling -0.1 dB, 4-6 dB limiting |
+| **Disco/Funk** | Gentle; preserve transients; light Glue Comp | Ceiling -0.3 dB, 2-3 dB limiting |
+
+**Complexity:** Medium (12 chains, each 4-6 devices with ~5 params each)
+**Depends on:** F1 (device parameter catalog)
+**Implementation:** Separate from per-track recipes. Applied to master track using `track_type="master"`.
+
+---
+
+### F9: Master Bus Tools
+
+**What:** Apply/read master bus chain.
+
+**Interface:**
+```
+apply_master_recipe(genre, [subgenre])
+  -> loads chain onto master track in correct order
+  -> sets all params
+
+get_master_state()
+  -> reads all devices on master track with params
+```
+
+**Complexity:** Low-Medium (thin wrapper over F4 logic targeting master track)
+**Depends on:** F8 (master bus recipes), F4 (apply recipe tool)
+
+---
 
 ## Feature Dependencies
 
 ```
-Genre Blueprint Extensions (energy, roles, transition_in)
-    |
-    v
-Schema Validation Update (optional fields in schema.py)
-    |
-    v
-Production Plan Builder (genre + vibe -> concrete plan)
-    |
-    +---> Session Scaffolding Tool
-    |         |
-    |         +---> Named Locator Command (new Remote Script)
-    |         +---> Track Creation (existing tools, orchestration)
-    |
-    +---> Section Execution Checklist Tool
-              |
-              +---> Single-Section Mode (subset of plan builder)
+F1 (Device Parameter Catalog)
+  |
+  +---> F3 (Role x Genre Mix Recipes) ---> F4 (Apply Recipe Tool)
+  |         |                                    |
+  |         v                                    v
+  |     F7 (Suggest Adjustments) <--------- F5 (Device State Reader)
+  |
+  +---> F8 (Master Bus Recipes) ----------> F9 (Master Bus Tools)
+
+F2 (Role Taxonomy)
+  |
+  +---> F3 (Role x Genre Mix Recipes)
+  +---> F6 (Gain Staging Check)
+
+Existing infrastructure:
+  - load_instrument_or_effect  --> F4, F9
+  - set_device_parameter       --> F4, F9
+  - get_device_parameters      --> F5
+  - set_track_volume/pan       --> F6
+  - get_track_info             --> F5, F6
+  - genre blueprints           --> F2, F3
 ```
 
 ## MVP Recommendation
 
-### Must ship (table stakes):
+**Phase 1 (foundation):** Build in this order:
+1. **F1: Device Parameter Catalog** -- everything depends on knowing param names/ranges
+2. **F2: Role Taxonomy** -- lightweight; categorize existing genre roles
+3. **F3: Role x Genre Mix Recipes** (top 4 genres: house, techno, ambient, DnB) -- core data
+4. **F4: Apply Recipe Tool** -- the headline feature
 
-1. **Extended arrangement sections in blueprints** -- add `energy`, `roles`, `transition_in` to all 12 genre blueprints + subgenres with arrangement overrides
-2. **Schema validation update** -- validate new optional fields in `schema.py`
-3. **Production plan builder tool** -- `generate_production_plan(genre, key, bpm, subgenre?, vibe?)` returning full plan dict
-4. **Named locator Remote Script command** -- `create_named_locator(time, name)` creating a cue point at a specific position with a name in one atomic operation
-5. **Session scaffolding tool** -- `scaffold_arrangement(plan)` creating locators + tracks in Ableton from a plan
-6. **Section checklist tool** -- `get_section_checklist(plan, section_name)` returning pending elements for a section
+**Phase 2 (feedback loop):**
+5. **F5: Device State Reader** (batch) -- enables suggest adjustments
+6. **F6: Gain Staging Check** -- quick win, high user value
+7. **F8: Master Bus Recipes** -- complete the mastering story
+8. **F9: Master Bus Tools** -- apply master chains
 
-### Defer to post-v1.3:
+**Phase 3 (intelligence):**
+9. **F7: Suggest Adjustments** -- the "AI mixing engineer" differentiator
+10. **F3 expansion** -- remaining 8 genres
 
-- **Vibe-to-energy presets**: Claude interprets vibes contextually without a lookup table
-- **Per-section harmony mapping**: Plan builder can reference genre harmony without formal chord-to-section mapping
-- **Empty arrangement clip pre-creation**: Locators provide sufficient visual guidance
-- **Arrangement analysis**: Different domain, different milestone
+**Defer:**
+- Section-aware mixing: Requires automation infrastructure; better as v1.5
+- Frequency conflict detection: Needs audio analysis or sophisticated heuristics; v1.5+
+- Sidechain routing setup: Complex routing automation; include basic sidechain params in recipes but defer full routing automation
 
-## Complexity Assessment
+## Data Scale Estimate
 
-| Feature | Complexity | Rationale |
-|---------|------------|-----------|
-| Blueprint extensions (12 genres + subgenres) | Medium | Data authoring across 12 files. Need to determine `roles` and `energy` for every section in every genre/subgenre. Tedious but straightforward. ~20 arrangement sections to update. |
-| Schema validation update | Low | Add optional field checks for `energy` (int, 1-10), `roles` (list[str]), `transition_in` (str) in `schema.py`. |
-| Production plan builder | Medium | Pure computation -- combine blueprint data with user params, calculate beat positions, generate checklists. No Ableton API calls. |
-| Named locator command (Remote Script) | Medium | New handler in `transport.py`: set `current_song_time`, call `set_or_delete_cue()`, set `name` on new cue. Must handle atomicity. Corresponding MCP tool needed. |
-| Session scaffolding tool | Medium | Orchestrates locator creation + track creation. Depends on named locator command. Must handle idempotency (don't duplicate tracks/locators on re-run). |
-| Section checklist tool | Low | Pure data transformation from plan dict. No Ableton API calls. |
-| Tests | Medium | Blueprint validation tests for new fields, plan builder unit tests, locator integration tests. |
+| Data Item | Count | Authoring Effort |
+|-----------|-------|-----------------|
+| Device parameter entries | ~120 params across 12 devices | 1 phase |
+| Role taxonomy entries | ~25 distinct roles, 7 groups | 0.5 phase |
+| Mix recipes (4 core genres) | ~40 recipes (10 roles x 4 genres) | 1-2 phases |
+| Mix recipes (remaining 8 genres) | ~80 recipes | 2 phases |
+| Master bus recipes | 12 chains (one per genre) | 0.5 phase |
+| Total data dicts | ~250 recipe dicts | Major authoring effort |
 
 ## Sources
 
-- [Cycling '74 LOM CuePoint Reference](https://docs.cycling74.com/apiref/lom/cuepoint/) -- CuePoint.name is writable, CuePoint.time is read-only (HIGH confidence, verified)
-- [Cycling '74 LOM Reference](https://docs.cycling74.com/apiref/lom/) -- Song.set_or_delete_cue() toggles at current position (HIGH confidence)
-- [EDM Tips - EDM Song Structure](https://edmtips.com/edm-song-structure/) -- Section energy/element patterns (MEDIUM confidence)
-- [AudioServices - Arrangements in Electronic Music](https://audioservices.studio/blog/understanding-arrangements-in-electronic-music-production) -- Genre-specific arrangement patterns (MEDIUM confidence)
-- [Cymatics - EDM Song Structure](https://cymatics.fm/blogs/production/edm-song-structure) -- Standard section definitions (MEDIUM confidence)
-- Existing codebase: 12 genre blueprints in `MCP_Server/genres/` with arrangement sections (HIGH confidence, verified in code)
-- Existing codebase: `schema.py` validates only `name`+`bars`, extra keys silently accepted (HIGH confidence, verified at lines 190-197)
-- Existing codebase: `set_or_delete_cue` and `get_cue_points` tools exist in `tools/transport.py` (HIGH confidence, verified)
-- Existing codebase: `create_arrangement_midi_clip`, `create_arrangement_audio_clip`, `get_arrangement_clips`, `duplicate_clip_to_arrangement` in `tools/arrangement.py` (HIGH confidence, verified)
+- [Ableton Live 12 Audio Effect Reference](https://www.ableton.com/en/manual/live-audio-effect-reference/) -- HIGH confidence, official
+- [Remotify Device Parameters](https://remotify.io/device-parameters/device_params_live11.html) -- MEDIUM confidence, community reference
+- [iZotope Mixing Tips for EDM](https://www.izotope.com/en/learn/12-tips-for-mixing-and-producing-edm) -- MEDIUM confidence
+- [iZotope Ideal Mastering Signal Chain](https://www.izotope.com/en/learn/what-is-an-ideal-mastering-signal-chain.html) -- HIGH confidence
+- [Toolroom Academy Mastering Chains](https://toolroomacademy.com/features/ableton-mastering-chains-an-in-depth-guide/) -- MEDIUM confidence
+- [Audeobox How to Master in Ableton](https://www.audeobox.com/learn/ableton/how-to-master-in-ableton/) -- MEDIUM confidence
+- [EDM Tips 30 Mixdown Techniques](https://edmtips.com/30-mix-techniques/) -- MEDIUM confidence
+- [Loopmasters Mixing Electronic Music Guidelines](https://www.loopmasters.com/articles/2718-Mixing-Electronic-Music-A-Few-Quick-And-Easy-Guidelines) -- MEDIUM confidence
+- Existing codebase: genre blueprints, device tools, mixer tools -- HIGH confidence (runtime-validated)
 
----
-*Feature research for: v1.3 Arrangement Intelligence*
-*Researched: 2026-03-27*
+### Confidence Notes
+
+- **Device parameter names:** MEDIUM -- parameter names listed here are based on Ableton documentation and community references. Exact API names as returned by `get_device_parameters` MUST be validated at runtime during implementation. The existing tool uses case-insensitive matching which provides some tolerance.
+- **Genre mixing conventions:** HIGH -- well-established domain knowledge corroborated across multiple production education sources.
+- **Master bus chain order:** HIGH -- near-universal consensus: subtractive EQ > compression > multiband (if needed) > additive EQ > limiter.
+- **Recipe parameter values:** LOW -- specific numeric values (e.g., "threshold at -18 dB") are starting points that need ear-testing. The system should make these easily adjustable.

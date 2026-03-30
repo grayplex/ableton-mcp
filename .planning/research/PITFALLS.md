@@ -1,282 +1,392 @@
-# Domain Pitfalls: v1.3 Arrangement Intelligence
+# Domain Pitfalls: v1.4 Mix/Master Intelligence
 
-**Domain:** Arrangement templates, production plan generation, and session scaffolding for an existing Ableton MCP server
-**Researched:** 2026-03-27
-**Confidence:** HIGH
+**Domain:** Device parameter catalog, mix recipes, gain staging, spectrum analysis, and master bus processing for an existing Ableton MCP server
+**Researched:** 2026-03-28
+**Confidence:** HIGH (codebase-verified) / MEDIUM (Ableton API behavior from community sources)
 
 ## Critical Pitfalls
 
-### Pitfall 1: Cue Point Creation Requires Sequential Seek-Then-Toggle
+### Pitfall 1: Parameter Name Mismatch Between Catalog and Live API
 
 **What goes wrong:**
-The Ableton LOM `Song.set_or_delete_cue()` can only create a cue point at the *current playback position* (`Song.current_song_time`). There is no `create_cue_at(time, name)` method. To scaffold an arrangement with 7 locators, the Remote Script must: (1) set `current_song_time` to the target beat, (2) call `set_or_delete_cue()`, (3) set the name on the resulting `CuePoint` object. This sequential three-step process for each locator is fragile -- if any step fails mid-sequence, the session is left in an inconsistent state with some locators placed and others missing.
+A device parameter catalog stores human-readable names like "Frequency", "Gain", "Q" for EQ Eight bands. But the actual `DeviceParameter.name` returned by the Ableton LOM is `"1 Frequency A"`, `"1 Gain A"`, `"1 Resonance A"` (not "Q"). The catalog's `set_device_parameter(parameter_name="Frequency")` call fails because the case-insensitive first-match lookup (see `devices.py` line 130-137) finds no match. The existing error message lists all available parameter names, but by then the recipe has already failed mid-application.
 
 **Why it happens:**
-The LOM API was designed for interactive use (user clicks "Set Cue" while playback is at a position), not for batch programmatic creation. Developers assume a simple `create_cue(time, name)` API exists and discover the constraint late.
+Ableton's built-in devices use internal parameter naming conventions that differ from their GUI labels. EQ Eight shows "Freq" in the GUI but the API name is `"1 Frequency A"` (band-prefixed, channel-suffixed). Compressor shows "Threshold" in the GUI but the API name is `"Threshold"` (no prefix). There is no consistent naming pattern across devices. Developers build catalogs from the GUI labels or documentation, not from actual `get_device_parameters` output.
+
+Known naming traps:
+- EQ Eight: Band parameters are `"{N} {Param} A"` where N=1-8 and A=channel. "Resonance" not "Q".
+- Compressor: `"Threshold"`, `"Ratio"`, `"Attack"`, `"Release"` match GUI, but `"Output Gain"` not "Makeup" or "Gain".
+- Glue Compressor: Different parameter names than Compressor despite similar function.
+- Utility: `"Gain"` is the main parameter, but there is also a `"Left"` and `"Right"` for mid/side.
+- Channel EQ: Completely different naming from EQ Eight (e.g., `"Low Gain"`, `"Mid Gain"`, `"High Gain"`).
 
 **How to avoid:**
-Build a dedicated `scaffold_arrangement` Remote Script command that atomically creates all locators in a single handler call. Inside the handler, iterate through section positions, seeking and toggling for each. If any step fails, clean up previously created cue points. Return the full list of created locators so the MCP tool can verify completeness. Do NOT expose the seek-toggle-name as three separate MCP tool calls that Claude must chain -- that wastes tool calls and risks partial failures.
+Do NOT hand-author the parameter catalog from documentation or GUI labels. Instead:
+1. Build the catalog by querying `get_device_parameters` on actual loaded devices in a live Ableton session.
+2. Store the exact `param.name` strings returned by the API as the canonical keys.
+3. Add a `display_name` field for human readability, but NEVER use it for API calls.
+4. Include a `verify_catalog` test that loads each device in Ableton and checks that all catalog parameter names match actual API names.
+5. The existing `set_device_parameter` already does case-insensitive first-match lookup -- use that, but ensure catalog entries use exact API names.
 
 **Warning signs:**
-- MCP tool design that requires Claude to call `set_playback_position` + `set_or_delete_cue` + "rename cue" in sequence per locator
-- Any scaffolding workflow requiring more than 2-3 tool calls total
-- Tests that pass individually but fail when run in sequence (position state leaking)
+- Catalog entries like `{"name": "Frequency", "min": 20, "max": 20000}` without band prefixes
+- Any catalog entry where `name` does not exactly match a string from `get_device_parameters` output
+- Recipe application silently failing with "Parameter 'X' not found" errors
+- Recipes that work for Compressor but fail for EQ Eight (because Compressor names happen to match GUI labels)
 
 **Phase to address:**
-Session scaffolding phase (locator creation). Must be a single atomic Remote Script command.
+Device parameter catalog phase (FIRST). Must be built from live Ableton queries, not hand-authored. The catalog is the foundation -- if names are wrong, every recipe fails.
 
 ---
 
-### Pitfall 2: CuePoint.name Writability Assumptions
+### Pitfall 2: Normalized vs. Absolute Value Confusion
 
 **What goes wrong:**
-In Ableton Live versions before 12, `CuePoint.name` was read-only via the LOM. Live 12 made it writable. Developers either (a) assume it is writable without checking their target version, leading to silent failures on older installs, or (b) assume it is read-only based on old documentation and skip naming entirely, making locators useless as plan markers.
+The Ableton LOM stores ALL device parameter values in a normalized range defined by `param.min` and `param.max`. For many parameters, this is NOT the human-readable range. EQ Eight frequency is stored as a normalized float (approximately 0.0 to 1.0) that maps logarithmically to 20Hz-20kHz. A recipe that sets `"1 Frequency A"` to `200` (meaning 200Hz) actually sets it to the maximum value (clamped to `param.max` which is ~1.0), resulting in 20kHz. The existing `set_device_parameter` handler (line 158-164) silently clamps out-of-range values and logs a warning, but the recipe author never sees the warning.
 
 **Why it happens:**
-The Cycling '74 LOM documentation was historically incomplete about `CuePoint` properties. The change in Live 12 was not prominently announced. Forum threads from 2022 say "read-only" while 2025 threads confirm "writable in Live 12."
+Different Ableton devices use different value semantics:
+- **Normalized 0-1 mapped to range:** EQ Eight frequency (0.0-1.0 -> 20Hz-20kHz logarithmic), Q/Resonance (0.0-1.0 -> 0.1-18.0)
+- **Direct values in natural units:** Compressor Threshold (-inf to 0 dB, stored as dB), Compressor Ratio (1.0 to inf)
+- **Quantized integer enums:** Filter type (0=LP, 1=HP, 2=BP...), Compressor model
+- **Boolean-like 0/1:** Band on/off, device on/off
+
+There is NO flag on the parameter that tells you which semantic applies. The only clue is `param.min`, `param.max`, and `param.is_quantized`. A developer who writes recipes in "human units" (Hz, dB, ms) discovers the mismatch only at runtime.
 
 **How to avoid:**
-This project targets Ableton Live 12 exclusively (Python 3.11 constraint confirms this). Treat `CuePoint.name` as writable. Add a defensive check in the Remote Script: after setting the name, read it back and verify. If the name did not stick, log a warning and return a degraded result rather than crashing. Include the Live version constraint in the project documentation.
+The parameter catalog MUST store the actual `min` and `max` values from the API alongside each parameter. Recipe values must be specified in API units, not human units. If human-readable recipes are desired:
+1. Add conversion functions per parameter type: `hz_to_normalized(hz, min, max)` using logarithmic scaling for frequency params.
+2. Store the conversion type in the catalog: `{"name": "1 Frequency A", "min": 0.0, "max": 1.0, "unit": "log_hz", "human_range": [20, 20000]}`.
+3. The recipe application tool converts human values to API values BEFORE calling `set_device_parameter`.
+4. Never pass human-unit values directly to `set_device_parameter`.
+
+Key conversion formulas:
+- **Log frequency:** `normalized = (log10(hz) - log10(20)) / (log10(20000) - log10(20))`
+- **Linear dB:** Usually direct (param range is already in dB)
+- **Quantized:** Direct integer values
 
 **Warning signs:**
-- Locators appear in Ableton but all have default names like "1", "2", "3" instead of "Intro", "Drop", etc.
-- Tests cannot verify locator names because the test mock does not simulate the writable property
+- Recipe sets EQ frequency to "200" and gets max frequency instead
+- All frequency-based parameters sound wrong (extreme high or low)
+- Recipe works for Compressor threshold (direct dB) but fails for EQ frequency (normalized)
+- `param.max` is 1.0 but recipe specifies values in the hundreds
 
 **Phase to address:**
-Session scaffolding phase. Verify name writability in the first integration test against a live Ableton instance.
+Device parameter catalog phase. Value semantics must be documented per parameter. The apply-recipe tool must handle conversion.
 
 ---
 
-### Pitfall 3: Context Collapse at Tool Call 40+
+### Pitfall 3: Recipe Application Ordering -- Load Device THEN Set Parameters
 
 **What goes wrong:**
-Claude loses track of the production plan during long workflows. By tool call 30-40, it forgets which sections have been completed, which tracks have which instruments, and what the harmonic plan was. It starts duplicating work, skipping sections, or making inconsistent harmonic choices.
+A mix recipe tool tries to load an EQ Eight onto a track and set its parameters in the same operation. But `load_browser_item` is asynchronous at the Ableton level -- the device is not fully instantiated when the command returns. The subsequent `set_device_parameter` calls fail because the device either does not exist yet, has a different `device_index` than expected, or has not finished initializing its parameters.
 
 **Why it happens:**
-The MCP protocol is stateless per tool call. Claude's context window fills with 40+ tool call results (track listings, clip data, device parameters). The production plan -- if it was only in the initial conversation -- gets pushed out of the effective attention window. No external persistence mechanism reminds Claude of progress.
+The existing `load_browser_item` handler (in `browser.py`) loads the device and returns a result that includes `"loaded": True` and the device list. But Ableton's internal loading is not atomic -- there can be a brief delay before the device's parameter list is fully populated. In the Remote Script running on the main thread via `schedule_message()`, commands are serialized, but the device initialization may span multiple message cycles.
+
+Additionally, when loading a device, the `device_index` of the newly loaded device depends on where Ableton inserts it (usually at the end of the chain, but not always -- e.g., instruments go before effects). If the recipe assumes `device_index=0`, it may be setting parameters on a different device.
 
 **How to avoid:**
-The core insight of v1.3 is correct: **the session IS the plan.** Locators with section names and tracks with role-based names serve as persistent external memory readable via existing tools (`get_cue_points`, `get_all_tracks`, `get_arrangement_clips`). But the implementation must ensure:
+The apply-recipe tool MUST be a single Remote Script command that:
+1. Loads the device (or verifies it is already present by `class_name` match).
+2. Waits for the device to be fully initialized (check `len(device.parameters) > 0`).
+3. Resolves the device index by scanning the track's device chain for the expected `class_name`, NOT by assuming a fixed index.
+4. Sets all parameters in sequence within the same handler call.
+5. Returns the actual parameter values after setting (read-back verification).
 
-1. **Section checklists** are embedded in a readable format (not just locator names, but a tool that returns "Section X: kick done, bass pending, pad pending").
-2. **A progress-check tool** that Claude can call to re-orient: scans locators, checks which sections have clips, returns a status summary. This is cheap (one tool call) vs. Claude trying to reconstruct state from raw clip listings.
-3. **Do NOT rely on Claude remembering** the plan from earlier conversation. Every execution step should start with "read the plan from the session."
+Do NOT implement this as separate MCP tool calls from Claude: `load_instrument_or_effect` -> `get_device_parameters` -> `set_device_parameter` x N. That is 10+ tool calls per device and fragile.
 
 **Warning signs:**
-- Claude asks "what section are we working on?" mid-workflow
-- Duplicate clips appearing in the same section
-- Claude re-creates tracks that already exist
-- The production plan is only stored as a Python dict in tool output, never written to the Ableton session
+- "Device index X out of range" errors after loading a device
+- Parameters set on the wrong device (e.g., setting EQ params on the instrument)
+- Intermittent failures where the same recipe sometimes works and sometimes fails
+- Recipe tool design that requires Claude to chain load + multiple set calls
 
 **Phase to address:**
-Must be addressed in architecture design (first phase). The progress-check tool should ship alongside scaffolding, not as a later addition.
+Apply-recipe tool phase. Must be a single atomic command in the Remote Script.
 
 ---
 
-### Pitfall 4: Blueprint Schema Changes Breaking Existing Tools and Tests
+### Pitfall 4: MIDI Tracks Without Instruments Have No Meaningful Mixer Levels
 
 **What goes wrong:**
-v1.3 needs richer arrangement data in blueprints (energy curves, per-section instrument elements, automation cues). Adding new required fields to `ArrangementEntry` in `schema.py` breaks all 12 existing genre files and their 148 passing tests simultaneously. The "extend schema" change cascades into a multi-file refactor.
+A gain staging check tool reads `track.mixer_device.volume.value` on all tracks to assess levels. On a MIDI track without an instrument loaded, this call succeeds (the `mixer_device` exists) but the volume value is meaningless -- there is no audio signal flowing through the mixer. The gain staging tool reports "Track 3 (Bass): volume 0.85 = -1.4dB" which looks like a valid level, but the track produces no audio. The AI suggests EQ and compression for a track that has no sound.
 
 **Why it happens:**
-The v1.2 `ArrangementEntry` TypedDict has only `name: str` and `bars: int`. Adding `energy`, `elements`, or `automation_cues` as required fields forces every genre file to be updated atomically -- and every test that validates blueprints.
+As documented in project memory: "MIDI tracks without an instrument/device have NO volume fader -- only a MIDI input meter." The `mixer_device.volume` property EXISTS on all tracks (it is always part of the Track LOM), but on instrumentless MIDI tracks it controls nothing. The volume value is a stored setting that will take effect once an instrument is loaded, but it does not reflect actual audio levels.
+
+The v1.3 `get_arrangement_progress` tool already flags tracks without instruments, but a new gain staging tool may not reuse this check.
 
 **How to avoid:**
-Make ALL new arrangement fields **optional** in the schema. Use `typing.NotRequired` (Python 3.11 supports it) or validate them only when present. The existing `{"name": "intro", "bars": 16}` entries remain valid. New extended entries like `{"name": "intro", "bars": 16, "energy": "low", "elements": ["pad", "hi-hats"]}` are validated when present but not required.
+Every mixing/mastering tool that reads or writes mixer parameters MUST first check if the track has audio output capability:
+1. Check `len(track.devices) > 0` -- if no devices, skip for MIDI tracks.
+2. Better: check `track.has_audio_output` (LOM property) if available in Live 12.
+3. Best: reuse the existing pattern from `get_arrangement_progress` (Phase 28) that checks for instrumentless tracks.
 
-Concretely:
-- Add a new `ExtendedArrangementEntry` TypedDict that extends `ArrangementEntry` with optional fields
-- Update `validate_blueprint()` to validate new fields only when present
-- Migrate genres incrementally (house first as the reference, then others in a batch)
-- Keep existing tests passing throughout
+The gain staging tool should categorize tracks:
+- **Audio tracks:** Always have valid mixer levels.
+- **MIDI tracks with instruments:** Have valid mixer levels.
+- **MIDI tracks without instruments:** Flag as "no audio output -- load instrument first." Do NOT report volume/pan as valid mixing data.
+- **Return tracks:** Always have valid mixer levels.
+- **Master track:** Always has valid mixer level.
 
 **Warning signs:**
-- PR that touches all 12 genre files plus schema.py plus catalog.py in a single commit
-- Test suite goes from 148 passing to 148 failing during development
-- Schema validation errors on `import` because a genre file lacks the new fields
+- Gain staging report includes MIDI tracks with no instruments showing non-zero levels
+- Mix recipes applied to tracks that produce no sound
+- AI suggests "lower the bass track volume by 3dB" when the bass track has no instrument
 
 **Phase to address:**
-Schema extension must be the FIRST phase. Get the schema right before writing any arrangement template logic. Test that all existing genres still pass validation before adding new fields.
+Gain staging check phase. The instrument-presence check from v1.3 must be reused, not reimplemented.
 
 ---
 
-### Pitfall 5: Over-Engineering the Plan Representation
+### Pitfall 5: Master Bus Device Chain -- Insert Order and Monitoring Disruption
 
 **What goes wrong:**
-The production plan becomes a complex nested data structure (sections with sub-sections, dependency graphs, state machines for execution tracking, energy curves as polynomial functions). The plan builder tool returns 2000+ tokens. Claude spends its context budget parsing the plan rather than producing music.
+A master bus recipe loads a Limiter, then an EQ Eight, then a Glue Compressor onto the master track. The devices end up in the wrong signal flow order. Signal flows through devices from index 0 to index N in Ableton. Loading Limiter first puts it at position 0 (first in signal chain), which means audio hits the limiter BEFORE the EQ and compressor. This is backwards for mastering.
 
 **Why it happens:**
-Arrangement intelligence is intellectually interesting. It is tempting to model every aspect: energy curves, transition types, instrument layering rules, dynamic arrangement decisions. The developer builds a production planning framework rather than a production tool.
+1. **Device insertion order:** `load_browser_item` appends devices to the END of the chain by default. If you load in the order Limiter, EQ, Compressor, the chain becomes [Limiter, EQ, Compressor] -- signal hits Limiter first. The correct mastering order is [EQ, Compressor, Limiter].
+
+2. **No "insert at position" API:** The LOM's `load_browser_item` does not support an `insert_index` parameter. Devices always append. To get the right order, you must load in the correct sequence (EQ first, then Compressor, then Limiter).
+
+3. **Master track sensitivity:** The master track processes ALL audio. Adding/removing devices on it while audio is playing can cause clicks. There is no "bypass all" atomic operation to prevent this.
 
 **How to avoid:**
-The plan is a **flat list of sections** with per-section data. Nothing more.
-
-```python
-# GOOD: Flat, terse, one tool call to read
-{"sections": [
-    {"name": "intro", "start_beat": 0, "bars": 16, "energy": "low",
-     "elements": ["pad", "hi-hats"]},
-    {"name": "drop", "start_beat": 64, "bars": 32, "energy": "high",
-     "elements": ["kick", "bass", "lead", "hi-hats", "clap"]},
-]}
-
-# BAD: Nested, verbose, requires parsing
-{"arrangement": {
-    "phases": [
-        {"phase": "exposition", "sections": [
-            {"name": "intro", "start": {"bar": 1, "beat": 1},
-             "end": {"bar": 16, "beat": 4},
-             "energy_curve": {"type": "linear", "start": 0.1, "end": 0.3},
-             "transitions": {"in": "fade", "out": "filter_sweep"},
-             "element_timeline": [
-                 {"bar": 1, "add": ["pad"]},
-                 {"bar": 5, "add": ["hi-hats"]},
-             ]}
-        ]}
-    ]
-}}
-```
-
-The plan builder should output something Claude can glance at and immediately know: where it is, what to put there, and what energy level to target. If the plan takes more than 400 tokens, it is too complex.
+1. **Load devices in signal-flow order:** EQ -> Compressor -> Limiter. Document the expected insertion order in the recipe definition.
+2. **Verify chain order after loading:** Read `track.devices` and check that `class_name` values match the expected order. If not, the recipe should fail with a clear error rather than silently leaving devices in wrong order.
+3. **Consider building a master chain in an Audio Effect Rack:** Load a single rack and configure chains within it. This is one device insertion (less disruption) and chain order is controlled within the rack.
+4. **Recommend stopping transport before applying master bus recipes:** The apply tool should warn or auto-stop transport before modifying the master chain.
 
 **Warning signs:**
-- Plan builder returns more than 500 tokens for a standard 7-section arrangement
-- TypedDicts nested more than 2 levels deep
-- Claude needs a "parse the plan" step before it can start working
-- Energy curves require mathematical computation
+- Limiter before EQ in the master chain (limiting un-EQ'd signal)
+- Audio glitches when applying master bus recipe during playback
+- Device order in Ableton does not match recipe specification
+- Master bus recipe works in empty session but causes issues in sessions with audio playing
 
 **Phase to address:**
-Plan builder phase. Define the output format BEFORE writing any code. Test it by feeding the output to Claude in a dry run conversation and verifying Claude can use it without confusion.
+Master bus recipe phase. Signal flow order must be specified in the recipe and verified after application.
 
 ---
 
-### Pitfall 6: Beat Position Arithmetic with Non-4/4 Time Signatures
+### Pitfall 6: Sidechain Routing Setup Is Session-Dependent and Fragile
 
 **What goes wrong:**
-The scaffold tool calculates section start positions as `beat = sum(prior_bars) * 4` (4 beats per bar). This is correct for 4/4 but wrong for 3/4, 6/8, 5/4, or 7/8 time signatures. Sections overlap or have gaps. Clips are placed at wrong positions.
+A mix recipe specifies "sidechain bass compressor from kick track." The existing `set_compressor_sidechain` tool (line 1218 in `devices.py`) requires `routing_type_index` and `routing_channel_index`, which are opaque integer indices into Ableton's routing lists. These indices are SESSION-DEPENDENT -- they change based on the number and order of tracks in the session. A recipe that hardcodes `routing_type_index=3` works in one session but routes to the wrong track in another.
 
 **Why it happens:**
-Electronic music is overwhelmingly 4/4, so the developer hardcodes `beats_per_bar = 4`. The blueprint schema stores `time_signature: "4/4"` as a string, but the bar-to-beat calculation ignores it. When a user tries ambient (sometimes 3/4) or experimental genres, everything breaks silently.
+Ableton's sidechain routing uses a two-level selection: first a routing type (e.g., "Post FX" from a specific track), then a routing channel within that type (e.g., "Pre FX", "Post FX", "Post Mixer"). The available routing types depend on what tracks exist in the session. Track 0 might be routing_type_index 2 in one session and index 5 in another if return tracks or groups are present.
+
+The existing `get_compressor_sidechain` tool returns the available routing types with their display names, but the recipe system would need to resolve "kick track" to the correct routing_type_index at apply time, not at catalog time.
 
 **How to avoid:**
-Parse `time_signature` from the blueprint or the Ableton session (`Song.signature_numerator`, `Song.signature_denominator`). Calculate `beats_per_bar = numerator * (4 / denominator)`. Use this in ALL beat position arithmetic. The existing Remote Script already reads time signature (see `transport.py` lines 79-99), so the data is available.
+Sidechain recipes must specify the SOURCE by semantic name (e.g., "kick" or track role), not by routing index. The apply-recipe tool must:
+1. Resolve the source track by name or role (find the track named "Kick" or tagged as kick role).
+2. Call `get_compressor_sidechain` to get available routing types for the target compressor.
+3. Match the source track name against the routing type display names.
+4. Set the sidechain using the matched index.
 
-Important edge cases:
-- `6/8` = 6 eighth-notes per bar = 3 quarter-note beats per bar (NOT 6)
-- `3/4` = 3 beats per bar
-- `5/4` = 5 beats per bar
-- Clips in Ableton use quarter-note beats as the unit regardless of time signature
-- Ableton's `Song.signature_numerator` / `Song.signature_denominator` are the TIME SIGNATURE values, not beats-per-bar directly
-
-The safest formula: `beats_per_bar = numerator * (4.0 / denominator)`, which gives: 4/4=4, 3/4=3, 6/8=3, 7/8=3.5, 5/4=5.
+This is a minimum 3-step process within a single Remote Script command. It CANNOT be hardcoded in the catalog.
 
 **Warning signs:**
-- Any literal `* 4` or `* 4.0` in beat position calculations
-- Tests only use 4/4 time signature
-- Locators not aligning with bar lines in Ableton's arrangement view
+- Sidechain recipes with hardcoded routing indices
+- Sidechain routing that works in the scaffolded session but breaks when user adds/removes tracks
+- "routing_type_index out of range" errors
 
 **Phase to address:**
-Session scaffolding phase. Time signature handling must be in the beat calculation from day one, not retrofitted.
+Apply-recipe tool phase or a dedicated sidechain setup phase. The routing resolution logic is complex enough to warrant its own handler.
 
 ---
 
 ## Moderate Pitfalls
 
-### Pitfall 7: Scaffold Creates Tracks But Forgets to Load Instruments
+### Pitfall 7: Spectrum Analyzer Data Is NOT Accessible via LOM
 
 **What goes wrong:**
-The scaffolding tool creates named MIDI tracks ("Kick", "Bass", "Lead") but does not load instruments onto them. As documented in project memory: "MIDI tracks without an instrument/device have NO volume fader." The user sees tracks with no volume control, no sound output, and must manually load instruments. The scaffolding feels incomplete and broken.
+The v1.4 feature list includes "Spectrum analysis (frequency snapshot if LOM exposes it)." A developer adds a Spectrum device to a track and tries to read frequency bin data via the LOM. There is no API for this. The Spectrum device has the standard `DeviceParameter` properties (on/off, range, etc.) but does NOT expose its frequency analysis data through any LOM property.
 
 **Why it happens:**
-Track creation and instrument loading are separate LOM operations. The developer scaffolds the track structure and considers it "done," deferring instrument loading to the execution phase. But the execution phase is 20+ tool calls away, and by then Claude may have lost track of which tracks need instruments.
+The Spectrum device is a visualization-only device in Ableton. Its frequency display is rendered by the GUI, not by the LOM. The LOM exposes device parameters (knobs, sliders, toggles) but not visual output data like spectrum graphs, waveform displays, or meter readings. This is a fundamental LOM limitation, not a bug.
+
+The only audio level data available via LOM is `Track.output_meter_left` and `Track.output_meter_right`, which provide peak level values (and only when meters are visible in the UI in some implementations).
 
 **How to avoid:**
-Two valid approaches:
-1. **Scaffold tracks only, but document clearly** that these are placeholder tracks. The progress-check tool should flag "Track X: no instrument loaded" so Claude knows to load one before writing MIDI.
-2. **Load default instruments during scaffolding** using the genre blueprint's instrumentation roles. Map roles to default Ableton instruments (e.g., "kick" -> Drum Rack, "bass" -> Analog, "pad" -> Wavetable). This is more complex but gives a better starting point.
-
-Approach 1 is recommended for v1.3 MVP. Approach 2 is a differentiator for a later milestone.
+Accept that frequency-domain analysis is NOT possible through the LOM/Remote Script path. Alternative approaches:
+1. **Use `output_meter_left/right`** for peak level monitoring (gain staging). This is available and useful, but it is amplitude only, not frequency.
+2. **Use EQ Three as a crude frequency splitter:** Load an EQ Three, read the individual band output levels. This is a hack but provides rough 3-band frequency information.
+3. **Defer spectrum analysis to a future milestone** that uses Max for Live (which CAN access audio signals via `plugin~` or `plugsend~/plugreceive~`). This is out of scope for v1.4.
+4. **Document the limitation clearly** in the feature spec. The "if LOM exposes it" qualifier in the PROJECT.md is the right hedge.
 
 **Warning signs:**
-- User reports "no sound" from scaffolded tracks
-- Volume automation fails because there is no volume parameter on instrumentless MIDI tracks
+- Any code that tries to read properties beyond standard `DeviceParameter` on a Spectrum device
+- Feature planning that depends on frequency-domain data
+- Sprint plans that include "read spectrum data" as a task without research validation
 
 **Phase to address:**
-Session scaffolding phase. At minimum, the progress-check tool must flag instrumentless tracks.
+Should be resolved in architecture/planning. Mark spectrum analysis as OUT OF SCOPE for v1.4. The gain staging check should use `output_meter_left/right` instead.
 
 ---
 
-### Pitfall 8: Locator Position Drift When Sections Are Reordered
+### Pitfall 8: EQ Eight Has 8 Bands x Multiple Parameters = 40+ Parameters
 
 **What goes wrong:**
-User asks Claude to "move the breakdown before the second drop." Claude recalculates beat positions and moves clips, but the locators (cue points) still point to the old positions. The session plan no longer matches the actual arrangement. The progress-check tool reports incorrect status.
+A recipe for "high-pass filter at 80Hz on bass track" tries to set a single EQ Eight parameter. But EQ Eight has 8 bands, each with: Filter On, Frequency, Gain, Resonance, Filter Type -- plus global parameters (Scale, Output Gain, Adaptive Q). That is 40+ parameters. Setting just "1 Frequency A" without also setting "1 Filter On A" to 1 (enabled), "1 Filter Type A" to the correct type (1=High Pass), "1 Gain A" to 0.0, and "1 Resonance A" to the desired Q means the filter either does not turn on, is the wrong type, or has unexpected gain.
 
 **Why it happens:**
-Locators in Ableton are fixed beat positions, not markers that "follow" sections. Moving clips does not move locators. The LOM provides no "move cue point" API -- you must delete and recreate.
+Developers think of EQ as "set frequency and done." But in Ableton's EQ Eight, each band is independently togglable and typed. The default state of a freshly loaded EQ Eight has bands 1, 3, and 8 enabled with specific default types. A recipe that only sets frequency without configuring the full band state produces unpredictable results depending on the device's current state.
 
 **How to avoid:**
-Build a `reshuffle_arrangement` or `rebuild_locators` command that can delete all existing locators and recreate them from a revised section plan. Accept that section reordering is a "destructive rebuild" of the locator scaffold, not an incremental edit. Make this a single atomic Remote Script command.
+EQ recipes must specify the COMPLETE state of every band they use:
+```python
+# GOOD: Complete band specification
+{"band": 1, "on": True, "type": "highpass_12", "freq_hz": 80, "gain_db": 0.0, "q": 0.71}
 
-Alternatively, for v1.3 MVP: document that section reordering requires re-scaffolding and is a known limitation. Prevent scope creep.
+# BAD: Partial specification
+{"param": "1 Frequency A", "value": 80}
+```
+
+The apply-recipe tool for EQ Eight should:
+1. Accept band-level specifications (band number, on/off, type, freq, gain, Q).
+2. Convert human values to API values (Hz to normalized, type name to enum).
+3. Set ALL parameters for each specified band in one operation.
+4. Leave unspecified bands in their current state (do not reset them).
+
+Consider a dedicated `apply_eq_recipe` Remote Script command rather than generic `set_device_parameter` calls.
 
 **Warning signs:**
-- Locator names no longer match the sections at those beat positions
-- Progress-check tool reports wrong completion status after manual edits
+- Recipe that sets frequency but not filter type (gets random type from default state)
+- EQ band that is set to 80Hz but remains disabled (`Filter On A = 0`)
+- Recipes specified as flat parameter lists instead of per-band objects
 
 **Phase to address:**
-This is a v1.3+ concern. For v1.3 MVP, document the limitation. If reordering support is needed, it should be a separate phase with its own planning.
+Device parameter catalog phase (EQ needs structured representation) and apply-recipe tool phase (EQ needs band-aware application).
 
 ---
 
-### Pitfall 9: Plan Builder Returns Genre Template Verbatim Without Customization
+### Pitfall 9: Compressor Parameter Ranges Are Not Uniform
 
 **What goes wrong:**
-The plan builder tool takes a genre and returns the blueprint's arrangement sections unchanged. "Build me a house track" returns the exact same 7 sections every time. There is no customization based on user vibe, track length, or creative intent. The tool adds no value over `get_genre_blueprint(genre, sections=["arrangement"])`.
+A recipe applies Compressor settings using values from production guides: "Threshold -20dB, Ratio 4:1, Attack 10ms, Release 100ms." The Compressor's `Threshold` parameter stores values in dB (direct), `Ratio` is stored as a direct float, but `Attack` and `Release` are stored in MILLISECONDS as normalized values that map to a non-linear range. Setting `Attack` to `10` (meaning 10ms) when the parameter range is 0.0-1.0 results in clamping to max (slowest attack).
 
 **Why it happens:**
-The developer implements the plan builder as a thin wrapper around the existing blueprint arrangement data, planning to add customization "later." But without customization, the tool is redundant and Claude will not use it (or will use the existing blueprint tool instead).
+Ableton's Compressor has parameter ranges that vary per parameter (approximate, must be verified in live session):
+- Threshold: dB range -- direct values
+- Ratio: direct float but may use non-linear scaling
+- Attack: likely stored as normalized 0-1 with non-linear mapping to ms
+- Release: likely stored as normalized 0-1 with non-linear mapping to ms
+- Output Gain / Makeup: dB range -- direct
+- Knee: 0.0 to 1.0 -- normalized
+
+Each parameter has a different value domain. Recipes that assume all values are in natural units will fail for some parameters.
 
 **How to avoid:**
-The plan builder must add value beyond raw blueprint data. Minimum viable customization:
-1. **Vibe parameter** that adjusts section count and bar lengths (e.g., "chill" = longer intros/breakdowns, "banger" = shorter intro, longer drops)
-2. **Duration target** that scales bar counts proportionally to hit a target track length
-3. **Per-section element list** derived from genre instrumentation roles (which elements play in which sections) -- this is data the raw blueprint does NOT have
-
-If none of these are feasible in v1.3, reconsider whether a separate plan builder tool is needed at all. Claude can read the blueprint and customize it in-conversation.
+The parameter catalog must record the actual `min`, `max`, and mapping type for EVERY parameter. The apply-recipe tool must convert recipe values to API values using parameter-specific conversion functions. Do not assume any parameter uses natural units until verified.
 
 **Warning signs:**
-- Plan builder output is identical to `blueprint["arrangement"]["sections"]`
-- No parameters beyond `genre` and `key`
-- Claude stops using the plan builder and calls `get_genre_blueprint` instead
+- Attack/release values clamped to min or max
+- Compressor with "correct" settings sounds completely wrong
+- Some parameters in a recipe work while others are wildly off
 
 **Phase to address:**
-Plan builder phase. Define the value-add BEFORE implementation. If the only value is "writes locators to Ableton," merge plan building into the scaffold tool.
+Device parameter catalog phase. Every parameter's min/max/mapping must be captured from a live Ableton session.
 
 ---
 
-### Pitfall 10: Scaffold Tool Creates Clips That Conflict with Existing Session Content
+### Pitfall 10: Device class_name Varies and Is Not Intuitive
 
 **What goes wrong:**
-User has existing tracks and clips in their Ableton session. They ask Claude to scaffold an arrangement. The scaffold tool creates new tracks that duplicate existing ones (two "Kick" tracks) or creates arrangement clips that overlap with existing clips. The session becomes a mess.
+A recipe specifies loading "Compressor" but the catalog uses `class_name: "Compressor2"` (the actual Live 12 class name). Or a recipe checks if a device is an EQ Eight by `class_name == "Eq8"` but the actual class name is `"FilterEQ8"` or `"ChannelEq"` (for Channel EQ). The recipe loader cannot find the expected device on the track.
 
 **Why it happens:**
-The scaffold tool assumes a blank session. It does not check for existing tracks or clips before creating new ones.
+Ableton's internal `class_name` values are not always intuitive:
+- Simpler is `"OriginalSimpler"` (as seen in existing test at `test_devices.py` line 116)
+- Compressor, EQ Eight, Glue Compressor class names need verification from live session
+- Different device variants (e.g., Compressor vs. Multiband Dynamics) have different class names
+
+The existing codebase uses `device.class_name` for type detection (see `devices.py` line 859, 861) but only checks broad categories ("audio_effect" in class_name), not specific device types.
 
 **How to avoid:**
-Before scaffolding, query existing session state:
-1. Check existing track names -- if "Kick" exists, reuse it instead of creating a duplicate
-2. Check existing arrangement clips on target tracks -- warn if the scaffold would overlap
-3. Offer two modes: "scaffold from scratch" (blank session assumed) and "scaffold around existing" (respects existing content)
-
-For v1.3 MVP, "scaffold from scratch" is acceptable with a clear warning that existing content may be affected. The tool should at minimum report what it created vs. what already existed.
+1. Build a `class_name` lookup table from a live Ableton session: load each target device and record its `class_name`.
+2. Use `class_name` for definitive device identification, not `device.name` (which users can rename).
+3. Include `class_name` in the parameter catalog as the canonical device identifier.
+4. When checking if a device is present on a track, match by `class_name`, not by display name.
 
 **Warning signs:**
-- Duplicate track names in the session after scaffolding
-- Overlapping clips in arrangement view
-- User reports "it messed up my existing work"
+- "Device not found" errors when the device IS on the track but has a different name
+- Catalog entries with assumed class names that were never verified
+- Tests that mock `class_name` with guessed values
 
 **Phase to address:**
-Session scaffolding phase. At minimum, return a warning when existing content is detected.
+Device parameter catalog phase. Class names must be captured from live Ableton queries.
+
+---
+
+### Pitfall 11: Existing Genre Blueprint `mixing` Section Is Prose, Not Parameters
+
+**What goes wrong:**
+A developer tries to generate mix recipes from the existing genre blueprint `mixing` section. But the current schema stores mixing data as prose strings: `"frequency_focus": "sub-bass 40-80Hz, kick presence 100-200Hz"`, `"compression_style": "heavy sidechain on bass and pads from kick"`. These are human-readable descriptions, not actionable parameter values. There is no machine-parseable path from "sub-bass 40-80Hz" to `{"device": "EQ Eight", "band_1_freq": 40, "band_1_type": "highpass"}`.
+
+**Why it happens:**
+The v1.2 genre blueprints were designed as reference documents for Claude, not as machine-executable specifications. The `MixingSection` schema (see `schema.py` lines 63-68) stores `frequency_focus`, `stereo_field`, `common_effects`, and `compression_style` as strings/lists -- useful for Claude's reasoning but not for automated recipe application.
+
+**How to avoid:**
+The v1.4 mix recipe system must be a NEW data layer, not an extension of the existing blueprint mixing section. Two options:
+
+1. **Separate recipe files** (recommended): Create `MCP_Server/recipes/` with per-genre recipe files that contain exact device parameters. The genre blueprint's `mixing` section remains as-is for Claude's reference. Recipes reference blueprints but are not part of them.
+
+2. **Extend blueprint schema:** Add a `mixing_recipes` section to blueprints with structured parameter data. This is riskier because it changes the existing schema and inflates blueprint size.
+
+Option 1 is safer because it does not modify the working v1.2/v1.3 code.
+
+**Warning signs:**
+- Attempts to parse prose strings into parameter values
+- Recipe system that extends `MixingSection` TypedDict with dozens of new fields
+- Blueprint token counts doubling or tripling after adding recipe data
+
+**Phase to address:**
+Architecture design phase (first). Decide on recipe storage before building the catalog or apply tool.
+
+---
+
+## Minor Pitfalls
+
+### Pitfall 12: Return Tracks Need Different Recipe Treatment
+
+**What goes wrong:**
+Mix recipes include "add reverb to return track A." But return tracks are accessed with `track_type="return"` and `track_index=0`, while regular tracks use `track_type="track"`. A recipe that does not specify `track_type` defaults to `"track"` and applies reverb to the wrong track. The existing `set_device_parameter` handler correctly supports `track_type`, but recipe definitions may omit it.
+
+**How to avoid:**
+Recipe definitions must include `track_type` for every operation. Return track recipes should be distinct from regular track recipes. The apply-recipe tool should validate `track_type` against the target track.
+
+**Phase to address:**
+Apply-recipe tool phase. Recipe schema must require `track_type` or infer it from context.
+
+---
+
+### Pitfall 13: get_device_parameters Returns ALL Parameters Including Internal Ones
+
+**What goes wrong:**
+When building the parameter catalog by querying `get_device_parameters`, the result includes internal parameters that should not be in recipes (e.g., `"Device On"` at index 0 for every device). Recipes that iterate all parameters and set them might accidentally disable the device by setting parameter 0 to 0.
+
+**How to avoid:**
+Filter out `"Device On"` (index 0) from recipe parameters. The catalog should flag parameters as "internal" vs. "user-facing." Never include `"Device On"` in mix recipes unless explicitly toggling device bypass.
+
+**Phase to address:**
+Device parameter catalog phase. Mark parameter 0 as internal/excluded.
+
+---
+
+### Pitfall 14: Multiple Devices of Same Type on One Track
+
+**What goes wrong:**
+A track has two EQ Eight devices (one for low-cut, one for presence boost). The recipe targets "EQ Eight on track 3" but `device_index` is ambiguous. The apply-recipe tool picks the first one (index 0), but the user's intent was the second one.
+
+**How to avoid:**
+Recipes should reference devices by chain position purpose, not by type alone. For v1.4 MVP, recipes should assume they are loading devices onto clean tracks (no pre-existing devices of the same type). The apply-recipe tool should check for existing devices of the same `class_name` and either skip (device already present) or warn.
+
+**Phase to address:**
+Apply-recipe tool phase. Handle "device already exists" gracefully.
 
 ---
 
@@ -284,79 +394,136 @@ Session scaffolding phase. At minimum, return a warning when existing content is
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Hardcode 4/4 time signature in beat math | Simpler arithmetic, covers 95% of use | Breaks for any non-4/4 genre | Never -- the fix is one line of math |
-| Store plan only in tool output, not in session | No new Remote Script commands needed | Claude loses the plan at tool call 30+ | Never -- defeats the core v1.3 purpose |
-| Skip progress-check tool, rely on Claude's memory | One fewer tool to build | Context collapse on long productions | Never -- this is the key differentiator |
-| Make all new schema fields required | Simpler validation | Breaks all 12 genre files simultaneously | Never -- use optional fields |
-| Copy-paste scaffold logic into each MCP tool | Quick per-tool implementation | Duplicate beat-math bugs, inconsistent behavior | Never -- extract to shared utility |
-| Skip instrument presence check in progress tool | Simpler progress logic | "Complete" sections with no sound | MVP only -- add instrument check in v1.3.1 |
+| Hand-author parameter catalog from docs | No Ableton session needed | Names and ranges wrong, every recipe fails | Never -- must query live Ableton |
+| Store recipe values in human units (Hz, dB, ms) | Readable recipes | Conversion bugs at apply time | Only if conversion layer is built and tested |
+| Use `device_index=0` assumption in recipes | Simpler recipe format | Breaks when device is not at position 0 | Never for master bus (multiple devices) |
+| Skip instrument-presence check in gain staging | Simpler gain staging tool | Reports meaningless levels for empty MIDI tracks | Never -- reuse v1.3 check |
+| Hardcode sidechain routing indices | Works in scaffolded sessions | Breaks when user modifies track layout | Never -- must resolve at apply time |
+| Include spectrum analysis in scope | Feature-complete spec | Unimplementable via LOM, wasted sprint | Never -- document as out of scope |
+| Extend existing MixingSection for recipes | No new files/modules | Bloats blueprints, breaks existing tests | Never -- keep recipes separate |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| Plan builder + genre blueprints | Plan builder re-fetches and re-parses blueprint data instead of using the catalog API | Import `get_blueprint()` from `MCP_Server.genres.catalog` directly. Do not duplicate alias resolution. |
-| Scaffold tool + existing arrangement tools | Scaffold creates clips using raw `create_arrangement_midi_clip` but does not name them, making progress tracking impossible | Use `create_arrangement_midi_clip` then immediately `set_clip_name` (or create a combined command). Clip names must match section names for progress tracking. |
-| Progress-check + cue points | Progress tool counts clips between cue points by iterating ALL clips on ALL tracks per section. With 8 tracks x 7 sections = 56 clip slot checks per call. | Query `get_arrangement_clips` per track and bin clips by beat position ranges derived from cue points. Cache the cue point positions, do not re-query per track. |
-| New arrangement schema + existing `get_genre_blueprint` tool | New optional fields appear in blueprint output, inflating token count for users who do not need arrangement details | The existing `sections=["arrangement"]` filter already works. Ensure new arrangement sub-fields are included only when the arrangement section is requested, not in every response. |
-| Theory engine + plan builder | Plan builder calls `generate_progression()` to pre-resolve harmony for each section. This adds latency and unnecessary data to the plan. | The plan builder should reference scale/key names, not resolved MIDI. Claude resolves harmony per-section using existing theory tools when it actually writes MIDI. Separation of concerns. |
-| Scaffold tool + track creation | Scaffold calls `create_midi_track` in a loop, but track indices shift after each creation (track at index 5 becomes index 6 after a new track is inserted at index 0) | Create tracks in reverse order (last track first), or create all tracks and then query `get_all_tracks` to get the actual indices before proceeding. Better: create tracks at index `-1` (append to end) to avoid index shifting. |
+| Recipe catalog + existing `get_device_parameters` | Catalog duplicates parameter enumeration logic | Catalog IS a cache of `get_device_parameters` output. Use the same data format. |
+| Apply-recipe + existing `load_browser_item` | Recipe tool loads device then calls separate set_parameter commands | Single Remote Script command: load + verify + set all params atomically |
+| Gain staging + existing `set_track_volume` | Gain staging reads volumes then separately calls set_volume to adjust | Read and adjust should be separate tools. Gain staging is read-only analysis. Adjustment is a separate deliberate action. |
+| Master bus recipe + existing mixer tools | Recipe sets device params but forgets to set master track volume/pan | Master bus recipe should include volume/limiter ceiling as part of the recipe, applied via existing `set_track_volume(track_type="master")` |
+| Mix recipes + v1.3 scaffold tracks | Recipe references tracks by name ("Kick") but scaffold may have created tracks with different names | Recipe resolution must use the same track-name lookup as scaffold. Consider a shared track-role resolver. |
+| Sidechain setup + existing `set_compressor_sidechain` | Recipe hardcodes routing indices discovered during development | Must call `get_compressor_sidechain` at apply time to resolve indices dynamically |
+| New recipe module + existing conftest.py | New `MCP_Server/tools/recipes.py` imports `get_ableton_connection` but conftest does not patch it | Add new module to `_GAC_PATCH_TARGETS` in `conftest.py` -- easy to forget, causes all recipe tests to fail |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| Per-locator tool calls from Claude | 7 sections = 21+ tool calls just for scaffolding (seek + toggle + name x 7) | Single `scaffold_arrangement` command that creates all locators atomically | Immediately -- 21 tool calls is unacceptable for setup |
-| Progress-check queries every track | Slow response (2-3 seconds) for sessions with 15+ tracks | Accept track indices as a parameter, or cache track list within the handler | At 15+ tracks, noticeable lag |
-| Plan builder resolving all harmony upfront | Plan output bloats to 1000+ tokens with chord voicings for every section | Plan stores key + scale name only. Claude resolves per-section on demand. | At 7+ sections with 4+ chords each |
-| Scaffold creating clips for every section on every track | 7 sections x 8 tracks = 56 `create_midi_clip` calls | Scaffold creates locators and tracks only. Clips are created per-section during execution. | Immediately -- 56 operations is too slow |
+| Per-parameter tool calls for recipes | 10+ parameters x 3 devices = 30 tool calls per track | Single atomic apply-recipe command per device | Immediately -- 30 tool calls is unacceptable |
+| Gain staging reads every track sequentially | 2-3 second response for 20+ track sessions | Single Remote Script command that reads all track levels in one pass | At 15+ tracks |
+| Loading catalog from Ableton on every recipe apply | 500ms+ per device parameter query | Cache catalog server-side. Catalog is static for a given Ableton version. | At first recipe application |
+| Master bus recipe applies during playback | Audio glitches, pops, brief silence | Stop transport before master chain modification | Always during playback |
+
+## Testing Approaches for Device Parameter Recipes Without Ableton Running
+
+### What Works
+
+1. **Schema/structure tests (no Ableton needed):**
+   - Recipe dict structure validation (required keys, types, ranges)
+   - Recipe-to-parameter mapping (recipe band spec -> list of set_device_parameter calls)
+   - Conversion function unit tests (Hz to normalized, dB to API value)
+   - Existing mock pattern from `conftest.py` -- mock `send_command` return values
+
+2. **Catalog integrity tests (no Ableton needed, but catalog built FROM Ableton):**
+   - All recipes reference parameters that exist in the catalog
+   - All recipe values are within catalog min/max ranges
+   - No recipe sets "Device On" (index 0) accidentally
+   - All EQ band recipes specify complete band state (on, type, freq, gain, Q)
+
+3. **Integration test with mocked Ableton (existing pattern):**
+   - Mock `send_command` to return canned device parameter lists
+   - Verify recipe tool calls `set_device_parameter` with correct parameter names and values
+   - Verify load-then-set ordering in atomic commands
+
+### What Requires Live Ableton (UAT)
+
+4. **Catalog verification:** Load each target device, run `get_device_parameters`, compare against catalog. This MUST be run at least once to build/validate the catalog.
+
+5. **End-to-end recipe application:** Apply a recipe to a track, read back parameters, verify values match.
+
+6. **Master bus recipe:** Apply full master chain, verify device order and parameter values.
+
+7. **Sidechain routing:** Verify routing indices resolve correctly in a multi-track session.
+
+### Testing Strategy
+
+The v1.3 codebase established the pattern: unit tests with `mock_connection` for logic, live UAT scripts for Ableton-dependent verification (see `tests/live_uat_07.py`). v1.4 should follow the same pattern:
+- Automated tests: recipe structure, conversion functions, tool registration, command dispatch
+- Manual UAT: catalog verification, end-to-end recipe application, master bus, sidechain
+
+---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Scaffold tool:** Often missing locator NAME assignment -- locators exist but are all unnamed. Verify each cue point has a name matching its section.
-- [ ] **Scaffold tool:** Often missing time signature awareness -- verify beat positions are correct for non-4/4 signatures by testing with 3/4.
-- [ ] **Progress-check tool:** Often missing instrument presence check -- verify it flags MIDI tracks without instruments as "not ready."
-- [ ] **Plan builder:** Often missing vibe/duration customization -- verify output varies with different parameters, not just genre.
-- [ ] **Schema extension:** Often missing backward compatibility test -- verify all 12 existing genres still pass validation WITHOUT any changes to their files.
-- [ ] **Blueprint arrangement data:** Often missing per-section element lists -- verify each section specifies which instruments play (this is the key new data v1.3 needs).
-- [ ] **Atomic scaffold command:** Often missing rollback on partial failure -- verify that if locator 4 of 7 fails, the first 3 are cleaned up.
+- [ ] **Parameter catalog:** Names match EXACTLY what `get_device_parameters` returns from a live Ableton session (not GUI labels, not documentation)
+- [ ] **Value ranges:** Catalog stores actual `param.min`/`param.max` from Ableton, not assumed human ranges
+- [ ] **Conversion functions:** Hz-to-normalized tested for EQ Eight across full frequency range (20Hz, 200Hz, 1kHz, 10kHz, 20kHz)
+- [ ] **EQ recipes:** Specify complete band state (on/off, type, freq, gain, Q) not just frequency
+- [ ] **Gain staging:** Skips MIDI tracks without instruments (reuses v1.3 instrument-presence check)
+- [ ] **Master bus order:** Devices inserted in correct signal-flow order (EQ -> Comp -> Limiter)
+- [ ] **Sidechain routing:** Resolves source track by name at apply time, not by hardcoded index
+- [ ] **Spectrum analysis:** Marked as out of scope, not silently dropped or left as TODO
+- [ ] **conftest.py updated:** New tool module(s) added to `_GAC_PATCH_TARGETS`
+- [ ] **Recipe values in API units:** No recipe passes human-readable values (Hz, ms) directly to `set_device_parameter` without conversion
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Schema change breaks all genres | MEDIUM | Revert schema.py, make fields optional, re-run tests |
-| Locators created without names | LOW | Delete all cue points, re-scaffold. Single command if atomic scaffold exists. |
-| Context collapse mid-production | LOW | Call progress-check tool to re-orient. This is recovery-by-design. |
-| Wrong beat positions (time sig bug) | HIGH | Must delete clips and locators, fix arithmetic, re-scaffold, re-create all clips. No shortcut. |
-| Overlapping clips from blind scaffold | MEDIUM | Undo (Ctrl+Z) if caught immediately. Otherwise, manually delete duplicates. |
-| Plan builder too verbose | LOW | Simplify the output format. No session state to clean up. |
+| Wrong parameter names in catalog | HIGH | Must re-query all devices from live Ableton, rebuild catalog, rewrite all recipes |
+| Normalized value confusion | MEDIUM | Add conversion layer, update recipes to specify unit type, retest |
+| Device load ordering failure | LOW | Restructure as atomic command, retest. No session state to clean up. |
+| Gain staging on empty MIDI tracks | LOW | Add instrument-presence filter. Results were wrong but no damage to session. |
+| Master bus wrong device order | MEDIUM | Delete devices from master, reload in correct order. May need manual cleanup. |
+| Sidechain routing with hardcoded indices | MEDIUM | Refactor to dynamic resolution. Must retest in different session configurations. |
+| Spectrum analysis attempted | LOW | Remove code, mark as out of scope. No user-facing impact. |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Cue point seek-toggle fragility | Session scaffolding | Integration test: create 7 locators, verify all named and positioned correctly |
-| CuePoint.name writability | Session scaffolding | Test against live Ableton: set name, read back, assert match |
-| Context collapse | Architecture design (first phase) | Dry-run: 40+ tool call conversation produces a complete track without Claude losing the plan |
-| Schema breaking existing genres | Schema extension (first phase) | All 148 existing genre tests pass with zero genre file changes |
-| Over-engineered plan | Plan builder design | Plan output under 400 tokens for a 7-section house track |
-| Time signature arithmetic | Session scaffolding | Test with 3/4 and 6/8 time signatures, verify beat positions |
-| Missing instruments on scaffolded tracks | Session scaffolding / progress tool | Progress-check flags instrumentless tracks |
-| Locator position drift | Document as limitation in v1.3 | N/A for MVP |
-| Redundant plan builder | Plan builder design | Plan output differs from raw blueprint arrangement data |
-| Scaffold conflicts with existing content | Session scaffolding | Test scaffold on non-empty session, verify no duplicates |
+| Parameter name mismatch | Device parameter catalog (FIRST phase) | UAT: query live Ableton, compare catalog names |
+| Normalized value confusion | Device parameter catalog (FIRST phase) | Unit test: conversion functions for all parameter types |
+| Recipe application ordering | Apply-recipe tool phase | Integration test: load device + set params atomically |
+| MIDI tracks without instruments | Gain staging check phase | Unit test: mock track with no devices, verify skip |
+| Master bus device order | Master bus recipe phase | UAT: verify device chain order in live Ableton |
+| Sidechain routing fragility | Apply-recipe or dedicated sidechain phase | UAT: test in sessions with different track counts |
+| Spectrum data inaccessible | Architecture/planning (FIRST phase) | Document as out of scope in requirements |
+| EQ Eight incomplete band state | Device parameter catalog + apply-recipe | Unit test: recipe specifies all 5 band parameters |
+| Compressor parameter ranges | Device parameter catalog | UAT: set all compressor params, read back, verify |
+| Device class_name variation | Device parameter catalog | UAT: load each device, record class_name |
+| Blueprint mixing is prose | Architecture/planning (FIRST phase) | Recipes stored separately from blueprints |
+| Return track routing | Apply-recipe tool | Unit test: recipe for return tracks uses track_type="return" |
+| Internal parameters in recipes | Device parameter catalog | Unit test: no recipe sets parameter index 0 |
+| Duplicate devices on track | Apply-recipe tool | Unit test: handle "device already exists" case |
 
 ## Sources
 
-- [Cycling '74 LOM Documentation](https://docs.cycling74.com/max8/vignettes/live_object_model) -- CuePoint properties, Song.set_or_delete_cue behavior
-- [Cycling '74 Forum: Setting Locator Names](https://cycling74.com/forums/setting-locator-names) -- CuePoint.name read-only in pre-Live 12, writable in Live 12
-- Existing codebase: `AbletonMCP_Remote_Script/handlers/transport.py` -- current cue point implementation (toggle at current position only)
-- Existing codebase: `MCP_Server/genres/schema.py` -- current ArrangementEntry schema (name + bars only)
-- Existing codebase: `MCP_Server/genres/house.py` -- current blueprint arrangement data structure
-- Project memory: MIDI tracks without instruments have no volume fader
-- Existing codebase: `AbletonMCP_Remote_Script/handlers/arrangement.py` -- current arrangement clip CRUD (4 commands)
+- Existing codebase: `AbletonMCP_Remote_Script/handlers/devices.py` -- current `set_device_parameter` implementation (case-insensitive name lookup, value clamping)
+- Existing codebase: `MCP_Server/tools/devices.py` -- current device tool surface (load, get params, set params, EQ8, compressor sidechain)
+- Existing codebase: `MCP_Server/genres/schema.py` -- current `MixingSection` schema (prose strings, not parameters)
+- Existing codebase: `tests/conftest.py` -- mock pattern with `_GAC_PATCH_TARGETS`
+- Existing codebase: `tests/test_devices.py` line 116 -- `class_name: "OriginalSimpler"` confirms non-obvious class names
+- Project memory: "MIDI tracks without an instrument/device have NO volume fader"
+- [Remotify Device Parameter Reference](https://remotify.io/device-parameters/device_params_live10.html) -- EQ Eight band naming pattern
+- [Cycling '74 LOM Documentation](https://docs.cycling74.com/max8/vignettes/live_object_model) -- DeviceParameter properties, LOM limitations
+- [Ableton Forum: Spectrum analyzer](https://forum.ableton.com/viewtopic.php?t=125206) -- Spectrum device is visualization-only
+- [Ableton Forum: MIDI Track Volume](https://forum.ableton.com/viewtopic.php?t=17973) -- MIDI tracks without instruments have no volume fader
+- [Ableton Live 12 Reference Manual: Routing](https://www.ableton.com/en/manual/routing-and-i-o/) -- Sidechain routing structure
+- [Ableton Live API Documentation](https://nsuspray.github.io/Live_API_Doc/) -- DeviceParameter properties reference
+- [Another Ableton MCP: Device Parameter Control Guide](https://glama.ai/mcp/servers/@itsuzef/ableton-mcp/blob/7a0216f58180507167b9c1a4e97ee2aec407b39b/docs/device_parameter_control.md) -- Normalized value conversion patterns
+- [Cycling '74 Forum: Parameter order mismatch](https://cycling74.com/forums/ableton-control-surface-script-not-in-the-same-order-as-device-parameters) -- Device parameter ordering inconsistencies
+- [Ableton DeviceParameter Class Reference](https://ricardomatias.net/ableton-live/classes/DeviceParameter.html) -- Property listing
 
 ---
-*Pitfalls research for: v1.3 Arrangement Intelligence*
-*Researched: 2026-03-27*
+*Pitfalls research for: v1.4 Mix/Master Intelligence*
+*Researched: 2026-03-28*

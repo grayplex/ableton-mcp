@@ -1,80 +1,104 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: Arrangement Intelligence
-status: Milestone complete
-stopped_at: Completed 28-02-PLAN.md
-last_updated: "2026-03-28T06:28:49.125Z"
+milestone: v1.4
+milestone_name: Mix/Master Intelligence
+status: milestone_archived
+stopped_at: Phase 34 complete — v1.4 milestone complete
+last_updated: "2026-03-30T23:30:00.000Z"
+last_activity: 2026-03-30
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 8
-  completed_plans: 8
+  total_phases: 10
+  completed_phases: 10
+  total_plans: 19
+  completed_plans: 19
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-27)
+See: .planning/PROJECT.md (updated 2026-03-30)
 
-**Core value:** An AI assistant can produce actual music in Ableton — with harmonic intelligence and genre-aware conventions.
-**Current focus:** Phase 28 — section-execution-and-quality-gate
+**Core value:** An AI assistant can produce actual music in Ableton -- with mix/master intelligence that eliminates parameter guessing.
+**Current focus:** v1.4 milestone complete — ready for /gsd:complete-milestone
 
 ## Current Position
 
-Phase: 28
-Plan: Not started
+Phase: 34 (complete — last phase)
+Plan: All plans complete (2/2)
+Status: Milestone complete
+Last activity: 2026-03-30
+
+Progress: [████████████████████] 73/73 plans (100%)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 3
-- Average duration: 16min
-- Total execution time: 47min
+- Total plans completed: 0 (v1.4)
+- Average duration: -
+- Total execution time: -
+
+**By Phase:**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| - | - | - | - |
+
+**Recent Trend:**
+
+- Last 5 plans (from v1.3): 28-02, 28-01, 27-02, 27-01, 26-02
+- Trend: Stable
+
+*Updated after each plan completion*
+| Phase 29 P01 | 15 | 2 tasks | 5 files |
+| Phase 29 P02 | 2min | 1 tasks | 2 files |
+| Phase 29 P02 | 10min | 2 tasks | 4 files |
+| Phase 30 P01 | 5min | 2 tasks | 5 files |
+| Phase 30 P02 | 5min | 2 tasks | 5 files |
+| Phase 31 P01 | 4min | 1 tasks | 9 files |
+| Phase 32-device-state-reader-and-gain-staging P02 | 3 | 2 tasks | 3 files |
+| Phase 34 P02 | 8min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
 ### Decisions
 
-- Research recommends tools (not resources) for blueprint delivery — Claude controls when to fetch genre context
-- Infrastructure-first sequencing: schema validated with one genre before scaling to 12
-- Palette bridge built last — only integration point between blueprints and theory engine
-- [Phase 20]: Spec-driven validation via _SECTION_SPEC dict table instead of per-section if/elif chains
-- [Phase 20]: ArrangementEntry as separate TypedDict for typed section entries
-- [Phase 20]: Alias map stores str or tuple for unified genre/subgenre lookup
-- [Phase 20]: Used _QUALITY_MAP direct lookup for chord type validation (avoids music21 in tests)
-- [Phase 21]: Genre tools use ctx=None passthrough pattern; META_KEYS/SECTION_KEYS as module constants
-- [Phase 22]: Techno 5 subgenres, hip-hop/trap 3 subgenres (broad 70-160 BPM), ambient 3 subgenres (drone allows BPM 0)
-- [Phase 22]: DnB liquid uses major/dorian/lydian; neo-soul uses extended jazz chords (9ths, 11ths, 13ths)
-- [Phase 23]: Lo-fi hip-hop subgenre moved from hip_hop_trap to lo_fi genre (D-05 resolution)
-- [Phase 23]: Integration tests updated to expect 12 genres total (anticipating Plan 02)
-- [Phase 23]: Future bass parent genre IS the canonical sound (D-07) -- no future_bass subgenre
-- [Phase 23]: Disco/funk canonical ID is disco_funk (D-06) with wide 100-130 BPM base
-- [Phase 24]: Token budget lower bound adjusted from 800 to 400 -- actual blueprints are 537-670 tokens (cl100k_base)
-- [Phase 24]: Progression chord names use short quality forms (maj/min/dim/aug) stripped of octave digits from generate_progression output
-- [Phase 24]: Scale type heuristic: lowercase first Roman numeral = natural_minor, uppercase = major
-- [Phase 26-01]: bar_start is 1-based and cumulative: intro=1, buildup=17, drop=25 for house (16+8+32 pattern)
-- [Phase 26-01]: Vibe field conditional: included in output only when provided by caller (not None)
-- [Phase 26-01]: section_bar_overrides, add_sections, remove_sections declared in signature but not implemented (Plan 02)
-- [Phase 26-02]: _build_plan_sections returns tuple (plan_sections, warnings) after override refactor
-- [Phase 26-02]: Override order: remove -> add -> resize -> calculate bar positions (D-09)
-- [Phase 26-02]: Duplicate section name raises ValueError; caller converts to format_error
-- [Phase 26-02]: Nonexistent anchor/name produces warning string (not error) -- plan still returned
-- [Phase 26-02]: Added custom sections have roles=[] and no transition_in (no blueprint data)
-- [Phase 27-01]: Role dedup counts sections containing each role: lead in 3 sections = lead, lead 2, lead 3
-- [Phase 27-01]: Toggle safety: existing cue at target position renamed instead of toggled off
-- [Phase 27-01]: Playhead saved/restored around locator creation to avoid disrupting user position
-- [Phase 27-02]: get_arrangement_state is read-only handler; session_length_bars uses int() division not _beat_to_bar (length vs position)
-- [Phase 28]: Auto-approved checkpoint -- deferred live Ableton verification to next user session
+Decisions are logged in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
+
+- [v1.4 research]: Spectrum analysis and LUFS metering dropped -- architecturally impossible via LOM
+- [v1.4 research]: Device catalog MUST be bootstrapped from live Ableton queries, not hand-authored from docs
+- [v1.4 research]: Sidechain routing automation deferred to v1.5; basic sidechain source setting in v1.4
+- [v1.4 research]: mixing/ package as peer to genres/ and theory/ -- never modifies genre blueprints
+- [Phase 29]: CATALOG keyed by Ableton class name with case-insensitive display name fallback in get_catalog_entry()
+- [Phase 29]: ROLES is a bare string list in Phase 29; gain targets deferred to Phase 32
+- [Phase 29]: Placeholder parameter data committed now; bootstrap script (Plan 02) replaces with live Ableton-validated data
+- [Phase 29]: Bootstrap script uses substring matching in KNOWN_CONVERSIONS to handle compound EQ Eight param names like '1 Frequency A'
+- [Phase 29]: Bootstrap validates all 12 TARGET_DEVICES found before writing catalog.py — exits code 1 on any missing device
+- [Phase 29]: Real Ableton class name for Compressor is Compressor2 — test assertions and any future catalog references must use Compressor2
+- [Phase 30]: CATALOG uses 'Delay' as device class name (not 'ProxyAudioEffectDevice' as referenced in earlier planning)
+- [Phase 30]: Master recipes minimal (Eq8 + StereoGain only) -- Phase 34 adds full master chain with GlueCompressor + MultibandDynamics + Limiter
+- [Phase 30]: Used Delay device class name (not ProxyAudioEffectDevice) matching CATALOG
+- [Phase 30]: Ambient: gentle compression (1.3-2:1), long reverbs (3-5s), wide stereo; DnB: aggressive compression (5-6:1), DrumBuss on kick, short reverbs
+- [Phase 31]: Limiter param names: Gain->Input Gain, Link Channels->Link; MultibandDynamics uses parenthesized format from CATALOG
+- [Phase 31]: GlueCompressor Dry/Wet uses 100.0 (natural %) not 1.0; conversion handles percent-to-normalized
+- [Phase 31-02]: apply_recipe RS handler uses recursive schedule_message pattern for sequential multi-device loading
+- [Phase 31-02]: DEVICE_PATHS dict maps 12 CATALOG class names to browser paths at module level
+- [Phase 31-02]: set_sidechain_source uses case-insensitive substring match on display_name for routing resolution
+- [Phase 32]: Round meter_db to 1 decimal before comparing against gain targets — avoids float boundary issues (0.316 → -10.009 rounds to -10.0 which is within kick target -10.0..-4.0)
+- [Phase 32]: no_signal status takes precedence over role inference — meter_db=None check happens before role check
+- [Phase 34]: AutoFilter device class corrected to AutoFilter2 with different param names (Type not Filter Type, Env Amount not Envelope Amount) — caught and auto-fixed by both executor agents
+- [Phase 34]: Tool docstrings use dynamic list_recipes() instead of hardcoded genre list — future genres auto-appear in Claude's tool knowledge
 
 ### Roadmap Evolution
 
 - v1.0: Phases 1-13 (shipped 2026-03-23)
 - v1.1: Phases 14-19 (shipped 2026-03-26)
 - v1.2: Phases 20-24 (shipped 2026-03-27)
-- v1.3: Phases 25-28 (in progress)
+- v1.3: Phases 25-28 (shipped 2026-03-28)
+- v1.4: Phases 29-34 (shipped 2026-03-30)
 
 ### Pending Todos
 
@@ -82,10 +106,10 @@ None.
 
 ### Blockers/Concerns
 
-None.
+None — all v1.4 phases complete.
 
 ## Session Continuity
 
-Last session: 2026-03-28T06:23:45.334Z
-Stopped at: Completed 28-02-PLAN.md
+Last session: 2026-03-30
+Stopped at: Phase 34 complete — v1.4 milestone complete
 Resume file: None

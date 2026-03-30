@@ -26,6 +26,8 @@ _GAC_PATCH_TARGETS = [
     "MCP_Server.tools.grooves.get_ableton_connection",
     "MCP_Server.tools.scaffold.get_ableton_connection",
     "MCP_Server.tools.execution.get_ableton_connection",
+    "MCP_Server.tools.mixing.get_ableton_connection",
+    "MCP_Server.tools.analysis.get_ableton_connection",
 ]
 
 
