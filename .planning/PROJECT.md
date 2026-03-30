@@ -42,7 +42,15 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 
 ### Active
 
-(v1.4 milestone complete — define next milestone with `/gsd:new-milestone`)
+- INST-01: Instrument profile data for Wavetable — sonic character, strengths, preset category map
+- INST-02: Instrument profile data for Analog — sonic character, strengths, preset category map
+- INST-03: Instrument profile data for Operator — sonic character, strengths, preset category map
+- INST-04: Instrument profile data for Drift — sonic character, strengths, preset category map
+- INST-05: Instrument profile data for Simpler — sonic character, strengths, preset category map
+- INST-06: Instrument profile data for Drum Rack — sonic character, strengths, preset category map
+- SREC-01: get_sound_recommendation(descriptor) MCP tool — maps descriptor tags to instrument + browser category path + one-line reasoning
+- SREC-02: list_sound_descriptors MCP tool — returns all supported descriptor tags Claude can use
+- SREC-03: get_instrument_profile MCP tool — returns full instrument character doc for a specific instrument
 
 ### Out of Scope
 
@@ -50,6 +58,15 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - Audio generation/synthesis — Ableton handles audio; MCP handles control
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
+
+## Current Milestone: v1.5 Sound Selection Intelligence
+
+**Goal:** Give Claude instrument-selection taste — map descriptor tags like "warm pad" or "punchy kick" to the right native Ableton instrument and browser category path, eliminating random preset fumbling.
+
+**Target features:**
+- Instrument profiles for all 6 native Ableton instruments (Wavetable, Analog, Operator, Drift, Simpler, Drum Rack) — sonic character, strengths, preset category map
+- `get_sound_recommendation(descriptor)` MCP tool — maps descriptor tags to instrument + browser category + one-line reasoning; descriptor-only, no genre dependency
+- `list_sound_descriptors` and `get_instrument_profile` supporting tools
 
 ## Completed Milestone: v1.4 Mix/Master Intelligence (shipped 2026-03-30)
 
@@ -159,4 +176,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-30 after v1.4 milestone*
+*Last updated: 2026-03-30 — Milestone v1.5 started*
