@@ -1,5 +1,25 @@
 # Milestones
 
+## v1.4 Mix/Master Intelligence (Shipped: 2026-03-30)
+
+**Phases completed:** 6 phases (29-34), 11 plans
+**Requirements:** 14/14 complete
+**Files changed:** 360 files, +25,793 / -1,167 lines
+**Timeline:** 3 days (2026-03-28 → 2026-03-30)
+
+**Delivered:** Full mixing and mastering intelligence for Ableton — device parameter catalog, role×genre mix recipes for 12 genres, one-call recipe application with atomic device loading, session mix state snapshot, gain staging analysis, and AI-driven parameter adjustment suggestions.
+
+**Key accomplishments:**
+
+- Device parameter catalog bootstrapped from live Ableton session — 327 parameters across 12 built-in devices with normalized-to-natural-unit conversion formulas; `get_device_catalog` and `get_role_taxonomy` MCP tools
+- Role×genre mix recipes for all 12 genres (house, techno, ambient, DnB, synthwave, dubstep, trance, future bass, hip-hop/trap, disco/funk, neo-soul/R&B, lo-fi) — 9 roles per genre with EQ/compression/reverb/panning/dynamics values; pkgutil auto-discovery
+- `apply_mix_recipe` and `apply_master_recipe` MCP tools applying full device chains in one call — atomic RS handler (self_scheduling + response queue) guarantees devices instantiate before parameters are set
+- `get_mix_state` full session snapshot and `check_gain_staging` per-track dBFS analysis against role-based targets — empty MIDI scaffold tracks excluded
+- `suggest_mix_adjustments` read-only intelligence tool — diffs current device state against recipe targets, returns per-parameter suggestions with one-sentence reasoning and natural-unit display values
+- Master bus recipes (GlueCompressor + MultibandDynamics + Limiter) for all 12 genres with dynamic docstrings via `list_recipes()`
+
+---
+
 ## v1.3 Arrangement Intelligence (Shipped: 2026-03-28)
 
 **Phases completed:** 4 phases (25-28), 8 plans

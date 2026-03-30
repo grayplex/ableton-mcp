@@ -42,7 +42,7 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 
 ### Active
 
-(v1.4 milestone complete — all 10 phases done — see REQUIREMENTS.md for full traceability)
+(v1.4 milestone complete — define next milestone with `/gsd:new-milestone`)
 
 ### Out of Scope
 
@@ -51,20 +51,9 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
 
-## Current Milestone: v1.4 Mix/Master Intelligence
+## Completed Milestone: v1.4 Mix/Master Intelligence (shipped 2026-03-30)
 
-**Goal:** Give Claude reliable mixing and mastering in Ableton by eliminating parameter guessing — role×genre recipes map principles to exact device values; analysis tools close the feedback loop.
-
-**Target features:**
-- Device parameter catalog (priority built-in devices mapped to API param names + value ranges)
-- Role × genre mix recipes (EQ, comp, reverb/delay, panning, dynamics per role per genre)
-- Apply recipe tool (load device + set all params in one MCP call)
-- Device state reader (get current params on any track's device chain)
-- Gain staging check (read volumes + clip levels, flag tracks outside target range)
-- Suggest adjustments (read current state → param diff with reasoning)
-- Spectrum analysis (frequency snapshot if LOM exposes it)
-- Master bus recipes per genre (multiband dynamics, glue comp, limiter with specific values)
-- Master bus tools (apply chain, read state)
+**Delivered:** Full mixing and mastering intelligence — device parameter catalog (327 params, 12 devices), role×genre recipes for all 12 genres, one-call recipe application with atomic device loading, session mix state snapshot, gain staging analysis, and AI-driven parameter adjustment suggestions.
 
 ## Completed Milestone: v1.3 Arrangement Intelligence (shipped 2026-03-28)
 
@@ -83,17 +72,13 @@ Curated genre reference documents giving Claude consistent knowledge of 12 elect
 
 ## Current State
 
-**Shipped: v1.1 Theory Engine** (2026-03-26)
-**Shipped: v1.2 Genre/Style Blueprints** (2026-03-27) — Phases 20-24 complete
-**Shipped: v1.3 Arrangement Intelligence** (2026-03-28) — Phases 25-28 complete
+**Shipped: v1.4 Mix/Master Intelligence** (2026-03-30) — Phases 29-34 complete
 
-- **202 MCP tools** across 19 tool modules (added `get_section_checklist`, `get_arrangement_progress` in Phase 28)
-- **181 Remote Script handler commands** across 15 domain modules (added `scaffold_tracks`, `create_locator_at`, `get_arrangement_state` in Phase 27)
-- **23 theory functions** in 6 library modules (pitch, chords, scales, progressions, analysis, voicing/rhythm)
-- **12-genre catalog complete** — all genres validated against theory engine
-- **148 genre tests** (palette bridge + quality gate) + 204 v1.0 + 224 theory — all passing
-- **100 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2)
-- **12 genre blueprints**: house, techno, hip-hop/trap, ambient, DnB, dubstep, trance, neo-soul/R&B, synthwave, lo-fi, future bass, disco/funk
+- **Mix/master intelligence**: 12-genre recipe system + apply tools + gain staging + adjustment suggestions
+- **42,517 lines Python** total codebase
+- **114 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2 + 10 v1.3 + 14 v1.4)
+- **12 genre mix recipes** with 9 roles each + master bus recipes (GlueCompressor + MultibandDynamics + Limiter)
+- **MCP tools**: `get_device_catalog`, `get_role_taxonomy`, `get_mix_recipe`, `apply_mix_recipe`, `apply_master_recipe`, `set_sidechain_source`, `get_mix_state`, `check_gain_staging`, `suggest_mix_adjustments`
 
 ### Capabilities
 
@@ -153,9 +138,7 @@ Two-tier: MCP server (FastMCP/Python 3) ↔ TCP socket (length-prefix framing) �
 
 ## Context
 
-- v1.0 milestone archived at `.planning/milestones/v1.0-ROADMAP.md`
-- v1.1 milestone archived at `.planning/milestones/v1.1-ROADMAP.md`
-- v1.2 milestone archived at `.planning/milestones/v1.2-ROADMAP.md`
+- v1.0–v1.4 milestones archived at `.planning/milestones/`
 - Codebase map at `.planning/codebase/`
 
 ## Evolution
@@ -176,4 +159,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-30 (Phase 34 complete — v1.4 milestone complete)
+*Last updated: 2026-03-30 after v1.4 milestone*
