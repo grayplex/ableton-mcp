@@ -20,7 +20,7 @@
 
 ### Apply Tools
 
-- [ ] **APPLY-01**: User can apply a role×genre mix recipe to an Ableton track in one MCP tool call — loads the required devices and sets all parameters without requiring multiple sequential tool calls from Claude
+- [x] **APPLY-01**: User can apply a role×genre mix recipe to an Ableton track in one MCP tool call — loads the required devices and sets all parameters without requiring multiple sequential tool calls from Claude
 - [x] **APPLY-02**: User can apply a genre master bus recipe to the Ableton master track in one MCP tool call
 - [x] **APPLY-03**: Recipe application is atomic with respect to device loading — parameters are set only after the device is confirmed as instantiated in the Ableton session (no race condition on async device load)
 
@@ -36,7 +36,7 @@
 
 ### Sidechain Routing
 
-- [ ] **SIDE-01**: User can set a compressor's sidechain input source by track name — resolves the source track to the correct index at apply time rather than requiring hardcoded track indices
+- [x] **SIDE-01**: User can set a compressor's sidechain input source by track name — resolves the source track to the correct index at apply time rather than requiring hardcoded track indices
 
 ## Future Requirements
 
@@ -60,13 +60,13 @@
 | ROLE-01 | Phase 29 | Complete |
 | RECIP-01 | Phase 30 | Complete |
 | BATCH-01 | Phase 31 | Complete |
-| APPLY-01 | Phase 31 | Pending |
+| APPLY-01 | Phase 31 | Complete |
 | APPLY-02 | Phase 31 | Complete |
 | APPLY-03 | Phase 31 | Complete |
-| SIDE-01 | Phase 31 | Pending |
-| STATE-01 | Phase 32 | In progress (RS handler done in 32-01) |
-| GAIN-01 | Phase 32 | In progress (RS handler done in 32-01) |
-| GAIN-02 | Phase 32 | In progress (MIDI exclusion guard done in 32-01) |
+| SIDE-01 | Phase 31 | Complete |
+| STATE-01 | Phase 32 | Complete |
+| GAIN-01 | Phase 32 | Complete |
+| GAIN-02 | Phase 32 | Complete |
 | INTEL-01 | Phase 33 | Complete |
 | RECIP-02 | Phase 34 | Complete |
 | MSTR-01 | Phase 34 | Complete |
