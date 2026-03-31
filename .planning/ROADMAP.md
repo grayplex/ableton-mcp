@@ -11,7 +11,7 @@
 | v1.4 Mix/Master Intelligence | 29-34 | 11 | 14 | Complete | 2026-03-30 |
 | v1.5 Sound Selection Intelligence | 35-38 | 7 | 11 | Complete | 2026-03-31 |
 | v1.6 Self-evaluation | 39-41 | 3 | 9 | Complete | 2026-03-31 |
-| v1.7 Prompt Interpretation | 42-44 | TBD | 10 | Active | — |
+| v1.7 Prompt Interpretation | 42-44 | 3 | 10 | Complete | 2026-03-31 |
 
 ## Phases
 
@@ -26,7 +26,7 @@ See `.planning/milestones/v1.6-ROADMAP.md` for full phase details.
 
 </details>
 
-### v1.7 Prompt Interpretation -- ACTIVE
+### v1.7 Prompt Interpretation -- SHIPPED 2026-03-31
 
 **Milestone Goal:** Formalize Claude's natural-language music prompt reasoning into a structured, repeatable planning step — so "lo-fi hip hop beat" consistently yields the same quality of concrete parameters (tempo, scale, groove, instruments, effects) as careful ad-hoc reasoning, every time.
 
@@ -96,6 +96,6 @@ Phases execute in numeric order: 42 -> 43 -> 44
 | 39. Evaluation Framework and Mix Balance Evaluator | v1.6 | 1/1 | Complete | 2026-03-31 |
 | 40. Arrangement, Sound Selection, and Harmonic Evaluators | v1.6 | 1/1 | Complete | 2026-03-31 |
 | 41. evaluate_session() Tool and Fix Offer Workflow | v1.6 | 1/1 | Complete | 2026-03-31 |
-| 42. ProductionBrief Schema, Signal Lexicon, and Prompt Parser | v1.7 | 0/TBD | Pending | — |
-| 43. Parameter Derivation Engine | v1.7 | 0/TBD | Pending | — |
-| 44. interpret_prompt and interpret_prompt_to_plan MCP Tools | v1.7 | 0/TBD | Pending | — |
+| 42. ProductionBrief Schema, Signal Lexicon, and Prompt Parser | v1.7 | 1/1 | Complete | 2026-03-31 |
+| 43. Parameter Derivation Engine | v1.7 | 1/1 | Complete | 2026-03-31 |
+| 44. interpret_prompt and interpret_prompt_to_plan MCP Tools | v1.7 | 1/1 | Complete | 2026-03-31 |

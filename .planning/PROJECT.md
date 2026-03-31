@@ -45,19 +45,16 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - ✓ SND-01: Sound selection coverage evaluator — role→instrument match via sounds catalog descriptor affinities — v1.6 Phase 40
 - ✓ HARM-01: Harmonic coherence evaluator — in-key pitch class check via pure integer arithmetic; empty key → graceful info skip — v1.6 Phase 40
 - ✓ SESS-01..02: evaluate_session() MCP tool — 4-dimension composite score (0-10, A-F grade), critical-first issue sort, top_fixes list with specific MCP tool calls — v1.6 Phase 41
+- ✓ PARS-01: Prompt signal extractor — 5 signal types (genre/mood/instrument/effect/structural), greedy longest-match tokenizer, alias-tolerant — v1.7 Phase 42
+- ✓ LEX-01: Signal lexicon — 12 genres + aliases, 40+ mood adjectives, 20+ instrument refs, 20+ effect refs, 12+ tempo signals — v1.7 Phase 42
+- ✓ BRIEF-01: ProductionBrief TypedDict schema — 11 fields, JSON-serializable without .asdict(), primary_genre nullable — v1.7 Phase 42
+- ✓ DERV-01..05: Parameter derivation engine — tempo (explicit BPM or blueprint + energy), key feel (genre + mood override), groove (genre + structural hint override), instrument hints (prompt + blueprint merge), velocity style (energy level + mood override) — v1.7 Phase 43
+- ✓ TOOL-01: interpret_prompt(text) MCP tool — returns ProductionBrief JSON + reasoning list — v1.7 Phase 44
+- ✓ TOOL-02: interpret_prompt_to_plan(text, bars_per_section?) MCP tool — brief + full production plan in one call — v1.7 Phase 44
 
 ### Active
 
-- PARS-01: Prompt signal extractor — tokenizes free-text and classifies into genre/mood/instrument/effect/structural signal types — v1.7
-- LEX-01: Signal lexicon — 12 genres + aliases, 25+ mood adjectives, 15+ instrument refs, 10+ effect refs, 5+ tempo signals — v1.7
-- BRIEF-01: ProductionBrief TypedDict schema — tempo_range, key_feel, groove_feel, energy_level, instrument_hints, effect_hints, velocity_style, confidence, reasoning — v1.7
-- DERV-01: Tempo derivation — explicit BPM or genre blueprint range + energy modifier — v1.7
-- DERV-02: Key feel derivation — genre convention + mood signal override — v1.7
-- DERV-03: Groove derivation — pattern_type + swing_pct from genre + structural hints — v1.7
-- DERV-04: Instrument hints — explicit prompt refs merged with genre blueprint roles + sound descriptors — v1.7
-- DERV-05: Velocity style — derived from energy level, overridable by prompt signals — v1.7
-- TOOL-01: interpret_prompt(text) MCP tool — returns ProductionBrief + reasoning — v1.7
-- TOOL-02: interpret_prompt_to_plan(text) MCP tool — interpret_prompt → generate_production_plan in one call — v1.7
+None — v1.7 complete. Run `/gsd:new-milestone` to open the next milestone.
 
 
 ### Out of Scope
@@ -67,12 +64,13 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
 
-## Current Milestone: v1.7 Prompt Interpretation (active 2026-03-31)
+## Current Milestone: None — v1.7 shipped, next milestone TBD
 
+Run `/gsd:new-milestone` to define the next milestone.
 
-**Goal:** Formalize Claude's natural-language music prompt reasoning into a structured, repeatable planning step — so "lo-fi hip hop beat" consistently yields concrete parameters (tempo range, scale/mode, groove pattern, instrument hints, effect hints, velocity style) via a deterministic derivation engine rather than ad-hoc in-context reasoning.
+## Completed Milestone: v1.7 Prompt Interpretation (shipped 2026-03-31)
 
-**Phases:** 42 (ProductionBrief schema + signal lexicon + parser), 43 (parameter derivation engine), 44 (MCP tools: interpret_prompt + interpret_prompt_to_plan)
+**Delivered:** Deterministic NLP layer — `interpret_prompt(text)` converts any music description into a structured `ProductionBrief` (tempo range, scale/mode, groove pattern, instrument hints, effect hints, velocity style, reasoning); `interpret_prompt_to_plan(text)` chains directly to `generate_production_plan` for one-call prompt→plan workflow.
 
 ## Completed Milestone: v1.6 Self-evaluation (shipped 2026-03-31)
 
@@ -103,15 +101,16 @@ Curated genre reference documents giving Claude consistent knowledge of 12 elect
 
 ## Current State
 
-**Milestone v1.7 active** (2026-03-31) — Prompt Interpretation in progress
+**Milestone v1.7 complete** (2026-03-31) — Prompt Interpretation shipped
 
+- **Prompt interpretation**: `MCP_Server/prompt/` package — schema.py, lexicon.py, parser.py, deriver.py; 100 tests
 - **Self-evaluation**: `MCP_Server/evaluation/` package with 4 evaluators + `evaluate_session()` MCP tool; 40 tests
 - **Sound selection**: sounds/ package with 6 instrument profiles + weighted-sum scoring engine + 3 MCP tools
 - **Mix/master intelligence**: 12-genre recipe system + apply tools + gain staging + adjustment suggestions
-- **~46,500 lines Python** total codebase (estimated)
-- **144 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2 + 10 v1.3 + 14 v1.4 + 11 v1.5 + 9 v1.6 = 144 — see REQUIREMENTS archives)
+- **~47,500 lines Python** total codebase (estimated)
+- **154 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2 + 10 v1.3 + 14 v1.4 + 11 v1.5 + 9 v1.6 + 10 v1.7 = 154)
 - **12 genre mix recipes** with 9 roles each + master bus recipes (GlueCompressor + MultibandDynamics + Limiter)
-- **MCP tools**: `get_device_catalog`, `get_role_taxonomy`, `get_mix_recipe`, `apply_mix_recipe`, `apply_master_recipe`, `set_sidechain_source`, `get_mix_state`, `check_gain_staging`, `suggest_mix_adjustments`, `get_sound_recommendation`, `list_sound_descriptors`, `get_instrument_profile`, `evaluate_session`
+- **MCP tools**: `get_device_catalog`, `get_role_taxonomy`, `get_mix_recipe`, `apply_mix_recipe`, `apply_master_recipe`, `set_sidechain_source`, `get_mix_state`, `check_gain_staging`, `suggest_mix_adjustments`, `get_sound_recommendation`, `list_sound_descriptors`, `get_instrument_profile`, `evaluate_session`, `interpret_prompt`, `interpret_prompt_to_plan`
 
 ### Capabilities
 
@@ -192,4 +191,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-31 — v1.7 Prompt Interpretation milestone opened*
+*Last updated: 2026-03-31 — v1.7 Prompt Interpretation shipped*
