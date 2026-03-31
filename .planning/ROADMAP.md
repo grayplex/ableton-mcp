@@ -10,6 +10,7 @@
 | v1.3 Arrangement Intelligence | 25-28 | 8 | 10 | Complete | 2026-03-28 |
 | v1.4 Mix/Master Intelligence | 29-34 | 11 | 14 | Complete | 2026-03-30 |
 | v1.5 Sound Selection Intelligence | 35-38 | 7 | 11 | Complete | 2026-03-31 |
+| v1.6 Self-evaluation | 39-41 | 3 | 9 | Complete | 2026-03-31 |
 
 ## Phases
 
@@ -48,7 +49,18 @@ See `.planning/milestones/v1.3-ROADMAP.md` for full phase details.
 - [x] **Phase 37: Descriptor Taxonomy and Scoring Engine** - Weighted sum scoring in catalog.py, descriptor tag vocabulary, list_sound_descriptors MCP tool (completed 2026-03-31)
 - [x] **Phase 38: Recommendation Tools and Registration** - get_sound_recommendation and get_instrument_profile MCP tools, tools/__init__.py registration, pyproject.toml update (completed 2026-03-31)
 
-## Phase Details
+<details>
+<summary>v1.6 Self-evaluation (Phases 39-41) -- SHIPPED 2026-03-31</summary>
+
+- [x] Phase 39: Evaluation Framework and Mix Balance Evaluator (1/1 plans) -- completed 2026-03-31
+- [x] Phase 40: Arrangement, Sound Selection, and Harmonic Evaluators (1/1 plans) -- completed 2026-03-31
+- [x] Phase 41: evaluate_session() Tool and Fix Offer Workflow (1/1 plans) -- completed 2026-03-31
+
+See `.planning/milestones/v1.6-ROADMAP.md` for full phase details.
+
+</details>
+
+## Phase Details (Archived)
 
 ### Phase 35: Package Skeleton and First Profile
 **Goal**: The sounds/ package exists with working auto-discovery and one validated instrument profile, proving the data schema and browser paths are correct before committing to all 6 profiles
@@ -115,3 +127,6 @@ Phases execute in numeric order: 35 -> 36 -> 37 -> 38
 | 36. Instrument Profile Authoring | v1.5 | 2/2 | Complete   | 2026-03-31 |
 | 37. Descriptor Taxonomy and Scoring Engine | v1.5 | 1/1 | Complete | 2026-03-31 |
 | 38. Recommendation Tools and Registration | v1.5 | 1/1 | Complete | 2026-03-31 |
+| 39. Evaluation Framework and Mix Balance Evaluator | v1.6 | 1/1 | Complete | 2026-03-31 |
+| 40. Arrangement, Sound Selection, and Harmonic Evaluators | v1.6 | 1/1 | Complete | 2026-03-31 |
+| 41. evaluate_session() Tool and Fix Offer Workflow | v1.6 | 1/1 | Complete | 2026-03-31 |
