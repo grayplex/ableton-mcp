@@ -9,7 +9,7 @@
 | v1.2 Genre/Style Blueprints | 20-24 | 9 | 23 | Complete | 2026-03-27 |
 | v1.3 Arrangement Intelligence | 25-28 | 8 | 10 | Complete | 2026-03-28 |
 | v1.4 Mix/Master Intelligence | 29-34 | 11 | 14 | Complete | 2026-03-30 |
-| v1.5 Sound Selection Intelligence | 35-38 | TBD | 11 | In Progress | - |
+| v1.5 Sound Selection Intelligence | 35-38 | 7 | 11 | Complete | 2026-03-31 |
 
 ## Phases
 
@@ -39,14 +39,14 @@ See `.planning/milestones/v1.3-ROADMAP.md` for full phase details.
 
 </details>
 
-### v1.5 Sound Selection Intelligence (In Progress)
+### v1.5 Sound Selection Intelligence -- SHIPPED 2026-03-31
 
 **Milestone Goal:** Give Claude instrument-selection taste -- map descriptor tags like "warm pad" or "punchy kick" to the right native Ableton instrument and browser category path, eliminating random preset fumbling.
 
 - [x] **Phase 35: Package Skeleton and First Profile** - sounds/ package with auto-discovery, browser path validation against live Ableton, Wavetable profile as reference implementation (completed 2026-03-31)
 - [x] **Phase 36: Instrument Profile Authoring** - Remaining 5 instrument profiles (Analog, Operator, Drift, Simpler, Drum Rack) following the Wavetable reference (completed 2026-03-31)
-- [ ] **Phase 37: Descriptor Taxonomy and Scoring Engine** - Weighted sum scoring in catalog.py, descriptor tag vocabulary, list_sound_descriptors MCP tool
-- [ ] **Phase 38: Recommendation Tools and Registration** - get_sound_recommendation and get_instrument_profile MCP tools, tools/__init__.py registration, pyproject.toml update
+- [x] **Phase 37: Descriptor Taxonomy and Scoring Engine** - Weighted sum scoring in catalog.py, descriptor tag vocabulary, list_sound_descriptors MCP tool (completed 2026-03-31)
+- [x] **Phase 38: Recommendation Tools and Registration** - get_sound_recommendation and get_instrument_profile MCP tools, tools/__init__.py registration, pyproject.toml update (completed 2026-03-31)
 
 ## Phase Details
 
@@ -113,5 +113,5 @@ Phases execute in numeric order: 35 -> 36 -> 37 -> 38
 | 29-34. Mix/Master Intelligence | v1.4 | 11/11 | Complete | 2026-03-30 |
 | 35. Package Skeleton and First Profile | v1.5 | 2/2 | Complete    | 2026-03-31 |
 | 36. Instrument Profile Authoring | v1.5 | 2/2 | Complete   | 2026-03-31 |
-| 37. Descriptor Taxonomy and Scoring Engine | v1.5 | 0/TBD | Not started | - |
-| 38. Recommendation Tools and Registration | v1.5 | 0/TBD | Not started | - |
+| 37. Descriptor Taxonomy and Scoring Engine | v1.5 | 1/1 | Complete | 2026-03-31 |
+| 38. Recommendation Tools and Registration | v1.5 | 1/1 | Complete | 2026-03-31 |

@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Sound Selection Intelligence
-status: Ready to plan
-stopped_at: Completed 38-01-PLAN.md
-last_updated: "2026-03-31T15:00:00.000Z"
+status: Complete
+stopped_at: Milestone v1.5 shipped 2026-03-31
+last_updated: "2026-03-31T15:15:00.000Z"
 progress:
   total_phases: 4
-  completed_phases: 3
-  total_plans: 4
-  completed_plans: 6
+  completed_phases: 4
+  total_plans: 7
+  completed_plans: 7
 ---
 
 # Project State
@@ -19,37 +19,40 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** An AI assistant can produce actual music in Ableton -- with sound selection intelligence that eliminates instrument fumbling.
-**Current focus:** Phase 36 — instrument-profile-authoring
+**Current focus:** v1.5 COMPLETE — Sound Selection Intelligence shipped 2026-03-31
 
 ## Current Position
 
-Phase: 38
-Plan: 01 (complete)
+Phase: 38 (complete)
+Milestone: v1.5 SHIPPED
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0 (v1.5)
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 7 (v1.5)
+- Average duration: ~3m
+- Total execution time: ~21 minutes
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 35 | 2 | ~2m | ~1m |
+| 36 | 2 | ~11m | ~5.5m |
+| 37 | 1 | ~5m | ~5m |
+| 38 | 1 | ~3m | ~3m |
 
 **Recent Trend:**
 
-- Last 5 plans (from v1.4): Phase 34 P02, Phase 34 P01, Phase 33 P01, Phase 32 P02, Phase 32 P01
+- Last 5 plans (v1.5): Phase 38 P01, Phase 37 P01, Phase 36 P02, Phase 36 P01, Phase 35 P02
 - Trend: Stable
 
 *Updated after each plan completion*
 | Phase 35 P01 | 1m | 1 tasks | 4 files |
 | Phase 35 P02 | 1m | 2 tasks | 0 files |
-| Phase 36 P02 | 3 | 2 tasks | 0 files |
-| Phase 36-instrument-profile-authoring P02 | 3m | 2 tasks | 0 files |
+| Phase 36 P01 | 8m | 7 tasks | 6 files |
+| Phase 36 P02 | 3m | 2 tasks | 0 files |
 | Phase 37 P01 | 5m | 4 tasks | 5 files |
 | Phase 38 P01 | 3m | 4 tasks | 3 files |
 
@@ -60,17 +63,11 @@ Plan: 01 (complete)
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [Roadmap]: Browser path validation in Phase 35 before authoring remaining profiles -- de-risks highest-uncertainty integration point
-- [Roadmap]: 4 phases for 11 requirements -- natural delivery boundaries derived from dependency chain
-- [Research]: No new dependencies needed -- Python stdlib + existing FastMCP
-- [Research]: No Remote Script changes -- all new code is server-side only
-- [Research]: sounds/ package mirrors genres/ and mixing/ patterns (pkgutil auto-discovery)
-- [Phase 35]: sounds/ package clones genres/ auto-discovery pattern (pkgutil + alias normalization)
-- [Phase 35]: D-06 applied: Ableton unavailable, kept assumed browser path Instruments/Wavetable for validation in Phase 36
-- [Phase 36]: All 5 instrument browser roots assumed (Analog/Operator/Drift/Simpler/Drum Rack follow Instruments/Name pattern); live validation in Plan 02
-- [Phase 36]: Drum Rack root assumed as "Instruments/Drum Rack" -- highest-uncertainty path, Plan 02 confirms
-- [Phase 36]: D-06 applied: Ableton unavailable (connection refused on localhost:9877), all 6 browser root paths kept as assumed per D-06 policy
-- [Phase 36-instrument-profile-authoring]: D-06 applied: Ableton unavailable (connection refused on localhost:9877), all 6 browser root paths kept as assumed per D-06 policy
+- [v1.5]: sounds/ package mirrors genres/ and mixing/ pkgutil auto-discovery pattern
+- [Phase 35]: D-06 applied: Ableton unavailable, browser paths kept as assumed
+- [Phase 36]: All 6 browser roots assumed (Instruments/Name pattern); D-06 applied
+- [Phase 37]: Weighted-sum scoring over role+character affinity axes; vocabulary derived dynamically
+- [Phase 38]: All 3 sound tools in tools/sounds.py; MCP_Server.sounds in pyproject.toml
 
 ### Roadmap Evolution
 
@@ -79,7 +76,7 @@ Recent decisions affecting current work:
 - v1.2: Phases 20-24 (shipped 2026-03-27)
 - v1.3: Phases 25-28 (shipped 2026-03-28)
 - v1.4: Phases 29-34 (shipped 2026-03-30)
-- v1.5: Phases 35-38 (in progress)
+- v1.5: Phases 35-38 (shipped 2026-03-31)
 
 ### Pending Todos
 
@@ -87,11 +84,10 @@ None.
 
 ### Blockers/Concerns
 
-- Browser path validation for all 5 new profiles requires live Ableton session -- Phase 36 Plan 02 is the checkpoint
-- Drum Rack browser root ("Instruments/Drum Rack") is assumed -- highest uncertainty, Plan 02 must confirm
+- Browser path validation for all 6 instruments deferred (Ableton unavailable) -- paths are assumed "Instruments/Name" pattern; validate against live session when available
 
 ## Session Continuity
 
-Last session: 2026-03-31T15:00:00.000Z
-Stopped at: Completed 38-01-PLAN.md
+Last session: 2026-03-31T15:15:00.000Z
+Stopped at: Milestone v1.5 complete
 Resume file: None
