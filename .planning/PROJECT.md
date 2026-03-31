@@ -52,9 +52,18 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - ✓ TOOL-01: interpret_prompt(text) MCP tool — returns ProductionBrief JSON + reasoning list — v1.7 Phase 44
 - ✓ TOOL-02: interpret_prompt_to_plan(text, bars_per_section?) MCP tool — brief + full production plan in one call — v1.7 Phase 44
 
+- ✓ SNAP-01: `get_section_state(section_name)` MCP tool — full snapshot (bar range, clips, note summaries) for a named arrangement section — v1.8 Phase 45
+- ✓ SNAP-02: `mix_context` in `SectionState` — device params + recipe delta per track — v1.8 Phase 45
+- ✓ REFN-01: `RefinementLexicon` — 22 aesthetic adjectives → multi-domain `RefinementVector` TypedDicts — v1.8 Phase 46
+- ✓ REFN-02: `interpret_section_refinement(section_name, instruction)` MCP tool — read-only `SectionRefinementPlan` — v1.8 Phase 46
+- ✓ PARS-02: `refine_prompt(brief, refinement_text)` MCP tool — partial re-derivation with diff — v1.8 Phase 46
+- ✓ RFNA-01: `apply_section_note_refinement` MCP tool — surgical note changes within section bar range — v1.8 Phase 47
+- ✓ RFNA-02: `apply_section_device_refinement` MCP tool — device param changes globally with automation guidance note — v1.8 Phase 47
+- ✓ RFNA-03: `refine_section(section_name, instruction)` MCP tool — end-to-end interpret + apply — v1.8 Phase 47
+
 ### Active
 
-None — v1.7 complete. Run `/gsd:new-milestone` to open the next milestone.
+None — v1.8 complete. Ready for v1.9.
 
 
 ### Out of Scope
@@ -64,11 +73,14 @@ None — v1.7 complete. Run `/gsd:new-milestone` to open the next milestone.
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
 
-## Current Milestone: None — v1.7 shipped, next milestone TBD
+## Current Milestone: None — v1.8 complete, v1.9 not yet started
 
-Run `/gsd:new-milestone` to define the next milestone.
+## Completed Milestone: v1.8 Iterative Refinement Protocol (shipped 2026-03-31)
+
+**Delivered:** Surgical section refinement — `get_section_state` reads everything built in a named arrangement section (clips, notes, device params); `interpret_section_refinement` maps aesthetic adjectives through a 22-entry lexicon to a `SectionRefinementPlan`; `apply_section_note_refinement` and `apply_section_device_refinement` apply changes to only the target section's clips; `refine_section` chains all steps in a single call. Two new RS commands (`transpose_arrangement_clip`, `modify_arrangement_clip_notes`) handle arrangement-view note editing that existing session-view commands can't reach.
 
 ## Completed Milestone: v1.7 Prompt Interpretation (shipped 2026-03-31)
+
 
 **Delivered:** Deterministic NLP layer — `interpret_prompt(text)` converts any music description into a structured `ProductionBrief` (tempo range, scale/mode, groove pattern, instrument hints, effect hints, velocity style, reasoning); `interpret_prompt_to_plan(text)` chains directly to `generate_production_plan` for one-call prompt→plan workflow.
 
@@ -101,7 +113,9 @@ Curated genre reference documents giving Claude consistent knowledge of 12 elect
 
 ## Current State
 
-**Milestone v1.7 complete** (2026-03-31) — Prompt Interpretation shipped
+**Milestone v1.8 in progress** (opened 2026-03-31) — Iterative Refinement Protocol
+
+**v1.7 complete** (2026-03-31) — Prompt Interpretation shipped
 
 - **Prompt interpretation**: `MCP_Server/prompt/` package — schema.py, lexicon.py, parser.py, deriver.py; 100 tests
 - **Self-evaluation**: `MCP_Server/evaluation/` package with 4 evaluators + `evaluate_session()` MCP tool; 40 tests
@@ -111,6 +125,7 @@ Curated genre reference documents giving Claude consistent knowledge of 12 elect
 - **154 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2 + 10 v1.3 + 14 v1.4 + 11 v1.5 + 9 v1.6 + 10 v1.7 = 154)
 - **12 genre mix recipes** with 9 roles each + master bus recipes (GlueCompressor + MultibandDynamics + Limiter)
 - **MCP tools**: `get_device_catalog`, `get_role_taxonomy`, `get_mix_recipe`, `apply_mix_recipe`, `apply_master_recipe`, `set_sidechain_source`, `get_mix_state`, `check_gain_staging`, `suggest_mix_adjustments`, `get_sound_recommendation`, `list_sound_descriptors`, `get_instrument_profile`, `evaluate_session`, `interpret_prompt`, `interpret_prompt_to_plan`
+- **v1.8 target tools** (pending): `get_section_state`, `interpret_section_refinement`, `refine_prompt`, `apply_section_note_refinement`, `apply_section_device_refinement`, `refine_section`
 
 ### Capabilities
 
@@ -191,4 +206,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-31 — v1.7 Prompt Interpretation shipped*
+*Last updated: 2026-03-31 — v1.8 Iterative Refinement Protocol opened*

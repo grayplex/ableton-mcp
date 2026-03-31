@@ -113,6 +113,182 @@ class ArrangementHandlers:
             self.log_message(f"Error getting arrangement clips: {e}")
             raise
 
+    @command("get_arrangement_clip_notes")
+    def _get_arrangement_clip_notes(self, params):
+        """Get MIDI notes from an arrangement clip identified by its start_time.
+
+        Params:
+            track_index: Index of the track.
+            clip_start_time: Beat position of the clip's start (float, 0-indexed).
+            track_type: "track", "return", or "master" (default "track").
+
+        Returns:
+            note_count, notes list with pitch, start_time, duration, velocity, mute.
+            Returns {"note_count": 0, "notes": []} if no clip found at that position.
+        """
+        track_index = params.get("track_index", 0)
+        clip_start_time = params.get("clip_start_time", 0.0)
+        track_type = params.get("track_type", "track")
+        TOLERANCE = 0.01
+
+        try:
+            track = _resolve_track(self._song, track_type, track_index)
+
+            # Find clip by start_time with tolerance
+            target_clip = None
+            for clip in track.arrangement_clips:
+                if abs(clip.start_time - clip_start_time) <= TOLERANCE:
+                    target_clip = clip
+                    break
+
+            if target_clip is None or target_clip.is_audio_clip:
+                return {"note_count": 0, "notes": []}
+
+            raw_notes = target_clip.get_notes_extended(0, 128, 0.0, target_clip.length)
+            notes = []
+            for note in raw_notes:
+                notes.append({
+                    "pitch": note.pitch,
+                    "start_time": note.start_time,
+                    "duration": note.duration,
+                    "velocity": note.velocity,
+                    "mute": bool(note.mute),
+                })
+            notes.sort(key=lambda n: (n["start_time"], n["pitch"]))
+            return {"note_count": len(notes), "notes": notes}
+        except Exception as e:
+            self.log_message(f"Error getting arrangement clip notes: {e}")
+            raise
+
+    @command("transpose_arrangement_clip", write=True)
+    def _transpose_arrangement_clip(self, params):
+        """Transpose all MIDI notes in an arrangement clip by semitones.
+
+        Params:
+            track_index: Index of the track.
+            clip_start_time: Beat position of clip start (float, 0-indexed).
+            semitones: Number of semitones to transpose (positive=up, negative=down).
+            track_type: "track", "return", or "master" (default "track").
+
+        Returns:
+            transposed_count, clip_name. Returns transposed_count=0 if clip not found.
+        """
+        import Live.Clip
+
+        track_index = params.get("track_index", 0)
+        clip_start_time = params.get("clip_start_time", 0.0)
+        semitones = params.get("semitones", 0)
+        track_type = params.get("track_type", "track")
+        TOLERANCE = 0.01
+
+        try:
+            track = _resolve_track(self._song, track_type, track_index)
+
+            target_clip = None
+            for clip in track.arrangement_clips:
+                if abs(clip.start_time - clip_start_time) <= TOLERANCE:
+                    target_clip = clip
+                    break
+
+            if target_clip is None or target_clip.is_audio_clip:
+                return {"transposed_count": 0, "clip_name": None}
+
+            raw_notes = target_clip.get_notes_extended(0, 128, 0.0, target_clip.length)
+
+            if not raw_notes:
+                return {"transposed_count": 0, "clip_name": target_clip.name}
+
+            # Validate before modifying
+            for note in raw_notes:
+                new_pitch = note.pitch + semitones
+                if new_pitch < 0 or new_pitch > 127:
+                    raise ValueError(
+                        f"Transposing pitch {note.pitch} by {semitones} semitones "
+                        f"results in {new_pitch}, outside MIDI range (0-127)"
+                    )
+
+            note_data = [
+                {
+                    "pitch": note.pitch + semitones,
+                    "start_time": note.start_time,
+                    "duration": note.duration,
+                    "velocity": note.velocity,
+                    "mute": bool(note.mute),
+                }
+                for note in raw_notes
+            ]
+
+            target_clip.remove_notes_extended(0, 128, 0.0, target_clip.length)
+            specs = tuple(
+                Live.Clip.MidiNoteSpecification(
+                    pitch=nd["pitch"],
+                    start_time=nd["start_time"],
+                    duration=nd["duration"],
+                    velocity=nd["velocity"],
+                    mute=nd["mute"],
+                )
+                for nd in note_data
+            )
+            target_clip.add_new_notes(specs)
+
+            return {"transposed_count": len(note_data), "clip_name": target_clip.name}
+        except Exception as e:
+            self.log_message(f"Error transposing arrangement clip: {e}")
+            raise
+
+    @command("modify_arrangement_clip_notes", write=True)
+    def _modify_arrangement_clip_notes(self, params):
+        """Replace notes in an arrangement clip using apply_note_modifications.
+
+        Params:
+            track_index: Index of the track.
+            clip_start_time: Beat position of clip start (float).
+            notes: List of {pitch, start_time, duration, velocity, mute} dicts.
+            track_type: "track", "return", or "master" (default "track").
+
+        Returns:
+            modified_count, clip_name.
+        """
+        import Live.Clip
+
+        track_index = params.get("track_index", 0)
+        clip_start_time = params.get("clip_start_time", 0.0)
+        notes = params.get("notes", [])
+        track_type = params.get("track_type", "track")
+        TOLERANCE = 0.01
+
+        try:
+            track = _resolve_track(self._song, track_type, track_index)
+
+            target_clip = None
+            for clip in track.arrangement_clips:
+                if abs(clip.start_time - clip_start_time) <= TOLERANCE:
+                    target_clip = clip
+                    break
+
+            if target_clip is None or target_clip.is_audio_clip:
+                return {"modified_count": 0, "clip_name": None}
+
+            note_specs = []
+            for n in notes:
+                pitch = max(0, min(127, int(n["pitch"])))
+                velocity = max(1, min(127, int(n.get("velocity", 80))))
+                spec = Live.Clip.MidiNoteSpecification(
+                    pitch=pitch,
+                    start_time=float(n["start_time"]),
+                    duration=float(n["duration"]),
+                    velocity=velocity,
+                    mute=bool(n.get("mute", False)),
+                )
+                note_specs.append(spec)
+
+            target_clip.apply_note_modifications(tuple(note_specs))
+
+            return {"modified_count": len(note_specs), "clip_name": target_clip.name}
+        except Exception as e:
+            self.log_message(f"Error modifying arrangement clip notes: {e}")
+            raise
+
     @command("duplicate_clip_to_arrangement", write=True)
     def _duplicate_clip_to_arrangement(self, params):
         """Copy a session clip to the arrangement at the specified time.
