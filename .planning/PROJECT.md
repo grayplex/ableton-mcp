@@ -59,17 +59,13 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
 
-## Current Milestone: v1.6 Self-evaluation
+## Current Milestone: None — v1.6 shipped, next milestone TBD
 
-**Goal:** Give Claude production self-awareness — evaluate the current Ableton session across four dimensions (mix balance, arrangement completeness, harmonic coherence, sound selection coverage), return a composite score with letter grade and a ranked issues list, then offer the top-priority fixes by name.
+Run `/gsd:new-milestone` to define the next milestone.
 
-**Target features:**
-- `MCP_Server/evaluation/` package with issue schema, score model (0-10 + letter grade), and per-dimension evaluator protocol
-- Mix balance evaluator — diffs current device state vs. role×genre recipe targets, flags deviations (builds on existing gain staging + mix adjustment tools)
-- Arrangement completeness evaluator — checks scaffold tracks have instruments + clips, flags empty or missing-instrument sections
-- Harmonic coherence evaluator — reads MIDI notes vs. session key/scale, flags out-of-key notes with position
-- Sound selection coverage evaluator — checks role-to-instrument match against sounds/ descriptor profiles
-- `evaluate_session()` MCP tool — single-call composite evaluation with SessionScore, per-dimension breakdown, all issues ranked by severity, and up to 3 top_fixes with the specific MCP tool call to resolve each
+## Completed Milestone: v1.6 Self-evaluation (shipped 2026-03-31)
+
+**Delivered:** Production self-evaluation — `evaluate_session(genre)` MCP tool evaluates mix balance, arrangement completeness, sound selection coverage, and harmonic coherence; returns composite score (0-10 + letter grade), ranked issues, and up to 3 `top_fixes` with specific MCP tool calls.
 
 ## Completed Milestone: v1.5 Sound Selection Intelligence (shipped 2026-03-31)
 
@@ -96,14 +92,15 @@ Curated genre reference documents giving Claude consistent knowledge of 12 elect
 
 ## Current State
 
-**Milestone v1.5 complete** (2026-03-31) — Sound Selection Intelligence shipped
+**Milestone v1.6 complete** (2026-03-31) — Self-evaluation shipped
 
-- **Sound selection**: sounds/ package with 6 instrument profiles (Wavetable, Analog, Operator, Drift, Simpler, Drum Rack) + weighted-sum scoring engine + 3 MCP tools
+- **Self-evaluation**: `MCP_Server/evaluation/` package with 4 evaluators + `evaluate_session()` MCP tool; 40 tests
+- **Sound selection**: sounds/ package with 6 instrument profiles + weighted-sum scoring engine + 3 MCP tools
 - **Mix/master intelligence**: 12-genre recipe system + apply tools + gain staging + adjustment suggestions
-- **~42,700 lines Python** total codebase
-- **127 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2 + 10 v1.3 + 14 v1.4 + 11 v1.5 partial — 9 confirmed shipped per ROADMAP)
+- **~46,500 lines Python** total codebase (estimated)
+- **136 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2 + 10 v1.3 + 14 v1.4 + 11 v1.5 + 9 v1.6 = 144 — see REQUIREMENTS archives)
 - **12 genre mix recipes** with 9 roles each + master bus recipes (GlueCompressor + MultibandDynamics + Limiter)
-- **MCP tools**: `get_device_catalog`, `get_role_taxonomy`, `get_mix_recipe`, `apply_mix_recipe`, `apply_master_recipe`, `set_sidechain_source`, `get_mix_state`, `check_gain_staging`, `suggest_mix_adjustments`, `get_sound_recommendation`, `list_sound_descriptors`, `get_instrument_profile`
+- **MCP tools**: `get_device_catalog`, `get_role_taxonomy`, `get_mix_recipe`, `apply_mix_recipe`, `apply_master_recipe`, `set_sidechain_source`, `get_mix_state`, `check_gain_staging`, `suggest_mix_adjustments`, `get_sound_recommendation`, `list_sound_descriptors`, `get_instrument_profile`, `evaluate_session`
 
 ### Capabilities
 
@@ -184,4 +181,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-31 — v1.6 Self-evaluation milestone started*
+*Last updated: 2026-03-31 — v1.6 Self-evaluation shipped*

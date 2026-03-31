@@ -49,48 +49,16 @@ See `.planning/milestones/v1.3-ROADMAP.md` for full phase details.
 - [x] **Phase 37: Descriptor Taxonomy and Scoring Engine** - Weighted sum scoring in catalog.py, descriptor tag vocabulary, list_sound_descriptors MCP tool (completed 2026-03-31)
 - [x] **Phase 38: Recommendation Tools and Registration** - get_sound_recommendation and get_instrument_profile MCP tools, tools/__init__.py registration, pyproject.toml update (completed 2026-03-31)
 
-### v1.6 Self-evaluation -- SHIPPED 2026-03-31
+<details>
+<summary>v1.6 Self-evaluation (Phases 39-41) -- SHIPPED 2026-03-31</summary>
 
-**Milestone Goal:** Give Claude production self-awareness — evaluate the current Ableton session across four dimensions (mix balance, arrangement completeness, harmonic coherence, sound selection coverage), return a composite score with letter grade and ranked issues, and offer the top-priority fixes by name.
+- [x] Phase 39: Evaluation Framework and Mix Balance Evaluator (1/1 plans) -- completed 2026-03-31
+- [x] Phase 40: Arrangement, Sound Selection, and Harmonic Evaluators (1/1 plans) -- completed 2026-03-31
+- [x] Phase 41: evaluate_session() Tool and Fix Offer Workflow (1/1 plans) -- completed 2026-03-31
 
-- [x] **Phase 39: Evaluation Framework and Mix Balance Evaluator** - `MCP_Server/evaluation/` package with issue schema, score model, dimension protocol; mix balance evaluator wrapping check_gain_staging + suggest_mix_adjustments (completed 2026-03-31)
-- [x] **Phase 40: Arrangement, Sound Selection, and Harmonic Evaluators** - Arrangement completeness, sound selection coverage, and harmonic coherence evaluators (completed 2026-03-31)
-- [x] **Phase 41: evaluate_session() Tool and Fix Offer Workflow** - Composite evaluate_session() MCP tool, SessionScore, top_fixes list, registration in tools/__init__.py (completed 2026-03-31)
+See `.planning/milestones/v1.6-ROADMAP.md` for full phase details.
 
-## Phase Details
-
-### Phase 39: Evaluation Framework and Mix Balance Evaluator
-**Goal**: The `MCP_Server/evaluation/` package exists with a working issue schema, score model, and dimension protocol; the mix balance evaluator runs against a live session and returns a populated DimensionScore
-**Depends on**: Nothing (first phase of v1.6)
-**Requirements**: EVAL-01, EVAL-02, MIX-01, MIX-02
-**Success Criteria** (what must be TRUE):
-  1. `MCP_Server/evaluation/` package exists with `__init__.py`, `schema.py` (issue schema + score model), and `mix_balance.py` (mix balance evaluator)
-  2. `EvaluationIssue` carries dimension, severity (critical/warning/info), message, and fix_hint; `DimensionScore` carries name, score 0-10, letter grade, and issues list; `SessionScore` carries composite score, letter grade, and per-dimension breakdown
-  3. Mix balance evaluator reads current mix state and compares device parameters against role×genre recipe targets; tracks with >threshold deviation produce EvaluationIssue entries with severity proportional to the magnitude
-  4. Mix balance evaluator returns a `DimensionScore` with score 0-10 derived from in-range parameter percentage + gain staging deviations included as issues
-**Plans**: TBD
-
-### Phase 40: Arrangement, Sound Selection, and Harmonic Evaluators
-**Goal**: All three remaining evaluators are implemented and unit-tested; each returns a populated DimensionScore from live session data
-**Depends on**: Phase 39
-**Requirements**: ARNG-01, SND-01, HARM-01
-**Success Criteria** (what must be TRUE):
-  1. `arrangement.py` evaluator checks scaffold tracks for loaded instruments + placed clips; tracks missing instruments flagged as critical, tracks with instruments but no clips flagged as warnings
-  2. `sounds_coverage.py` evaluator maps each track's role tag to the sounds/ descriptor profile and flags role-instrument mismatches as warnings
-  3. `harmonic.py` evaluator reads MIDI clip notes, compares against session key/scale from `get_session_info`, and flags out-of-key notes with clip name, bar position, and MIDI note number
-  4. All three evaluators return a `DimensionScore` with issues correctly populated; unit tests cover empty-session, all-pass, and all-fail cases for each
-**Plans**: TBD
-
-### Phase 41: evaluate_session() Tool and Fix Offer Workflow
-**Goal**: Claude can call a single `evaluate_session()` MCP tool and receive a complete SessionScore with top_fixes — completing the full self-evaluation loop
-**Depends on**: Phase 40
-**Requirements**: SESS-01, SESS-02
-**Success Criteria** (what must be TRUE):
-  1. `evaluate_session()` MCP tool runs all four evaluators in sequence and returns a `SessionScore` with composite score (0-10), composite letter grade, and per-dimension DimensionScore breakdown
-  2. All issues from all dimensions are merged and ranked in the response — critical issues first, then warnings, then info
-  3. Response includes `top_fixes` — up to 3 highest-severity issues each annotated with the specific MCP tool name and suggested arguments that directly resolves it
-  4. `evaluate_session` is registered in `tools/__init__.py` and appears in the MCP tool listing; `MCP_Server.evaluation` is in `pyproject.toml` packages list
-**Plans**: TBD
+</details>
 
 ## Phase Details (Archived)
 
