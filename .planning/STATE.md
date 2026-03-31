@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Sound Selection Intelligence
 status: Ready to plan
-stopped_at: Completed 35-02-PLAN.md
-last_updated: "2026-03-31T13:09:19.334Z"
+stopped_at: Completed 36-CONTEXT.md
+last_updated: "2026-03-31T13:15:00.000Z"
 progress:
   total_phases: 4
   completed_phases: 1
@@ -19,7 +19,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** An AI assistant can produce actual music in Ableton -- with sound selection intelligence that eliminates instrument fumbling.
-**Current focus:** Phase 35 — package-skeleton-and-first-profile
+**Current focus:** Phase 36 — instrument-profile-authoring
 
 ## Current Position
 
@@ -63,6 +63,8 @@ Recent decisions affecting current work:
 - [Research]: sounds/ package mirrors genres/ and mixing/ patterns (pkgutil auto-discovery)
 - [Phase 35]: sounds/ package clones genres/ auto-discovery pattern (pkgutil + alias normalization)
 - [Phase 35]: D-06 applied: Ableton unavailable, kept assumed browser path Instruments/Wavetable for validation in Phase 36
+- [Phase 36]: All 5 instrument browser roots assumed (Analog/Operator/Drift/Simpler/Drum Rack follow Instruments/Name pattern); live validation in Plan 02
+- [Phase 36]: Drum Rack root assumed as "Instruments/Drum Rack" -- highest-uncertainty path, Plan 02 confirms
 
 ### Roadmap Evolution
 
@@ -79,8 +81,8 @@ None.
 
 ### Blockers/Concerns
 
-- Browser path validation requires live Ableton session -- Phase 35 cannot fully complete without it
-- Drum Rack browser root (`drums/` vs `instruments/Drum Rack`) needs live confirmation in Phase 36
+- Browser path validation for all 5 new profiles requires live Ableton session -- Phase 36 Plan 02 is the checkpoint
+- Drum Rack browser root ("Instruments/Drum Rack") is assumed -- highest uncertainty, Plan 02 must confirm
 
 ## Session Continuity
 
