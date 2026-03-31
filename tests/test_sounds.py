@@ -380,3 +380,29 @@ class TestListDescriptors:
             f"Differentiation gate failed: only {len(top_ids)} distinct instruments "
             f"appear as top-1 across all single-tag queries: {top_ids}"
         )
+
+
+# ---------------------------------------------------------------------------
+# MCP tool registration checks
+# ---------------------------------------------------------------------------
+
+
+class TestMCPTools:
+    """Verify all three sound MCP tools are importable and callable."""
+
+    def test_get_sound_recommendation_importable(self):
+        """get_sound_recommendation can be imported from MCP_Server.tools.sounds and is callable."""
+        from MCP_Server.tools.sounds import get_sound_recommendation  # noqa: PLC0415
+        assert callable(get_sound_recommendation)
+
+    def test_get_instrument_profile_importable(self):
+        """get_instrument_profile can be imported from MCP_Server.tools.sounds and is callable."""
+        from MCP_Server.tools.sounds import get_instrument_profile  # noqa: PLC0415
+        assert callable(get_instrument_profile)
+
+    def test_all_three_tools_in_sounds_module(self):
+        """dir() of MCP_Server.tools.sounds includes all three tool names."""
+        import MCP_Server.tools.sounds as sounds_module  # noqa: PLC0415
+        module_names = dir(sounds_module)
+        for tool_name in ("list_sound_descriptors", "get_sound_recommendation", "get_instrument_profile"):
+            assert tool_name in module_names, f"Missing tool in sounds module: {tool_name}"
