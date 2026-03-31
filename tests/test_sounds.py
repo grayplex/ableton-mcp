@@ -3,6 +3,7 @@
 import pytest
 
 from MCP_Server.sounds import get_profile, list_profiles
+from MCP_Server.sounds.catalog import recommend, list_descriptors
 
 
 class TestAutoDiscovery:
@@ -239,3 +240,143 @@ class TestAllSixProfiles:
         assert profile is not None, f"Profile not found: {profile_id}"
         root = profile["browser"]["root"]
         assert isinstance(root, str) and len(root) > 0, f"Profile '{profile_id}' has empty browser root"
+
+
+# ---------------------------------------------------------------------------
+# Scoring engine: recommend() and list_descriptors()
+# ---------------------------------------------------------------------------
+
+
+class TestRecommend:
+    """Verify recommend() returns correct top-scoring instrument dicts."""
+
+    def test_warm_pad_returns_wavetable(self):
+        """recommend('warm pad') returns dict with id='wavetable'.
+
+        wavetable: pad=0.95 + warm=0.7 = 1.65
+        analog:    pad=0.55 + warm=0.9 = 1.45
+        wavetable wins.
+        """
+        result = recommend("warm pad")
+        assert result is not None
+        assert result["id"] == "wavetable"
+
+    def test_punchy_kick_returns_drum_rack(self):
+        """recommend('punchy kick') returns dict with id='drum_rack'.
+
+        drum_rack: kick=0.95 + punchy=0.95 = 1.90 — no competition.
+        """
+        result = recommend("punchy kick")
+        assert result is not None
+        assert result["id"] == "drum_rack"
+
+    def test_result_has_required_keys(self):
+        """Result dict has keys: id, name, score, browser_path, category_hint, reasoning."""
+        result = recommend("warm pad")
+        assert result is not None
+        for key in ("id", "name", "score", "browser_path", "category_hint", "reasoning"):
+            assert key in result, f"Missing required key: {key}"
+
+    def test_browser_path_is_root(self):
+        """result['browser_path'] equals the profile's browser['root']."""
+        result = recommend("warm pad")
+        assert result is not None
+        profile = get_profile(result["id"])
+        assert profile is not None
+        assert result["browser_path"] == profile["browser"]["root"]
+
+    def test_reasoning_is_string(self):
+        """result['reasoning'] is a non-empty string mentioning the descriptor."""
+        result = recommend("warm pad")
+        assert result is not None
+        assert isinstance(result["reasoning"], str)
+        assert len(result["reasoning"]) > 0
+        assert "warm pad" in result["reasoning"]
+
+    def test_score_is_positive_float(self):
+        """result['score'] is a float > 0."""
+        result = recommend("warm pad")
+        assert result is not None
+        assert isinstance(result["score"], float)
+        assert result["score"] > 0.0
+
+    def test_unknown_descriptor_returns_none(self):
+        """recommend('zzzunknown_xyz') returns None."""
+        assert recommend("zzzunknown_xyz") is None
+
+    def test_empty_descriptor_returns_none(self):
+        """recommend('') returns None — empty tokens, all score 0."""
+        assert recommend("") is None
+
+    def test_single_role_tag_kick(self):
+        """recommend('kick') returns dict with id='drum_rack'."""
+        result = recommend("kick")
+        assert result is not None
+        assert result["id"] == "drum_rack"
+
+    def test_single_character_tag_lush(self):
+        """recommend('lush') returns dict with id='wavetable' — only wavetable has lush=0.9."""
+        result = recommend("lush")
+        assert result is not None
+        assert result["id"] == "wavetable"
+
+    def test_single_tag_organic(self):
+        """recommend('organic') returns dict with id='simpler' — only simpler has organic."""
+        result = recommend("organic")
+        assert result is not None
+        assert result["id"] == "simpler"
+
+
+class TestListDescriptors:
+    """Verify list_descriptors() returns correct vocabulary grouped by axis."""
+
+    def test_returns_dict_with_two_axes(self):
+        """list_descriptors() returns dict with keys 'role' and 'character'."""
+        result = list_descriptors()
+        assert isinstance(result, dict)
+        assert "role" in result
+        assert "character" in result
+
+    def test_role_contains_percussion(self):
+        """result['role'] contains 'kick', 'snare', 'hihat'."""
+        result = list_descriptors()
+        for tag in ("kick", "snare", "hihat"):
+            assert tag in result["role"], f"Missing percussion role tag: {tag}"
+
+    def test_role_contains_melodic(self):
+        """result['role'] contains 'bass', 'lead', 'pad', 'keys'."""
+        result = list_descriptors()
+        for tag in ("bass", "lead", "pad", "keys"):
+            assert tag in result["role"], f"Missing melodic role tag: {tag}"
+
+    def test_character_contains_common_tags(self):
+        """result['character'] contains common tags: warm, bright, dark, evolving, punchy, aggressive."""
+        result = list_descriptors()
+        for tag in ("warm", "bright", "dark", "evolving", "punchy", "aggressive"):
+            assert tag in result["character"], f"Missing common character tag: {tag}"
+
+    def test_character_contains_unique_tags(self):
+        """result['character'] contains lush (wavetable-only), organic (simpler-only), tight (drum_rack-only)."""
+        result = list_descriptors()
+        for tag in ("lush", "organic", "tight"):
+            assert tag in result["character"], f"Missing unique character tag: {tag}"
+
+    def test_lists_are_sorted(self):
+        """Both role and character lists are sorted alphabetically."""
+        result = list_descriptors()
+        assert result["role"] == sorted(result["role"]), "role list is not sorted"
+        assert result["character"] == sorted(result["character"]), "character list is not sorted"
+
+    def test_differentiation_gate(self):
+        """At least 4 different instrument ids appear as top-1 across single-tag queries (D-13)."""
+        result = list_descriptors()
+        all_tags = result["role"] + result["character"]
+        top_ids = set()
+        for tag in all_tags:
+            r = recommend(tag)
+            if r is not None:
+                top_ids.add(r["id"])
+        assert len(top_ids) >= 4, (
+            f"Differentiation gate failed: only {len(top_ids)} distinct instruments "
+            f"appear as top-1 across all single-tag queries: {top_ids}"
+        )
