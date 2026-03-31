@@ -429,3 +429,356 @@ def refine_prompt(ctx: Context, brief: dict, refinement_text: str) -> str:
     updated["reasoning"] = reasoning
 
     return json.dumps({"brief": updated, "diff": diff})
+
+
+# ---------------------------------------------------------------------------
+# Phase 47 helpers
+# ---------------------------------------------------------------------------
+
+def _find_track_index(arrangement_tracks: list, track_name: str):
+    """Find track index by case-insensitive substring match."""
+    name_lower = track_name.lower()
+    for t in arrangement_tracks:
+        if name_lower in t["name"].lower():
+            return t["index"]
+    return None
+
+
+def _find_device_index(mix_state_track: dict, class_name: str):
+    """Find device index by class_name match in mix state track."""
+    for d in mix_state_track.get("devices", []):
+        if d.get("class_name") == class_name:
+            return d.get("index")
+    return None
+
+
+@mcp.tool()
+def apply_section_note_refinement(
+    ctx: Context,
+    section_name: str,
+    track_name: str,
+    semitone_shift: int = 0,
+    density_delta: int = 0,
+    scale_substitutions: list = None,
+    velocity_shift: int = 0,
+) -> str:
+    """Apply note-level changes to arrangement clips for one track within a section.
+
+    Only clips whose start_time falls within the section's bar range are modified.
+    Clips outside the section range are untouched. Audio clips are skipped.
+
+    Operations are applied in order: transpose first, then scale substitutions +
+    velocity shift + density changes in a single modify call.
+
+    Args:
+        section_name: Named arrangement section (matches locator, case-insensitive)
+        track_name: Track name to modify (case-insensitive substring match)
+        semitone_shift: Semitones to transpose all notes (0 = no change)
+        density_delta: +1 duplicate notes, -1 halve notes, 0 = no change
+        scale_substitutions: List of {from_pitch_class, to_pitch_class} dicts
+        velocity_shift: +/- MIDI velocity adjustment (0 = no change)
+    """
+    if scale_substitutions is None:
+        scale_substitutions = []
+
+    conn = get_ableton_connection()
+    arrangement_state = conn.send_command("get_arrangement_state", {})
+    cue_points = arrangement_state.get("cue_points", [])
+    sig_num = arrangement_state.get("signature_numerator", 4)
+    sig_den = arrangement_state.get("signature_denominator", 4)
+    song_length = arrangement_state.get("song_length", 0.0)
+    arrangement_tracks = arrangement_state.get("tracks", [])
+    beats_per_bar = sig_num * (4.0 / sig_den)
+
+    # Find section beat range
+    section_name_lower = section_name.lower()
+    locator_index = None
+    for i, cp in enumerate(cue_points):
+        if cp.get("name", "").lower() == section_name_lower:
+            locator_index = i
+            break
+
+    if locator_index is None:
+        return json.dumps({
+            "clips_modified": 0, "notes_modified": 0,
+            "track": track_name, "section": section_name,
+            "error": f"Section '{section_name}' not found",
+        })
+
+    section_start_beat = cue_points[locator_index]["time"]
+    section_end_beat = (
+        cue_points[locator_index + 1]["time"]
+        if locator_index + 1 < len(cue_points)
+        else song_length
+    )
+
+    track_index = _find_track_index(arrangement_tracks, track_name)
+    if track_index is None:
+        return json.dumps({
+            "clips_modified": 0, "notes_modified": 0,
+            "track": track_name, "section": section_name,
+            "error": f"Track '{track_name}' not found",
+        })
+
+    clips_result = conn.send_command("get_arrangement_clips", {"track_index": track_index})
+    all_clips = clips_result.get("clips", [])
+    section_clips = [
+        c for c in all_clips
+        if section_start_beat <= c["start_time"] < section_end_beat
+        and not c.get("is_audio_clip", False)
+    ]
+
+    clips_modified = 0
+    notes_modified = 0
+
+    for clip in section_clips:
+        clip_start = clip["start_time"]
+
+        if semitone_shift != 0:
+            result = conn.send_command("transpose_arrangement_clip", {
+                "track_index": track_index,
+                "clip_start_time": clip_start,
+                "semitones": semitone_shift,
+            })
+            notes_modified += result.get("transposed_count", 0)
+
+        needs_modify = scale_substitutions or velocity_shift != 0 or density_delta != 0
+        if needs_modify:
+            notes_result = conn.send_command("get_arrangement_clip_notes", {
+                "track_index": track_index,
+                "clip_start_time": clip_start,
+            })
+            current_notes = notes_result.get("notes", [])
+
+            # Apply scale substitutions
+            if scale_substitutions:
+                sub_map = {s["from_pitch_class"]: s["to_pitch_class"] for s in scale_substitutions}
+                new_notes = []
+                for n in current_notes:
+                    pc = n["pitch"] % 12
+                    if pc in sub_map:
+                        delta = sub_map[pc] - pc
+                        new_pitch = max(0, min(127, n["pitch"] + delta))
+                        new_notes.append({**n, "pitch": new_pitch})
+                    else:
+                        new_notes.append(n)
+                current_notes = new_notes
+
+            # Apply velocity shift
+            if velocity_shift != 0:
+                current_notes = [
+                    {**n, "velocity": max(1, min(127, n["velocity"] + velocity_shift))}
+                    for n in current_notes
+                ]
+
+            # Apply density delta
+            if density_delta == -1 and current_notes:
+                current_notes = sorted(current_notes, key=lambda n: n["start_time"])
+                current_notes = current_notes[::2]  # keep every other note
+            elif density_delta == 1 and current_notes:
+                doubles = []
+                for n in current_notes:
+                    doubles.append({
+                        **n,
+                        "start_time": n["start_time"] + n["duration"] / 2,
+                        "velocity": max(1, n["velocity"] // 2),
+                    })
+                current_notes = current_notes + doubles
+
+            if current_notes:
+                mod_result = conn.send_command("modify_arrangement_clip_notes", {
+                    "track_index": track_index,
+                    "clip_start_time": clip_start,
+                    "notes": current_notes,
+                })
+                notes_modified += mod_result.get("modified_count", 0)
+
+        clips_modified += 1
+
+    return json.dumps({
+        "clips_modified": clips_modified,
+        "notes_modified": notes_modified,
+        "track": track_name,
+        "section": section_name,
+    })
+
+
+@mcp.tool()
+def apply_section_device_refinement(
+    ctx: Context,
+    section_name: str,
+    track_name: str,
+    param_targets: dict,
+    write_automation: bool = False,
+) -> str:
+    """Apply device parameter changes to a track in a named section.
+
+    param_targets format: {device_class_name: {param_name: normalized_float}}
+    Example: {"AutoFilter": {"Frequency": 0.35}, "Compressor2": {"Threshold": 0.4}}
+
+    When write_automation=False (default): applies changes globally to the track
+    (affects all sections). Use for quick iteration.
+
+    When write_automation=True: applies the same global change and returns a note
+    explaining that per-section automation requires Ableton's arrangement recording.
+
+    Args:
+        section_name: Named arrangement section (for context, not filtering)
+        track_name: Track name (case-insensitive substring match)
+        param_targets: {device_class_name: {param_name: normalized_value}} dict
+        write_automation: If True, adds guidance note about automation scoping
+    """
+    conn = get_ableton_connection()
+    arrangement_state = conn.send_command("get_arrangement_state", {})
+    arrangement_tracks = arrangement_state.get("tracks", [])
+    track_index = _find_track_index(arrangement_tracks, track_name)
+
+    if track_index is None:
+        return json.dumps({
+            "track": track_name, "section": section_name,
+            "devices_modified": 0, "params_set": [],
+            "error": f"Track '{track_name}' not found",
+        })
+
+    mix_state = conn.send_command("get_mix_state", {})
+    mix_track = _find_track(mix_state, track_name)
+
+    params_set = []
+    skipped_devices = []
+    devices_modified = 0
+
+    for class_name, params_dict in param_targets.items():
+        if mix_track is None:
+            skipped_devices.append(class_name)
+            continue
+
+        device_index = _find_device_index(mix_track, class_name)
+        if device_index is None:
+            skipped_devices.append(class_name)
+            continue
+
+        result = conn.send_command("set_device_parameters", {
+            "track_index": track_index,
+            "device_index": device_index,
+            "parameters": params_dict,
+        })
+
+        for param_name, value in params_dict.items():
+            params_set.append({
+                "device": class_name,
+                "param": param_name,
+                "value": value,
+            })
+        devices_modified += 1
+
+    response = {
+        "track": track_name,
+        "section": section_name,
+        "devices_modified": devices_modified,
+        "params_set": params_set,
+    }
+    if write_automation:
+        response["note"] = (
+            "write_automation=True: parameters applied globally to track — "
+            "for per-section automation, arm the track, enable arrangement overdub, "
+            "and record parameter changes during playback"
+        )
+    if skipped_devices:
+        response["skipped_devices"] = skipped_devices
+
+    return json.dumps(response)
+
+
+@mcp.tool()
+def refine_section(
+    ctx: Context,
+    section_name: str,
+    instruction: str,
+    genre: str = None,
+    write_automation: bool = False,
+) -> str:
+    """Interpret a refinement instruction and apply it to a named section end-to-end.
+
+    Single-call workflow: reads section state → interprets instruction → applies
+    note changes (transpose, scale substitutions) → applies device changes → returns
+    a plain-English summary of exactly what changed.
+
+    Use interpret_section_refinement() first if you want to preview changes before
+    applying them.
+
+    Args:
+        section_name: Named arrangement section (case-insensitive locator match)
+        instruction: Refinement instruction ("make it darker", "add more swing", "higher")
+        genre: Optional genre for recipe context during interpretation
+        write_automation: Passed to apply_section_device_refinement
+    """
+    conn = get_ableton_connection()
+    plan = build_section_refinement_plan(section_name, instruction, conn)
+
+    if not plan["tracks"]:
+        return json.dumps({
+            "section": section_name,
+            "instruction": instruction,
+            "tracks_modified": 0,
+            "note_changes": [],
+            "device_changes": [],
+            "reasoning": plan["reasoning"],
+        })
+
+    note_changes = []
+    device_changes = []
+    tracks_with_changes = set()
+
+    for entry in plan["tracks"]:
+        track_name = entry["track_name"]
+        note_op = entry["note_operation"]
+
+        has_note_op = (
+            note_op["semitone_shift"] != 0
+            or note_op["scale_substitutions"]
+            or note_op["velocity_shift"] != 0
+            or note_op["density_delta"] != 0
+        )
+        if has_note_op:
+            note_result_str = apply_section_note_refinement(
+                ctx,
+                section_name,
+                track_name,
+                semitone_shift=note_op["semitone_shift"],
+                density_delta=note_op["density_delta"],
+                scale_substitutions=note_op["scale_substitutions"],
+                velocity_shift=note_op["velocity_shift"],
+            )
+            note_result = json.loads(note_result_str)
+            note_changes.append(note_result)
+            if note_result.get("clips_modified", 0) > 0:
+                tracks_with_changes.add(track_name)
+
+        if entry["device_changes"]:
+            param_targets = {}
+            for dc in entry["device_changes"]:
+                class_name = dc["class_name"]
+                if class_name not in param_targets:
+                    param_targets[class_name] = {}
+                param_targets[class_name][dc["param_name"]] = dc["target_normalized"]
+
+            dev_result_str = apply_section_device_refinement(
+                ctx,
+                section_name,
+                track_name,
+                param_targets,
+                write_automation=write_automation,
+            )
+            dev_result = json.loads(dev_result_str)
+            device_changes.append(dev_result)
+            if dev_result.get("devices_modified", 0) > 0:
+                tracks_with_changes.add(track_name)
+
+    return json.dumps({
+        "section": section_name,
+        "instruction": instruction,
+        "tracks_modified": len(tracks_with_changes),
+        "note_changes": note_changes,
+        "device_changes": device_changes,
+        "reasoning": plan["reasoning"],
+    })
