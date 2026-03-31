@@ -1,214 +1,179 @@
 # Project Research Summary
 
-**Project:** Ableton MCP v1.4 — Mix/Master Intelligence
-**Domain:** AI-assisted mixing and mastering for electronic music production via Ableton Live MCP
-**Researched:** 2026-03-28
-**Confidence:** HIGH (stack and architecture confirmed via codebase inspection; feature conventions HIGH from domain sources; specific parameter values LOW — require live Ableton validation)
+**Project:** Ableton MCP — Sound Selection Intelligence (v1.5)
+**Domain:** AI-driven instrument/preset recommendation layer for Ableton Live MCP server
+**Researched:** 2026-03-30
+**Confidence:** HIGH
 
 ## Executive Summary
 
-Ableton MCP v1.4 adds a mix/master intelligence layer on top of a working 181-command MCP server. The approach is to build a new `MCP_Server/mixing/` package — a peer to the existing `genres/` and `theory/` packages — containing a static device parameter catalog, role x genre mix recipes, and a recipe engine. This follows proven patterns already in the codebase and requires zero new Python package dependencies. The headline feature is an `apply_mix_recipe` tool that applies genre-appropriate mixing chains (EQ, compression, sends, volume targets) to Ableton tracks in a single MCP call, replacing the current need for Claude to issue 10-30+ sequential tool calls to achieve the same result.
+v1.5 adds an instrument recommendation system to the Ableton MCP server. The feature takes text descriptors like "warm pad" or "punchy kick" and maps them to one of the 6 native Ableton instruments (Wavetable, Analog, Operator, Drift, Simpler, Drum Rack) with a browser path that lets Claude navigate to appropriate presets. This is pure authored data plus Python stdlib logic — no new dependencies are required. The codebase already has a proven pattern for this kind of feature in `genres/` and `mixing/`, and v1.5 follows that pattern exactly: a new peer package (`sounds/`) with one file per instrument, a catalog with pkgutil auto-discovery, a weighted scoring engine, and a thin tool wrapper exposing 3 MCP tools.
 
-The recommended build order is: device parameter catalog first (the foundation that everything depends on), followed by role taxonomy and core mix recipes for 4 genres, then the apply-recipe tool and gain staging check, then master bus recipes and tools, and finally the "suggest adjustments" intelligence layer and recipe expansion to all 12 genres. This sequence respects hard dependencies — recipes cannot be authored without a validated parameter catalog, and the suggest-adjustments diff engine cannot work without the recipe and state-reader layers beneath it.
+The recommended approach is a two-axis descriptor system (role + character) with weighted affinity scores on each instrument profile. When Claude calls `get_sound_recommendation("warm evolving pad")`, the catalog tokenizes the string, looks up per-tag affinity weights across all 6 instrument profiles, and returns the top-ranked match with a browser path and one-line reasoning. This is transparent, deterministic, and debuggable with zero ML dependencies. The `list_sound_descriptors` tool gives Claude the exact valid vocabulary, eliminating any fuzzy-matching requirement.
 
-The most serious risk in this milestone is parameter name and value mismatch: Ableton's LOM uses internal parameter naming conventions that differ from GUI labels (e.g., `"1 Frequency A"` not `"Frequency"`), and many parameters store normalized floats rather than natural units (e.g., EQ frequency is 0.0-1.0, not 20-20000 Hz). Every part of this milestone depends on getting the catalog right from a live Ableton session query, not hand-authored from documentation. Two features originally scoped — LUFS metering and Spectrum frequency analysis — are architecturally impossible via the LOM and must be dropped from v1.4 scope.
+The single highest-risk area is browser path correctness. Ableton's browser has two distinct roots (`instruments/` and `sounds/`) that are easy to confuse, and authored paths must be validated against a live Ableton session before all 6 profiles are written. Every other risk — descriptor taxonomy overlap, genre coupling creep, auto-discovery misconfiguration — is caught early by the Phase 1 build order (data layer first, schema locked before profiles are authored).
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new pip dependencies are needed for v1.4. All new functionality is pure Python data structures (dicts, TypedDicts) layered on top of the existing stack: Python 3.11 (Remote Script), Python >=3.10 (MCP Server), FastMCP >=1.3.0, music21 >=9.0, and the localhost:9877 TCP socket IPC. The only new Remote Script addition is a `get_track_meters` handler for reading `track.output_meter_level/left/right`, which enables gain staging checks without any new libraries.
+v1.5 requires no new runtime dependencies. The implementation uses Python stdlib (`pkgutil`, `importlib`, `json`, `copy`, `logging`) and the existing `mcp[cli] >= 1.3.0` package for tool registration. The only project-level change needed is adding `MCP_Server.sounds` to the `packages` list in `pyproject.toml`, and adding a `sounds` import line to `MCP_Server/tools/__init__.py`.
 
-**Core technologies (unchanged):**
-- Python dicts + TypedDict: device catalog and mix recipes — same proven pattern as genre blueprints, no external library exists for this domain
-- Existing `set_device_parameter` / `get_device_parameters` handlers: sufficient for recipe application (with batch wrapper)
-- `mixer_helpers.py` extension: add `_from_db()` inverse and `_meter_to_db()` for target-based gain staging
-- LOM `track.output_meter_level/left/right`: gain staging feedback, available without new deps
+Fuzzy-matching libraries (`thefuzz`, `rapidfuzz`) and ML embedding libraries (`sentence-transformers`, `scikit-learn`) are explicitly ruled out. They solve a problem that does not exist: Claude picks descriptors from `list_sound_descriptors` output, so there is no free-text approximation scenario. Alias normalization (`lower().strip().replace(" ", "_")`) plus exact-match dict lookup is correct and sufficient.
 
-**Explicitly dropped from scope:**
-- pyloudnorm: requires raw audio samples (NumPy arrays) — MCP Server and Remote Script have no audio buffer access; LUFS measurement is architecturally impossible
-- Spectrum frequency data: LOM exposes only Spectrum device control parameters, not the frequency bin display data; visual-only device
+**Core technologies:**
+- Python stdlib (`pkgutil`, `importlib`): auto-discovery of instrument profile modules — same pattern as `genres/` and `mixing/`
+- FastMCP (`mcp[cli] >= 1.3.0`): register 3 new `@mcp.tool()` functions — no version change needed
+- Plain Python dicts: instrument profile data format — established project convention (D-01/D-02)
 
 ### Expected Features
 
+All v1.5 deliverables are P1 (table stakes). There are no differentiators that require effort beyond the core spec — the two-axis descriptor system and reasoning output are part of the baseline feature, not optional enhancements.
+
 **Must have (table stakes):**
-- Device parameter catalog (F1) — foundation for all recipes; without validated API names, every recipe fails
-- Role taxonomy (F2) — lightweight canonical grouping; organizes recipe lookup
-- Role x genre mix recipes for 4 core genres: house, techno, ambient, DnB (F3) — the core value proposition
-- Apply recipe tool (F4) — single-call mixing; eliminates 10-30 sequential tool calls per track
-- Gain staging check (F6) — reads track volumes, flags outliers vs. targets; foundational for any mix assessment
-- Master bus recipes, 12 genres (F8) — mastering is inseparable from mixing in electronic music
-- Master bus apply tool (F9) — thin wrapper over F4 targeting master track
+- `get_sound_recommendation(descriptor)` returning instrument name, browser path, and one-line reasoning — core promise; without it Claude fumbles randomly through the browser
+- `list_sound_descriptors()` returning all valid tags grouped by role — required for Claude discoverability
+- `get_instrument_profile(instrument)` returning full character doc — reasoning substrate for recommendations
+- Instrument profiles for all 6 native instruments (Wavetable, Analog, Operator, Drift, Simpler, Drum Rack) — incomplete coverage silently fails whole sound categories
+- Browser category paths validated against a live Ableton session — unvalidated paths are the highest-risk failure mode
 
 **Should have (differentiators):**
-- Device state reader / batch get (F5) — collapses 48 individual `get_device_parameters` calls to 1 for a 16-track session
-- Suggest adjustments with reasoning (F7) — reads current state, diffs against recipe, explains each suggestion; the "AI mixing engineer" feature
-- Mix recipe expansion to all 12 genres (F3 remainder) — completion of the data surface
+- Two-axis descriptor system (role + character), e.g., "warm pad" vs "bright pad" vs "dark pad" — key value-add over manual browsing
+- Instrument `weaknesses` in profiles — negative guidance prevents bad recommendations (e.g., "Drift is poor for metallic FM textures — use Operator instead")
+- Grouped descriptor output from `list_sound_descriptors` — prevents Claude from guessing when the descriptor list is long
 
-**Defer to v1.5+:**
-- Section-aware mixing — requires automation infrastructure not present until v1.5
-- Frequency conflict detection — needs audio analysis or sophisticated heuristics beyond LOM access
-- Sidechain routing automation — basic sidechain params belong in recipes, but full routing automation is complex and session-dependent
-- LUFS / Spectrum analysis — architecturally impossible via LOM
+**Defer (v2+):**
+- Genre-aware recommendations (descriptor + genre context) — combinatorial explosion; separation of concerns favors descriptor-only now
+- Third-party plugin profiles — scope limited to 6 native instruments
+- Preset-level descriptions — too many presets, stale across Ableton updates
+- Audio-analysis-based matching — requires audio streaming, fundamentally different architecture not compatible with MCP protocol
 
 ### Architecture Approach
 
-The `mixing/` package integrates as a peer to `genres/` and `theory/`, never modifying genre blueprints (which would break 12-genre validation and bloat token counts). The architecture keeps intelligence server-side: the Remote Script stays dumb (no new business logic in Ableton's Python sandbox), recipe resolution happens in `mixing/engine.py`, and MCP tools in `tools/mixing.py` are thin wrappers that call the engine then dispatch existing Remote Script commands. The only potential Remote Script modification is a fix to `browser.py` to support `track_type: "master"` in `load_browser_item` — this is an integration gap requiring verification.
+v1.5 adds one new peer package (`MCP_Server/sounds/`) alongside the existing `genres/`, `mixing/`, and `theory/` packages. The package contains a catalog module (auto-discovery + weighted scoring engine) and one profile file per instrument. A new `MCP_Server/tools/sounds.py` exposes 3 MCP tools. The only modified existing file is `MCP_Server/tools/__init__.py` (one added import). No Remote Script changes. No genre coupling.
 
 **Major components:**
-1. `mixing/catalog.py` — static dict mapping 10-12 Ableton built-in devices to their exact API parameter names, value ranges, and conversion semantics; MUST be bootstrapped from live Ableton queries, not hand-authored
-2. `mixing/recipes/*.py` — per-genre recipe files with auto-discovery (same pkgutil pattern as `genres/`); recipe data references genre IDs but is separate from genre blueprint prose
-3. `mixing/engine.py` — pure computation: recipe lookup, resolution against catalog, diff generation; no Ableton dependency, fully unit-testable
-4. `mixing/gain.py` — gain staging analysis: compare track volumes and meter readings to role/genre targets, produce flagged output
-5. `tools/mixing.py` — MCP tool endpoints: validate inputs, call engine, dispatch existing Remote Script commands, format output
+1. `sounds/{instrument}.py` files — static `INSTRUMENT` dict constants with character, descriptor affinities (weighted 0.0–1.0), and browser paths per role
+2. `sounds/catalog.py` — pkgutil auto-discovery, reverse descriptor index built at import time, weighted sum scoring engine, `get_profile()` / `list_descriptors()` / `recommend()` public API
+3. `tools/sounds.py` — thin MCP tool wrappers: input validation, JSON serialization, `format_error()` for failures; delegates all logic to the `sounds/` package
+
+The data flow is: Claude calls `get_sound_recommendation("warm evolving pad")` → tool tokenizes descriptor → catalog scores all 6 profiles by summing tag affinity weights → returns ranked results with instrument name, direct load path, category hint, and reasoning → Claude uses existing `load_instrument_or_effect` tool with the returned load path.
 
 ### Critical Pitfalls
 
-1. **Parameter name mismatch** — Ableton's API uses internal names like `"1 Frequency A"` (not `"Frequency"`), `"Output Gain"` (not `"Makeup"`). Build the catalog by querying `get_device_parameters` on live Ableton devices; never hand-author from documentation or GUI labels. A `verify_catalog` test that loads each device and checks all names is mandatory.
+1. **Browser path mismatch (`instruments/` vs `sounds/` root)** — Ableton's browser has two distinct hierarchies: `instruments/Wavetable/Pad` (instrument-specific presets) and `sounds/Pad` (presets from all instruments mixed together). All profile paths must use `instruments/{Name}` for melodic synths and `drums/` for Drum Rack. The `sounds/` root must not appear in any profile. Validate every load path with a live Ableton session before authoring all 6 profiles.
 
-2. **Normalized vs. natural unit values** — EQ Eight frequency is stored as 0.0-1.0 (logarithmic mapping to 20Hz-20kHz), not in Hz. Compressor Attack/Release are likely normalized, not in milliseconds. The catalog must record actual `min`/`max`/`unit` from the API, and the apply-recipe tool must convert human-unit recipe values before calling `set_device_parameter`. Formula: `normalized = (log10(hz) - log10(20)) / (log10(20000) - log10(20))` for frequency.
+2. **Descriptor taxonomy too broad or overlapping** — Tags like "warm" that match 3–4 instruments equally give no differentiating signal. Design the two-axis (role + character) taxonomy first, ensure each descriptor maps to a clear primary instrument, and test that no two descriptors return identical results unless intentionally documented.
 
-3. **Recipe application ordering and atomicity** — Device loading via `load_browser_item` is async; setting parameters immediately in a separate MCP call is fragile. A single Remote Script command that loads, verifies instantiation, resolves `device_index` by `class_name` scan, and sets all params atomically is safer than orchestrating separate Claude tool calls for load + set. This conflicts with ARCHITECTURE.md's preference for orchestrating existing tools — this tension must be resolved during Phase 3 planning via a spike.
+3. **Recommendation output not directly loadable** — If `get_sound_recommendation` returns only a preset category path (e.g., `instruments/Wavetable/Pads/Warm Pad`), Claude needs 2–3 additional tool calls to load anything. The output must include a `load_path` field (`instruments/Wavetable` or `drums/Drum Rack`) that can be passed directly to `load_instrument_or_effect` in one call.
 
-4. **MIDI tracks without instruments** — `track.mixer_device.volume` exists on all tracks but is meaningless for MIDI tracks without instruments. Gain staging tools must check `track.has_audio_output` or `len(track.devices) > 0` and skip/flag empty MIDI tracks. Reuse the instrument-presence check from v1.3 `get_arrangement_progress`.
+4. **Genre coupling creep** — It is tempting to add "best for: house, techno" fields to profiles. The v1.5 spec explicitly forbids genre dependency. Profiles describe inherent sonic character only. Locking the schema with no genre field prevents this from creeping in.
 
-5. **EQ Eight complete band state** — Setting only `"1 Frequency A"` without also setting `"1 Filter On A"`, `"1 Filter Type A"`, `"1 Gain A"`, and `"1 Resonance A"` produces unpredictable results depending on the device's default state. EQ recipes must specify the complete state for every band they use. Consider a dedicated `apply_eq_recipe` Remote Script command with band-level specification.
+5. **Auto-discovery misconfiguration** — The new `sounds/` package needs `__init__.py` with `__path__` set correctly for `pkgutil.iter_modules` to find instrument modules. A missing or incorrect `__init__.py` causes zero instruments to be discovered with no error message. Verify `list_sound_descriptors()` returns results for all 6 instruments before authoring any matching logic.
 
 ## Implications for Roadmap
 
-Based on combined research, the suggested phase structure follows the hard dependency chain: catalog before recipes, recipes before apply-tool, apply-tool before suggest-adjustments. Data authoring is the largest effort (~250 recipe dicts across 12 genres) and should be parallelized across phases rather than deferred to a single large phase.
+Based on research, the dependency chain is clear: data schema must be locked before profiles are authored, profiles must exist before the scoring engine can run, and the scoring engine must work before tools can expose it. This maps cleanly to 4 phases.
 
-### Phase 1: Device Parameter Catalog and Schema Foundation
+### Phase 1: Instrument Profile Data Layer
 
-**Rationale:** Every other component in v1.4 depends on knowing the exact API parameter names, value ranges, and conversion semantics for 10-12 Ableton built-in devices. Building this incorrectly (from documentation instead of live queries) breaks every subsequent phase. Must be first.
+**Rationale:** All downstream work depends on the profile data and schema being correct. Browser path schema and descriptor taxonomy design must be locked here — changing them after all 6 profiles are authored requires rewriting all profiles. This phase eliminates the 3 highest-risk pitfalls (browser path confusion, taxonomy overlap, genre coupling) before any tool code is written.
 
-**Delivers:** `mixing/schema.py` with TypedDicts; `mixing/catalog.py` with live-verified parameter data for EQ Eight, Compressor, Glue Compressor, Limiter, Utility, Reverb, Delay, Auto Filter, Drum Buss, Multiband Dynamics; UAT verification script that loads each device and cross-checks catalog against live Ableton output.
+**Delivers:** `MCP_Server/sounds/` package skeleton with `__init__.py` and `catalog.py`, all 6 instrument profile files, catalog auto-discovery verified, `get_instrument_profile` tool working end-to-end, browser load paths validated against a live Ableton session.
 
-**Addresses:** F1 (Device Parameter Catalog)
+**Addresses:** `get_instrument_profile` MCP tool (table stakes), instrument profiles for all 6 instruments (table stakes), browser path validation (table stakes).
 
-**Avoids:** Pitfall 1 (parameter name mismatch), Pitfall 2 (normalized vs. natural units), Pitfall 9 (Compressor non-uniform ranges), Pitfall 10 (class_name surprises)
+**Avoids:** Browser path mismatch (validate during this phase), genre coupling (lock schema with no genre field), auto-discovery misconfiguration (test catalog discovers all 6 before continuing).
 
-**Research flag:** NEEDS research-phase — device class names and parameter ranges require live Ableton session verification. Cannot be known ahead of time from documentation alone.
+### Phase 2: Descriptor Taxonomy and Scoring Engine
 
-### Phase 2: Role Taxonomy and Core Mix Recipes (4 Genres)
+**Rationale:** The descriptor taxonomy and affinity weights are authored data in the profile files, but the scoring engine that uses them is separate logic. Building the engine after profiles exist allows immediate testing against real data. This phase locks the descriptor vocabulary — changes after this point require retesting all descriptor combinations.
 
-**Rationale:** With a verified catalog, recipes can be authored correctly. Starting with 4 high-impact genres (house, techno, ambient, DnB) validates the recipe schema with a manageable data surface before scaling to 12 genres. The role taxonomy is lightweight and needed by both recipes and the gain staging tool.
+**Delivers:** Complete descriptor tag taxonomy (~30–50 tags across role and character axes), `recommend()` function with weighted sum scoring in `catalog.py`, browser path resolution logic, `list_sound_descriptors()` tool returning grouped output, full test coverage of scoring and ranking.
 
-**Delivers:** `mixing/recipes/` subpackage with auto-discovery; `mixing/engine.py` for recipe lookup; house, techno, ambient, DnB recipe files covering 8-10 core roles each; master bus recipes for the same 4 genres; role taxonomy constants.
+**Addresses:** `list_sound_descriptors` MCP tool (table stakes), two-axis descriptor system (differentiator), instrument weaknesses guiding away from poor choices (differentiator).
 
-**Addresses:** F2 (Role Taxonomy), F3 (core 4 genres), F8 (master bus recipes for core 4 genres)
+**Avoids:** Descriptor taxonomy overlap (test every descriptor returns a distinct primary recommendation), recommendation not directly loadable (include `load_path` field in scoring output from day one).
 
-**Avoids:** Pitfall 8 (EQ band completeness — schema requires full band spec), Pitfall 11 (keeping recipes separate from blueprint prose), Pitfall 3 (recipe load order encoded in recipe definition)
+### Phase 3: get_sound_recommendation MCP Tool and Integration
 
-**Research flag:** Standard patterns — recipe data authoring follows proven genre blueprint pattern. No new architecture research needed.
+**Rationale:** The tool layer is last because it is a thin wrapper over already-tested logic. Integration testing here closes the loop: `get_sound_recommendation("warm pad")` → load path → `load_instrument_or_effect` → instrument loaded in one call. This is the user-facing payoff of the previous two phases.
 
-### Phase 3: Apply Recipe Tool and Batch Parameter Setting
+**Delivers:** `MCP_Server/tools/sounds.py` with 3 tool functions, `tools/__init__.py` import added, end-to-end integration tests (recommendation to loaded instrument), `pyproject.toml` packages list updated.
 
-**Rationale:** The apply-recipe tool is the headline feature. Must be built after catalog and recipes so there is real data to test against. The atomicity question (single Remote Script command vs. orchestrated MCP calls) should be resolved here based on a spike.
+**Addresses:** `get_sound_recommendation` MCP tool (table stakes), grouped descriptor output (differentiator).
 
-**Delivers:** `tools/mixing.py` with `apply_mix_recipe` and `apply_master_recipe` tools; Remote Script atomic handler (load + verify + set all params in one command); `set_device_parameters_batch` handler for reducing round-trips; possible `browser.py` fix for master track device loading.
+**Avoids:** Recommendation output not directly loadable (integration test verifies round-trip), synthesis jargon in reasoning (plain-language reasoning tested against sample outputs).
 
-**Addresses:** F4 (Apply Recipe Tool), F9 (Master Bus Tools)
+### Phase 4: Validation and Coverage Audit
 
-**Avoids:** Pitfall 3 (atomicity), Pitfall 5 (master bus insert order), Pitfall 12 (return track type), Pitfall 13 (Device On parameter), Pitfall 14 (duplicate devices)
+**Rationale:** The "looks done but isn't" checklist from PITFALLS.md identifies specific coverage gaps that are easy to miss: Drum Rack percussive descriptor coverage, Simpler's three modes, grouped `list_sound_descriptors` output, and `load_path` field present in `get_instrument_profile` output. A dedicated audit phase prevents shipping with silent gaps.
 
-**Research flag:** NEEDS research-phase — the atomicity design is a genuine architectural decision with performance and reliability tradeoffs. Run a spike measuring round-trip latency and async device loading behavior before committing.
+**Delivers:** Complete percussive descriptor coverage (kick, snare, hi-hat → Drum Rack), Simpler profile covering Classic/One-Shot/Slice modes, all 6 instruments verified discoverable via auto-discovery, all load paths verified with live Ableton UAT, milestone audit passed.
 
-### Phase 4: Gain Staging Check and Device State Reader
+**Addresses:** Remaining coverage gaps from the "looks done but isn't" checklist in PITFALLS.md.
 
-**Rationale:** With recipes applicable, the feedback loop tools come next. Gain staging check provides immediate user value and the batch device state reader enables the suggest-adjustments feature in the next phase.
-
-**Delivers:** `mixing/gain.py` with analysis logic; `get_mix_state` tool (batch device state reader); `check_gain_staging` tool; Remote Script `get_track_meters` handler for `output_meter_level/left/right`; Remote Script batch track info command.
-
-**Addresses:** F5 (Device State Reader), F6 (Gain Staging Check)
-
-**Avoids:** Pitfall 4 (MIDI tracks without instruments), performance trap of sequential per-track reads
-
-**Research flag:** Standard patterns — gain analysis math is straightforward; v1.3 instrument-presence check pattern is available for reuse.
-
-### Phase 5: Suggest Adjustments Intelligence Layer
-
-**Rationale:** The "AI mixing engineer" differentiator. Depends on both the recipe layer (F3) and the state reader (F5) being complete and tested. Building this last ensures it has the full foundation.
-
-**Delivers:** `engine.diff_against_recipe()` function; `suggest_mix_adjustments` MCP tool with reasoning output per parameter diff; documentation of the suggest-then-confirm workflow.
-
-**Addresses:** F7 (Suggest Adjustments)
-
-**Avoids:** Black-box automation (always show what will change + reasoning before applying)
-
-**Research flag:** Standard patterns — diff logic is pure computation, no Ableton dependency, well-understood pattern.
-
-### Phase 6: Recipe Expansion to All 12 Genres
-
-**Rationale:** Data scaling phase. Applies the validated schema and patterns to the remaining 8 genres. The recipe authoring infrastructure is proven; this phase is primarily content work.
-
-**Delivers:** Recipe files for synthwave, hip-hop/trap, dubstep, trance, lo-fi, future bass, disco/funk, neo-soul/R&B; master bus recipes for same 8 genres; F3 and F8 completion.
-
-**Addresses:** F3 (full 12-genre expansion), F8 (all master bus recipes)
-
-**Research flag:** Standard patterns — recipe authoring follows Phase 2 pattern. Genre mixing conventions are well-documented in production education sources.
+**Avoids:** Drum Rack missing from percussive recommendations, Simpler treated as sampler-only, paths tested with `get_browser_tree` but never actually round-trip loaded.
 
 ### Phase Ordering Rationale
 
-- Phases 1-3 form a hard dependency chain (catalog -> recipes -> apply-tool); cannot be reordered
-- Phase 4 is prerequisite to Phase 5 (state reader needed for diff engine)
-- Phase 6 is pure data expansion; could begin in parallel with Phase 5 if resources allow
-- Master bus recipes (F8) should be authored alongside per-track recipes in each data phase, not deferred — they share the same catalog and schema
-- Sidechain routing automation is intentionally deferred; sidechain parameters belong in recipes but routing index resolution requires session-dependent logic that is v1.5 scope
+- Schema and data must precede logic: the scoring engine needs profiles to score against.
+- Descriptor taxonomy must be authored before the scoring engine is written: affinities live in profile dicts, not in catalog code.
+- Tool layer is always last — it is the thinnest layer and depends on everything below it.
+- Validation phase at the end catches coverage gaps that unit tests miss (live UAT, edge case descriptors, Drum Rack percussive coverage).
 
 ### Research Flags
 
-Phases needing deeper research during planning:
-- **Phase 1:** Live Ableton session required to capture device class names and parameter names/ranges for all 10-12 target devices. This is UAT-first, not code-first.
-- **Phase 3:** Atomicity design decision — single Remote Script apply command vs. orchestrated MCP calls. Run a spike to measure round-trip latency and test whether async device loading causes timing issues before committing to architecture.
+Phases likely needing deeper research during planning:
+- **Phase 1:** Browser path schema requires live Ableton validation. The exact folder names under `instruments/Wavetable/`, `instruments/Analog/`, etc. are MEDIUM confidence from documentation only. Must be confirmed with `get_browser_items_at_path` in a live session before profiles are finalized. Drum Rack browser root (`drums/` vs `instruments/Drum Rack`) needs specific confirmation.
 
 Phases with standard patterns (skip research-phase):
-- **Phase 2:** Recipe schema follows existing genre blueprint pattern exactly. Auto-discovery via pkgutil is already proven.
-- **Phase 4:** Gain analysis math is trivial; instrument-presence check pattern already exists in v1.3.
-- **Phase 5:** Diff logic is pure computation with no Ableton dependency.
-- **Phase 6:** Content authoring only; architecture is locked by Phase 2.
+- **Phase 2:** Weighted sum scoring is fully specified in ARCHITECTURE.md with reference implementation. The algorithm requires no further research.
+- **Phase 3:** Tool registration follows the exact `tools/mixing.py` → `mixing/catalog.py` pattern. No unknowns.
+- **Phase 4:** Audit checklist is pre-written in PITFALLS.md. No research needed, just execution.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Zero new dependencies confirmed by codebase inspection; pyloudnorm and Spectrum data correctly eliminated with documented rationale |
-| Features | MEDIUM-HIGH | Table stakes features well-established; specific device parameter names are MEDIUM (must be live-verified); genre mixing conventions are HIGH from multiple production education sources |
-| Architecture | HIGH | All integration points verified via source code inspection; one gap: master track device loading via `load_browser_item` needs verification |
-| Pitfalls | HIGH | Parameter naming and normalization pitfalls confirmed via live API behavior documentation and codebase analysis; sidechain routing fragility confirmed by reading existing handler code |
+| Stack | HIGH | No new dependencies; all patterns derived from existing codebase analysis with direct code inspection |
+| Features | MEDIUM-HIGH | Table stakes features are clear; browser preset category paths are MEDIUM confidence pending live session validation |
+| Architecture | HIGH | Derived entirely from existing codebase patterns (genres/, mixing/, devices/); no external dependencies or novel patterns introduced |
+| Pitfalls | HIGH | Based on deep codebase analysis of browser integration, existing catalog patterns, Remote Script browser handler behavior |
 
-**Overall confidence:** MEDIUM-HIGH
+**Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Exact device class names:** Not confirmed for all 10-12 target devices. Only `"OriginalSimpler"` is known from existing tests. All others (Compressor, EQ Eight, Glue Compressor, etc.) must be queried from a live session before Phase 1 can complete. Handle by making catalog bootstrap the first deliverable of Phase 1.
+- **Browser category paths within each instrument** — The specific subfolder names under `instruments/Wavetable/`, `instruments/Analog/`, etc. are MEDIUM confidence from third-party documentation. Confirm with `get_browser_items_at_path` against a live Ableton 12 session at the start of Phase 1. The load path at the instrument root (`instruments/Wavetable`) is stable and HIGH confidence; deeper preset category subfolders need validation.
 
-- **EQ Eight frequency normalization formula:** The log-frequency mapping formula in PITFALLS.md is a community-sourced approximation. The exact mapping must be verified against Ableton's implementation — small errors in the conversion formula produce audibly wrong frequency values. Include a conversion accuracy test in Phase 1 UAT.
+- **Drum Rack browser root** — PITFALLS.md identifies `drums/Drum Rack` vs `instruments/Drum Rack` as a specific known confusion point. Confirm the correct root path in live UAT during Phase 1 before authoring the Drum Rack profile.
 
-- **Compressor Attack/Release ranges:** PITFALLS.md flags these as "likely normalized 0-1 with non-linear mapping" but this is unconfirmed. Must be captured in Phase 1 live query.
-
-- **`load_browser_item` master track support:** ARCHITECTURE.md flags this as a potential integration gap. The existing handler indexes into `song.tracks[]`, which excludes the master track. This may require a Remote Script fix; needs verification before Phase 3 begins.
-
-- **Atomicity vs. orchestration tradeoff:** PITFALLS.md recommends a single atomic Remote Script command for recipe application. ARCHITECTURE.md recommends orchestrating existing tools to avoid Remote Script business logic. This unresolved tension must be settled in Phase 3 via a spike based on measured latency and observed async behavior.
-
-- **Recipe parameter values (numeric):** Specific recipe values (e.g., "house kick compressor threshold = -12 dB") are informed by production education sources but have LOW confidence as exact starting points. Treat v1.4 recipes as starting points; the system should make values easily adjustable.
+- **Descriptor affinity weight calibration** — The affinity weights (0.0–1.0) in ARCHITECTURE.md are illustrative starting points. They will need tuning after Phase 2 tests reveal which instruments are over- or under-recommended for specific descriptor combinations. This is expected: it is handled by editing profile dicts with no tool code changes required.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Ableton Live Object Model — Cycling74 docs (Track metering, Device parameter access, confirmed via codebase cross-reference)
-- Ableton Live 12 Audio Effect Reference — official device documentation
-- Existing codebase: `devices.py`, `mixer_helpers.py`, `genres/schema.py`, `genres/catalog.py`, `conftest.py` — all findings verified by direct code inspection
+- Codebase: `MCP_Server/genres/catalog.py` — pkgutil auto-discovery pattern, alias normalization
+- Codebase: `MCP_Server/mixing/catalog.py` — `_normalize()` + alias dict pattern
+- Codebase: `MCP_Server/tools/__init__.py` — tool registration via single import line
+- Codebase: `MCP_Server/tools/browser.py` — `get_browser_items_at_path`, `get_browser_tree` interfaces
+- Codebase: `MCP_Server/tools/devices.py` — `load_instrument_or_effect` path parameter
+- Codebase: `AbletonMCP_Remote_Script/handlers/browser.py` — `_resolve_browser_path`, `_CATEGORY_MAP`
+- Codebase: `pyproject.toml` — dependency list, setuptools packages
+- Project spec: `.planning/PROJECT.md` — v1.5 requirements and architecture constraints
 
 ### Secondary (MEDIUM confidence)
-- Remotify Device Parameters reference — community-documented Ableton device parameter names for Live 11 (structure carries to Live 12)
-- iZotope mixing and mastering guides — genre mixing conventions and master bus chain order
-- Toolroom Academy / Audeobox / Loopmasters mixing guides — EDM genre-specific mixing conventions
-- Ableton Forum on Spectrum device — confirms no mappable parameters for frequency data
+- [Ableton Live 12 Browser and Tags FAQ](https://help.ableton.com/hc/en-us/articles/11425042663708-Browser-and-Tags-in-Live-12-FAQ) — Sound filter tags (Bass, Lead, Pad, Keys, etc.)
+- [Ableton Live Instrument Reference Manual](https://www.ableton.com/en/manual/live-instrument-reference/) — Instrument architectures and synthesis types
+- [Ableton Drift blog post](https://www.ableton.com/en/blog/drift-exploring-the-new-synth-in-live-113/) — Drift sonic character
+- [ADSR Sounds: Drift Presets](https://www.adsrsounds.com/synth/ableton-drift/) — Drift preset categories
+- [Soundfly: Learning to Describe Synth Sounds](https://flypaper.soundfly.com/discover/learning-to-describe-synth-sounds-to-rebuild-patches/) — Sound descriptor vocabulary
 
-### Tertiary (LOW confidence)
-- Specific numeric recipe values (thresholds, frequencies, ratios) — informed starting points from production education sources; require ear-testing and iterative refinement in practice
+### Tertiary (LOW confidence — needs live validation)
+- Instrument preset browser subfolder names within `instruments/{Name}/` — inferred from documentation; requires live Ableton session confirmation during Phase 1
+- Drum Rack browser root path — flagged in PITFALLS.md as a known confusion point; confirm in live UAT
 
 ---
-*Research completed: 2026-03-28*
+*Research completed: 2026-03-30*
 *Ready for roadmap: yes*

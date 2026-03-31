@@ -1,201 +1,185 @@
-# Technology Stack
+# Stack Research
 
-**Project:** Ableton MCP v1.4 -- Mix/Master Intelligence
-**Researched:** 2026-03-28
+**Domain:** Sound selection intelligence for Ableton MCP (v1.5)
+**Researched:** 2026-03-30
+**Confidence:** HIGH
 
-## Existing Stack (No Changes)
+## Core Finding: No New Dependencies Required
 
-These are already in place and sufficient. Listed for context only.
+The v1.5 sound selection intelligence feature is **pure authored data + Python stdlib logic**. No new libraries are needed. This is the correct approach because:
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| Python | 3.11 | Remote Script runtime (Ableton-embedded) |
-| Python | >=3.10 | MCP Server runtime |
-| FastMCP (mcp[cli]) | >=1.3.0 | MCP server framework |
-| music21 | >=9.0 | Theory engine |
-| TCP socket | localhost:9877 | MCP Server <-> Remote Script IPC |
+1. The descriptor-to-instrument mapping is **curated knowledge**, not ML/NLP inference
+2. The matching is against a **finite, authored tag set** (not free-text search)
+3. The project already has a proven pattern for this exact kind of data (genres, mix recipes, device catalog)
+4. Claude picks descriptors from `list_sound_descriptors` output -- there is no free-text fuzzy matching scenario
 
-## New Stack Additions
+## Recommended Stack
 
-### No New Dependencies Required
+### Core Technologies (Already In Place -- No Changes)
 
-**This is the key finding.** The v1.4 milestone requires zero new Python package dependencies. Here is why:
+| Technology | Version | Purpose | v1.5 Role |
+|------------|---------|---------|-----------|
+| Python | 3.11 | Runtime (Ableton embedded + MCP server) | All v1.5 code is server-side only |
+| FastMCP (mcp[cli]) | >=1.3.0 | MCP tool registration via `@mcp.tool()` | 3 new tools: `get_sound_recommendation`, `list_sound_descriptors`, `get_instrument_profile` |
+| pkgutil + importlib | stdlib | Auto-discovery of data modules | Discovers instrument profile modules, same as genres/mixing catalogs |
 
-1. **Device parameter catalog**: Pure Python data (dicts), following the same pattern as genre blueprints. No library exists for this -- Ableton device parameters are discoverable at runtime via the existing `get_device_parameters` tool, and the catalog is hand-authored reference data.
+### Supporting Libraries (None New)
 
-2. **Role x genre mix recipes**: Pure Python data (dicts), extending the genre blueprint pattern. No library needed.
+| Library | Version | Role in v1.5 | Notes |
+|---------|---------|--------------|-------|
+| `mcp[cli]` | >=1.3.0 | Register 3 new tools | No changes needed to dependency |
+| `music21` | >=9.0 | **Not used by v1.5** | Sound selection is instrument/timbre domain, not theory |
+| `json` | stdlib | Serialize tool responses | Already used by all tool modules |
+| `copy` | stdlib | Deep-copy instrument profiles for safe return | Same pattern as `genres/catalog.py` line 167 |
+| `logging` | stdlib | Log discovery errors/warnings | Same pattern as existing catalogs |
 
-3. **dB/gain calculations**: Already implemented in `mixer_helpers.py` (`_to_db()` function with calibrated two-piece formula). Extend with inverse `_from_db()` for target-based gain staging.
+### Development Tools (Already In Place)
 
-4. **LUFS measurement**: NOT feasible without audio file access. The MCP server controls Ableton -- it does not process audio streams. LUFS requires raw audio samples (pyloudnorm needs NumPy arrays of audio data). The Remote Script has no access to audio buffers. **Drop LUFS from scope.**
+| Tool | Role in v1.5 | Notes |
+|------|--------------|-------|
+| pytest / pytest-asyncio | Unit tests for catalog, descriptor matching, edge cases | Same test patterns as v1.2-v1.4 |
+| ruff | Lint new `instruments/` package | Already configured in pyproject.toml |
+| tiktoken | Measure tool output token budget if needed | Dev-only, already in dev deps |
 
-5. **Spectrum analysis**: NOT exposed via LOM. The Spectrum device is visual-only; its frequency bin data is not accessible through `Device.parameters` or any other LOM property. **Drop Spectrum frequency reading from scope.** However, Spectrum can still be loaded as a monitoring device via `insert_device`.
+## What NOT to Add
 
-6. **Output metering**: Available via LOM Track properties `output_meter_level`, `output_meter_left`, `output_meter_right` (0.0-1.0 range). This requires a new Remote Script handler but no new libraries.
+| Avoid | Why | Use Instead |
+|-------|-----|-------------------|
+| `thefuzz` / `fuzzywuzzy` | Overkill for matching against a finite authored tag set; adds C dependency (python-Levenshtein) for performance; descriptor tags are exact-match after normalization | Normalize input (lowercase, strip, underscore) + alias dict -- same as `mixing/catalog.py` `_normalize()` |
+| `rapidfuzz` | Same rationale as thefuzz; faster C implementation but still unnecessary for ~50-100 tags | Alias normalization covers all realistic inputs |
+| `sentence-transformers` / any ML embedding | Massive dependency tree (torch, transformers, ~2GB); latency per call; the tag set is small enough for explicit mapping; completely disproportionate to the problem | Authored descriptor-to-instrument mappings |
+| `scikit-learn` | TF-IDF or cosine similarity for descriptor matching is over-engineering a 50-tag lookup | Alias dict + normalize |
+| `spacy` / `nltk` | NLP tokenization/lemmatization unnecessary when tags are authored and Claude picks from a known list | Direct string matching after normalization |
+| `difflib.SequenceMatcher` | stdlib but still unnecessary; tempting "just in case" addition that complicates matching semantics and makes behavior less predictable | Clean alias dict with explicit mappings |
+| `pydantic` | Data validation library; the project uses plain dicts validated by custom schema functions (see `genres/schema.py`) | Keep existing validation pattern for consistency |
+| `PyYAML` / `toml` | External data format loaders; the project convention is Python dicts in .py files | Python modules with dict constants |
 
-### Core Framework: None needed
+**Why "no fuzzy matching" is correct:** The `list_sound_descriptors` tool gives Claude the exact valid tags. Claude does not need to guess or approximate -- it calls `list_sound_descriptors`, picks a tag, passes it to `get_sound_recommendation`. This is identical to how `list_recipes()` works for mix recipes. Fuzzy matching solves a problem that does not exist in this architecture.
 
-| Category | Decision | Rationale |
-|----------|----------|-----------|
-| Device catalog | Pure Python dicts | Same pattern as genre blueprints; auto-discovery via pkgutil; no library exists |
-| Mix recipes | Pure Python dicts | Extends genre blueprint schema; TypedDict validation |
-| Gain math | Extend `mixer_helpers.py` | `_to_db()` already calibrated; add `_from_db()` inverse |
-| Output meters | New Remote Script handler | LOM `track.output_meter_level` (0.0-1.0); no library needed |
-| dBFS conversion | `20 * math.log10(value)` | Standard formula; `math` is stdlib |
+## What DOES Need Changing
 
-### Database: None needed
+### 1. pyproject.toml `[tool.setuptools]` packages list
 
-Mix recipes and device catalogs are static reference data, same as genre blueprints. No database.
-
-### Infrastructure: No changes
-
-Same two-tier architecture: MCP Server <-> TCP socket <-> Remote Script.
-
-### Supporting Libraries: None
-
-| Considered | Decision | Why Not |
-|------------|----------|---------|
-| pyloudnorm | DO NOT ADD | Requires raw audio samples (NumPy arrays). MCP server has no audio access. Remote Script has no audio buffer access. LUFS measurement is architecturally impossible in this system. |
-| numpy/scipy | DO NOT ADD | Only needed if doing DSP. We are not. Device parameters are set by value, not computed from audio. |
-| PyAbleton | DO NOT ADD | Preset file manipulation library. We control live devices via LOM, not .adv files. |
-| pylive | DO NOT ADD | OSC-based Ableton control. We already have a superior TCP socket protocol with 181 commands. |
-
-## Detailed Technical Findings
-
-### 1. No Existing Python Libraries for Ableton Device Parameter Catalogs
-
-**Confidence: HIGH** (searched PyPI, GitHub, community forums)
-
-No library provides a structured catalog of Ableton built-in device parameter names and value ranges. This is because:
-
-- Parameter names and ranges are discoverable at runtime via `device.parameters[i].name`, `.min`, `.max`, `.is_quantized`
-- The existing `get_device_parameters` handler already returns this data (lines 80-97 of Remote Script `devices.py`)
-- What is missing is a **static reference** so Claude does not need to call `get_device_parameters` before every `set_device_parameter` call
-
-**Approach:** Hand-author device parameter catalogs by querying Ableton Live once per device, capturing the parameter list, and storing it as Python dicts. Same pattern as genre blueprints.
-
-### 2. Ableton LOM Spectrum Analyzer Data: NOT Accessible
-
-**Confidence: HIGH** (verified via Cycling 74 LOM docs, forum searches, Max for Live documentation)
-
-The Spectrum device (`class_name: "SpectrumAnalyzer"`) exposes only standard device parameters through the LOM (on/off, block size, channel, range, etc.). The actual frequency magnitude data displayed in the visual analyzer is rendered internally by the C++ audio engine and is NOT exposed to the Python LOM API.
-
-**What IS accessible:**
-- `track.output_meter_level` -- peak hold value, 0.0-1.0, 1-second hold (max of L/R)
-- `track.output_meter_left` -- smoothed momentary peak, left channel, 0.0-1.0
-- `track.output_meter_right` -- smoothed momentary peak, right channel, 0.0-1.0
-
-These are per-track aggregate levels, not frequency-domain data. Sufficient for gain staging checks but not spectral analysis.
-
-**Important caveat:** The LOM docs note that accessing output meter properties adds load to Live's GUI and meters may only update when visible in the interface.
-
-### 3. Existing get_device_parameters / set_device_parameter Coverage
-
-**Confidence: HIGH** (verified by reading source code)
-
-The existing tooling covers ALL built-in device needs with one gap:
-
-**Fully covered:**
-- All device parameters via `device.parameters` enumeration (name, value, min, max, is_quantized)
-- Parameter setting by name (case-insensitive) or index with automatic clamping
-- Rack chain navigation (chain_index, chain_device_index)
-- Master track device access (`track_type="master"`)
-- Device insertion at position (`insert_device` / `track.insert_device()`)
-- Device loading from browser (`load_browser_item`)
-- Device deletion and moving
-- Device A/B comparison
-
-**Gap: No batch parameter setting.** Setting 10 parameters on a Compressor requires 10 separate `set_device_parameter` calls. For mix recipes (which set 5-15 parameters per device), a batch endpoint would reduce round-trips dramatically.
-
-**Recommendation:** Add `set_device_parameters_batch` handler that accepts a list of `{parameter_name, value}` pairs and sets them all in one command. This is the single most impactful Remote Script addition for v1.4.
-
-### 4. dBFS and Gain Staging
-
-**Confidence: HIGH** (verified against existing code)
-
-The existing `_to_db()` function converts normalized 0.0-1.0 volume to dB with high accuracy (RMS 0.13 dB error, calibrated against 77 Ableton Live data points). For gain staging:
-
-- Track volumes are 0.0-1.0 normalized (LOM `mixer_device.volume.value`)
-- Output meters are 0.0-1.0 normalized (LOM `track.output_meter_level`)
-- Conversion to dBFS for meters: `20 * math.log10(meter_value)` where meter_value > 0
-- Conversion for fader positions: existing `_to_db()` calibrated formula
-- Target ranges are well-known (e.g., kick at -8 to -6 dB, master peak at -1 to 0 dB)
-- No library needed -- all math is `math.log10()` and the existing calibrated formula
-
-**What to add:**
-- `_from_db(db_value) -> float` -- inverse of `_to_db()` for setting volume from dB targets
-- `_meter_to_db(meter_value) -> float` -- convert 0.0-1.0 meter reading to dBFS
-- New Remote Script command: `get_track_meters` -- reads output_meter_level/left/right for one or all tracks
-
-### 5. Role x Genre Mix Recipe Data Format
-
-**Confidence: HIGH** (based on proven genre blueprint pattern)
-
-The existing genre blueprint pattern (Python dicts, TypedDict schema, auto-discovery catalog) is the correct format. The current `MixingSection` in `schema.py` has prose-only fields:
-
-```python
-class MixingSection(TypedDict):
-    frequency_focus: str        # "sub-bass 40-80Hz, kick presence 100-200Hz"
-    stereo_field: str           # "mono bass and kick, wide pads"
-    common_effects: List[str]   # ["sidechain compression", "reverb"]
-    compression_style: str      # "heavy sidechain on bass and pads"
+Current:
+```toml
+packages = ["MCP_Server", "MCP_Server.tools", "MCP_Server.theory"]
 ```
 
-These are human-readable guidelines, not machine-actionable recipes. v1.4 adds a parallel structure with exact parameter values. The existing MixingSection stays (it serves Claude's reasoning). New data lives alongside it.
-
-**Recommended schema for mix recipes:**
-
-```python
-class DeviceRecipe(TypedDict):
-    device_name: str                  # "EQ Eight", "Compressor", etc.
-    parameters: Dict[str, float]      # {"1 Frequency A": 80.0, "1 Gain A": -3.0}
-
-class RoleMixRecipe(TypedDict):
-    devices: List[DeviceRecipe]       # Ordered device chain
-    volume_db: float                  # Target fader position in dB
-    pan: float                        # -1.0 to 1.0
-
-class GenreMixRecipes(TypedDict):
-    roles: Dict[str, RoleMixRecipe]   # "kick" -> recipe, "bass" -> recipe
-    master: RoleMixRecipe             # Master bus recipe
+Must add the new `instruments` package:
+```toml
+packages = [
+    "MCP_Server",
+    "MCP_Server.tools",
+    "MCP_Server.theory",
+    "MCP_Server.genres",
+    "MCP_Server.devices",
+    "MCP_Server.mixing",
+    "MCP_Server.instruments",
+]
 ```
 
-**Why dicts over a database:** Same reasons as genre blueprints -- pure Python, no external dependency, version-controlled, auto-discoverable, TypedDict-validated at import time.
+Note: `genres`, `devices`, and `mixing` are likely already importable via editable install but should be explicitly listed for correctness. Adding them is a housekeeping fix, not a v1.5 requirement per se.
+
+### 2. tools/__init__.py import line
+
+Add the new tool module to the single-line import that triggers `@mcp.tool()` registration:
+```python
+from . import ..., sounds  # noqa: F401
+```
+
+(Module name `sounds` for the tool file; the data package is `instruments`.)
+
+### 3. New package: `MCP_Server/instruments/`
+
+Following the exact pattern of `MCP_Server/genres/` and `MCP_Server/mixing/`:
+
+```
+MCP_Server/instruments/
+    __init__.py          # Public API: get_instrument_profile, get_recommendation, list_descriptors
+    catalog.py           # Auto-discovery via pkgutil, descriptor reverse index, matching logic
+    wavetable.py         # INSTRUMENT dict constant
+    analog.py            # INSTRUMENT dict constant
+    operator.py          # INSTRUMENT dict constant
+    drift.py             # INSTRUMENT dict constant
+    simpler.py           # INSTRUMENT dict constant
+    drum_rack.py         # INSTRUMENT dict constant
+```
+
+### 4. New tool file: `MCP_Server/tools/sounds.py`
+
+Three `@mcp.tool()` functions wrapping the `instruments` package public API. Follows the same pattern as `tools/mixing.py` wrapping `mixing/catalog.py`.
+
+## Descriptor Matching Strategy
+
+The matching approach uses **exact match after normalization**, with an alias layer:
+
+```python
+def _normalize(descriptor: str) -> str:
+    """Lowercase, collapse whitespace, underscores for spaces/hyphens."""
+    return descriptor.strip().lower().replace(" ", "_").replace("-", "_")
+```
+
+The catalog builds two indexes at discovery time:
+
+1. **descriptor_tag -> list of (instrument_id, category_path, reasoning)** -- the core recommendation index
+2. **instrument_id -> full profile dict** -- for `get_instrument_profile`
+
+When `get_sound_recommendation("warm pad")` is called:
+1. Normalize: `"warm_pad"`
+2. Look up in descriptor index
+3. Return matching instrument(s) with category path and reasoning
+
+For descriptors with multiple matching instruments, the catalog returns **all matches ranked by authored priority** (first instrument in the list is the strongest match). This lets Claude make a contextual choice or present options.
+
+## Integration Points
+
+| Integration | How | Risk |
+|-------------|-----|------|
+| MCP tool registration | `@mcp.tool()` in `tools/sounds.py`, imported in `tools/__init__.py` | None -- proven pattern |
+| Browser navigation | Tool returns `category_path` (e.g., "Wavetable/Pads/Warm"); Claude uses existing `navigate_browser` + `load_browser_item` tools | None -- decoupled; sound recommendation outputs a path, browser tools consume it |
+| No Remote Script changes | All logic is MCP server-side; no socket commands needed | None -- server-only feature |
+| No genre dependency | Descriptors are instrument-intrinsic, not genre-scoped | Intentional -- keeps v1.5 orthogonal to v1.2 genres |
 
 ## Alternatives Considered
 
-| Category | Recommended | Alternative | Why Not |
-|----------|-------------|-------------|---------|
-| Device catalog format | Python dicts | SQLite database | Overkill for ~20 device definitions; dicts are version-controlled and match existing patterns |
-| Device catalog format | Python dicts | JSON files | Python dicts allow TypedDict validation at import time; JSON requires separate loader/validator |
-| Gain staging | Extend mixer_helpers.py | pyloudnorm | pyloudnorm needs raw audio (NumPy arrays); we only have meter readings |
-| Batch params | New RS handler | Multiple set_device_parameter calls | 10x more round-trips; recipe application becomes prohibitively slow |
-| Recipe storage | Parallel to genre blueprints | Extend existing MixingSection | Existing MixingSection is prose for Claude reasoning; recipes need exact values; keep both |
+| Recommended | Alternative | When to Use Alternative |
+|-------------|-------------|-------------------------|
+| Alias normalization + dict | `thefuzz` fuzzy matching | Only if descriptors were user-typed free text (they are not -- Claude picks from a list) |
+| Python dicts for profiles | YAML/JSON data files | Only if non-Python tools needed to read profiles; Python dicts are the established project convention |
+| pkgutil auto-discovery | Manual registration dict | Never -- auto-discovery is proven in genres and mixing; avoids registration bugs when adding instruments |
+| One file per instrument | Single large file | Never for 6 instruments -- one-file-per-entity is the project convention and aids maintainability |
+| Reverse index at import time | On-demand linear scan | Reverse index is O(1) lookup vs O(n*m) scan; built once at import time; negligible startup cost for 6 instruments |
+
+## Version Compatibility
+
+No new packages means no new compatibility concerns. Existing constraints unchanged:
+
+| Constraint | Value | Impact on v1.5 |
+|------------|-------|-----------------|
+| Python >= 3.10 (MCP server) | pyproject.toml | All stdlib features used are available in 3.10+ |
+| Python 3.11 (Ableton) | Ableton Live 12 | v1.5 is 100% server-side; no Remote Script changes |
+| mcp[cli] >= 1.3.0 | pyproject.toml | 3 new tools, same `@mcp.tool()` registration pattern |
 
 ## Installation
 
+No changes to installation. The existing install command covers everything:
+
 ```bash
-# No new dependencies. Existing install command unchanged:
+# Existing install (unchanged)
 pip install -e ".[dev]"
 ```
 
-## Key Architecture Decisions for v1.4
-
-| Decision | Rationale |
-|----------|-----------|
-| Zero new pip dependencies | All new functionality is pure Python data + existing LOM access |
-| Device catalog as Python dicts | Same proven pattern as genre blueprints; discoverable, validated, version-controlled |
-| Batch parameter setter | Single biggest ROI addition; reduces round-trips from N to 1 per device |
-| Output meter reading via LOM | `track.output_meter_level/left/right` provides gain staging feedback without new deps |
-| Drop Spectrum frequency reading | LOM does not expose frequency bin data; visual-only device |
-| Drop LUFS measurement | Architecturally impossible -- no audio buffer access from Remote Script or MCP Server |
-| Extend _to_db with _from_db | Enables target-based gain staging ("set kick to -8 dB") |
+No new entries in `dependencies` or `[dependency-groups] dev`.
 
 ## Sources
 
-- [Cycling 74 LOM Documentation](https://docs.cycling74.com/legacy/max8/vignettes/live_object_model) -- Track metering properties, Device parameter access (HIGH confidence)
-- [Ableton Reference Manual v12 -- Audio Effect Reference](https://www.ableton.com/en/manual/live-audio-effect-reference/) -- Device parameters and behaviors (HIGH confidence)
-- [pyloudnorm on PyPI](https://pypi.org/project/pyloudnorm/) -- Confirmed requires NumPy audio arrays; not applicable (HIGH confidence)
-- [pylive on GitHub](https://github.com/ideoforms/pylive) -- Alternative control approach; not needed (HIGH confidence)
-- [PyAbleton on GitHub](https://github.com/hamiltonkibbe/PyAbleton) -- Preset file manipulation; not applicable (HIGH confidence)
-- Source code analysis: `AbletonMCP_Remote_Script/handlers/devices.py`, `mixer_helpers.py`, `MCP_Server/genres/schema.py` (HIGH confidence)
+- Codebase analysis: `MCP_Server/genres/catalog.py` -- pkgutil auto-discovery + alias normalization pattern (HIGH confidence)
+- Codebase analysis: `MCP_Server/mixing/catalog.py` -- `_normalize()` + alias dict pattern (HIGH confidence)
+- Codebase analysis: `MCP_Server/devices/__init__.py` -- dict-based lookup pattern (HIGH confidence)
+- Codebase analysis: `MCP_Server/tools/__init__.py` -- tool registration via single import line (HIGH confidence)
+- Codebase analysis: `pyproject.toml` -- current dependency list and setuptools packages (HIGH confidence)
+- Domain knowledge: thefuzz/rapidfuzz/sentence-transformers are overkill for finite tag matching (HIGH confidence -- well-understood engineering tradeoff)
+
+---
+*Stack research for: v1.5 Sound Selection Intelligence*
+*Researched: 2026-03-30*

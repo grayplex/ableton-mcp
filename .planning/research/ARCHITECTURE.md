@@ -1,330 +1,426 @@
-# Architecture Patterns: v1.4 Mix/Master Intelligence
+# Architecture Patterns
 
-**Domain:** Mix/master intelligence layer for Ableton MCP server
-**Researched:** 2026-03-28
-**Confidence:** HIGH (architecture follows established codebase patterns, all integration points verified via code inspection)
+**Domain:** Sound Selection Intelligence for Ableton MCP (v1.5)
+**Researched:** 2026-03-30
+**Confidence:** HIGH -- all recommendations derived from existing codebase patterns; no external dependencies introduced
 
 ## Recommended Architecture
 
-### High-Level Integration
+### Overview
 
-Mix/master intelligence integrates as a new `MCP_Server/mixing/` package -- parallel to `genres/` and `theory/` -- containing:
-1. **Device parameter catalog** (static data, curated)
-2. **Mix recipes** (role x genre x device-type mappings)
-3. **Recipe engine** (lookup + application logic)
-
-New MCP tools in `MCP_Server/tools/mixing.py` expose recipe application, gain staging checks, and state reading. These tools **orchestrate existing Remote Script commands** -- no new Remote Script handlers are needed for the core recipe workflow.
+v1.5 adds a new `MCP_Server/sounds/` peer package (alongside `genres/`, `mixing/`, `theory/`) containing instrument profile data and descriptor-matching logic. A new `MCP_Server/tools/sounds.py` tool module exposes three MCP tools. No Remote Script changes. No genre coupling.
 
 ```
 MCP_Server/
-  mixing/                    # NEW package (parallel to genres/, theory/)
-    __init__.py              # Public API exports
-    schema.py                # TypedDicts for recipes, device catalog entries
-    catalog.py               # Device parameter catalog (static dicts)
-    recipes/                 # Subpackage: per-genre recipe files
-      __init__.py            # Auto-discovery catalog (like genres/catalog.py)
-      house.py               # Role x device recipes for house
-      techno.py              # Role x device recipes for techno
-      ...                    # One file per genre
-    engine.py                # Recipe lookup + parameter resolution logic
-    gain.py                  # Gain staging analysis logic
+  sounds/                    # NEW peer package
+    __init__.py              # Public API: get_profile, list_descriptors, recommend
+    catalog.py               # Auto-discovery registry + matching engine
+    wavetable.py             # INSTRUMENT profile dict
+    analog.py                # INSTRUMENT profile dict
+    operator.py              # INSTRUMENT profile dict
+    drift.py                 # INSTRUMENT profile dict
+    simpler.py               # INSTRUMENT profile dict
+    drum_rack.py             # INSTRUMENT profile dict
   tools/
-    mixing.py                # NEW tool module (MCP tools for mix/master)
+    sounds.py                # NEW tool module (3 MCP tools)
+    __init__.py              # MODIFIED: add sounds import
 ```
 
 ### Component Boundaries
 
 | Component | Responsibility | Communicates With |
 |-----------|---------------|-------------------|
-| `mixing/catalog.py` | Maps Ableton device class_names to parameter names, value ranges, and semantics | `mixing/engine.py` (lookup) |
-| `mixing/recipes/*.py` | Stores role x genre x device-type recipes as Python dicts | `mixing/engine.py` (lookup via recipes/__init__.py) |
-| `mixing/engine.py` | Resolves a recipe request into concrete device + parameter actions | `mixing/catalog.py`, `mixing/recipes/` |
-| `mixing/schema.py` | TypedDict definitions for catalog entries, recipes, gain targets | All mixing modules (type contract) |
-| `mixing/gain.py` | Gain staging analysis: compare current state to targets, produce diffs | `mixing/catalog.py` |
-| `tools/mixing.py` | MCP tool endpoints -- bridges engine to existing Remote Script commands | `mixing/engine.py`, `connection.py` (existing) |
-| Remote Script | **NO CHANGES** -- existing handlers already cover all needed operations | N/A |
+| `sounds/wavetable.py` (etc.) | Static instrument profile data -- sonic character, strengths, weaknesses, descriptor affinities, preset category map | `sounds/catalog.py` reads INSTRUMENT constant |
+| `sounds/catalog.py` | Auto-discovers profiles via pkgutil; descriptor registry; weighted scoring engine for descriptor-to-instrument matching | `sounds/*.py` profile modules |
+| `sounds/__init__.py` | Public API surface: `get_profile()`, `list_descriptors()`, `recommend()` | Delegates to `catalog.py` |
+| `tools/sounds.py` | MCP tool definitions: `get_instrument_profile`, `list_sound_descriptors`, `get_sound_recommendation` | Imports from `sounds/` package; uses `MCP_Server.server.mcp` for registration |
 
 ### Data Flow
 
-**Apply Recipe Flow:**
+**Recommendation request flow:**
 ```
-Claude calls apply_mix_recipe(track_index, role, genre, device_type="eq")
-  --> tools/mixing.py looks up recipe via engine.resolve_recipe(role, genre, "eq")
-  --> engine returns: {device_path: "audio_effects/EQ Eight", params: [{name: "1 Frequency A", value: 80.0}, ...]}
-  --> tools/mixing.py calls existing load_instrument_or_effect(track_index, path=device_path)
-  --> tools/mixing.py calls existing set_device_parameter() for EACH param
-  --> Returns summary of what was applied
-```
-
-**Read + Suggest Flow:**
-```
-Claude calls get_mix_state(track_index)
-  --> tools/mixing.py calls existing get_device_parameters() for each device on track
-  --> Returns structured device chain state
-
-Claude calls suggest_mix_adjustments(track_index, role, genre)
-  --> tools/mixing.py reads current state (as above)
-  --> engine.diff_against_recipe(current_state, role, genre)
-  --> Returns param diffs with reasoning
+Claude calls get_sound_recommendation(descriptor="warm evolving pad")
+  -> tools/sounds.py parses descriptor string into tags
+  -> sounds.catalog.recommend(tags) called
+  -> catalog iterates all discovered INSTRUMENT profiles
+  -> for each instrument, computes weighted affinity score against tags
+  -> returns top match(es) with instrument name, browser_path, reasoning
+  -> tools/sounds.py formats as JSON string, returns to Claude
 ```
 
-**Gain Staging Flow:**
+**Profile lookup flow:**
 ```
-Claude calls check_gain_staging()
-  --> tools/mixing.py reads all track volumes via existing mixer commands
-  --> gain.analyze(volumes, role_assignments) compares to target ranges
-  --> Returns flagged tracks with suggested adjustments
+Claude calls get_instrument_profile(instrument="Wavetable")
+  -> tools/sounds.py delegates to sounds.catalog.get_profile("wavetable")
+  -> catalog returns the full INSTRUMENT dict for that instrument
+  -> tools/sounds.py formats as JSON string
 ```
 
-## Key Architecture Decisions
+**Descriptor listing flow:**
+```
+Claude calls list_sound_descriptors()
+  -> tools/sounds.py delegates to sounds.catalog.list_descriptors()
+  -> catalog aggregates all descriptor tags across all profiles
+  -> returns deduplicated, categorized list
+```
 
-### 1. New `mixing/` Package (Not Inline in Genres)
+## Integration Points with Existing Tools
 
-**Decision:** Create `MCP_Server/mixing/` as a peer package to `genres/` and `theory/`.
+### Browser Tools (browser.py)
 
-**Rationale:** The genre blueprints' `mixing` section contains *prose-level conventions* (e.g., "mono bass and kick, wide pads"). Mix recipes contain *exact device parameter values* (e.g., `EQ Eight.1 Frequency A = 80.0`). These are fundamentally different data types. Embedding parameter-level data in genre blueprints would:
-- Bloat blueprint token counts (currently 537-670 tokens; recipes would add 2000+ per genre)
-- Violate the "no helper functions" design decision for genre files (D-02)
-- Require schema changes that break the existing 12-genre validation suite
+`get_sound_recommendation` returns a `browser_path` field (e.g., `"Instruments/Wavetable/Pads/Warm Pad"`). Claude uses this path with the existing `get_browser_items_at_path` tool to navigate and load a preset. The sounds package does NOT call browser tools directly -- it returns data that guides Claude's next action.
 
-The `mixing/` package *references* genre IDs for recipe lookup but owns its own data.
+**Why no direct integration:** Keeping sounds as pure data/computation (like theory/) means no socket calls, no Remote Script dependency, and easier testing. Claude orchestrates the workflow: recommend -> browse -> load.
 
-### 2. Static Device Parameter Catalog (Not Auto-Discovered)
+### Genre Tools (genres.py)
 
-**Decision:** Curate a static Python dict mapping device class_names to their parameters.
+No coupling. The milestone spec explicitly says "no genre dependency." Genre-awareness (e.g., "house bass" vs "dubstep bass") is a future enhancement, not v1.5 scope. The sounds package is self-contained.
 
-**Rationale:**
-- **Reliability:** Auto-discovery requires a live Ableton connection and device instantiation. Recipes need to work offline for validation/testing.
-- **Stability:** Ableton's built-in device parameters are stable across Live 12 versions. EQ Eight's "1 Frequency A" does not change between updates.
-- **Testing:** Static data can be validated in CI without Ableton running.
-- **Scope:** Start with ~10 priority devices (EQ Eight, Compressor, Glue Compressor, Limiter, Utility, Auto Filter, Reverb, Delay, Saturator, Multiband Dynamics). Covers 95% of mixing needs.
-- **Bootstrap:** Capture initial data by running `get_device_parameters` on each device in a live Ableton session, then store as static dicts.
+### Mix Recipe Tools (mixing.py)
 
-The catalog stores: `class_name`, `display_name`, `browser_path`, and a list of `{name, min, max, default, unit, semantic}` per parameter. The `semantic` field tags parameters by function (e.g., "frequency", "gain", "threshold", "ratio") enabling the engine to map recipe intent to parameter names.
+No coupling for v1.5. A future milestone could bridge sounds and mixing (e.g., "load instrument then apply role recipe"), but that is out of scope.
 
-**Confidence:** HIGH -- existing `get_device_parameters` already returns this exact structure from live devices.
+### Device/Load Tools (devices.py)
 
-### 3. Orchestrate Existing Tools (No New Remote Script Commands)
+The existing `load_instrument_by_path` tool in devices.py handles loading browser items onto tracks. The recommendation flow is: `get_sound_recommendation` -> returns browser path -> Claude calls `load_instrument_by_path` with that path. No modification to devices.py needed.
 
-**Decision:** Recipe application calls existing `load_browser_item` and `set_device_parameter` commands in sequence. No new Remote Script handler needed.
+## New vs. Modified Files
 
-**Rationale:**
-- Existing `load_browser_item` loads any device by browser path
-- Existing `set_device_parameter` sets any param by name or index with clamping
-- Existing `get_device_parameters` reads all params from any device
-- All three already support `track_type: "master"` for master bus operations
-- Adding a new "apply_recipe" Remote Script command would duplicate logic and create a maintenance burden
+### New Files (8)
 
-**Tradeoff:** Multiple socket round-trips per recipe application (1 load + N param sets). At ~5ms per round-trip over localhost TCP, a 15-parameter recipe takes ~80ms total. Acceptable for a non-real-time workflow.
+| File | Type | Purpose |
+|------|------|---------|
+| `MCP_Server/sounds/__init__.py` | Package init | Public API exports |
+| `MCP_Server/sounds/catalog.py` | Core logic | Auto-discovery, descriptor registry, matching engine |
+| `MCP_Server/sounds/wavetable.py` | Data | Wavetable instrument profile |
+| `MCP_Server/sounds/analog.py` | Data | Analog instrument profile |
+| `MCP_Server/sounds/operator.py` | Data | Operator instrument profile |
+| `MCP_Server/sounds/drift.py` | Data | Drift instrument profile |
+| `MCP_Server/sounds/simpler.py` | Data | Simpler instrument profile |
+| `MCP_Server/sounds/drum_rack.py` | Data | Drum Rack instrument profile |
+| `MCP_Server/tools/sounds.py` | Tool module | 3 MCP tool definitions |
 
-**Confidence:** HIGH -- verified that all three commands exist and support master track type.
+### Modified Files (1)
 
-### 4. Master Track: Same Tools, Different `track_type`
+| File | Change |
+|------|--------|
+| `MCP_Server/tools/__init__.py` | Add `sounds` to the import list |
 
-**Decision:** Master bus tools use `track_type: "master"` on existing device/mixer tools. No separate tool set needed.
+### Unchanged Files
 
-**Rationale:**
-- `_resolve_track()` in the Remote Script already resolves `track_type: "master"` to `song.master_track`
-- `load_browser_item`, `set_device_parameter`, `get_device_parameters` all accept `track_type: "master"`
-- Master track uses `track_index: 0` (ignored when `track_type: "master"`)
+Everything else. No Remote Script changes. No genre/mixing/theory modifications.
 
-**What differs for master recipes:**
-- Recipe data: master bus recipes reference different devices (Multiband Dynamics, Glue Compressor, Limiter) and different parameter targets (e.g., ceiling, output gain)
-- The engine routes `role="master_bus"` to master-specific recipe data
-- The tools pass `track_type="master"` automatically when role is `master_bus`
+## Instrument Profile Data Structure
 
-**No separate `apply_master_recipe` tool is needed** -- `apply_mix_recipe(track_index=0, track_type="master", role="master_bus", genre="house")` uses the same code path.
+Use plain Python dicts (matching genres/ convention per D-01, D-02). Each profile module exports an `INSTRUMENT` constant.
 
-**Important note on load_browser_item:** The current handler indexes into `self._song.tracks[track_index]`, which does NOT include the master track. Loading devices onto the master track may require either: (a) a small Remote Script fix to handle master track device loading, or (b) using the master track's existing device loading mechanism. This needs verification during implementation -- flag as a potential integration gap.
+### Recommended Schema
 
-### 5. Spectrum Analysis: Not Feasible via LOM
-
-**Decision:** Do NOT build spectrum analysis tools. Use gain staging + device state reading as the feedback loop instead.
-
-**Rationale:**
-- Ableton's Spectrum device is visualization-only. The LOM exposes its *control parameters* (FFT size, range, channel mode) but **not the frequency bin data** it displays. There is no API to read amplitude-per-frequency.
-- Max for Live can access audio buffers via `[snapshot~]` but this requires M4L device authoring, not Remote Script API calls.
-- The Remote Script API has no audio buffer access whatsoever.
-
-**Alternative feedback loop (sufficient for mixing intelligence):**
-1. **Read device state:** `get_device_parameters` on EQ/compressor shows current frequency/gain/threshold settings
-2. **Gain staging check:** Read track volumes, flag outliers against genre-appropriate targets
-3. **Recipe diff:** Compare current device params vs. recipe targets, suggest adjustments with reasoning
-
-**Confidence:** HIGH that Spectrum data is not accessible via LOM.
-
-## Patterns to Follow
-
-### Pattern 1: Auto-Discovery Catalog (Reuse genres/ pattern)
-
-**What:** Python dicts in individual files, auto-discovered via `pkgutil.iter_modules`, validated at import time.
-
-**Applied to mixing recipes:**
 ```python
-# MCP_Server/mixing/recipes/house.py
-RECIPES = {
-    "genre_id": "house",
-    "roles": {
-        "kick": {
-            "eq": {
-                "device": "eq_eight",
-                "params": [
-                    {"name": "1 Filter On A", "value": 1.0},
-                    {"name": "1 Filter Type A", "value": 6.0},
-                    {"name": "1 Frequency A", "value": 30.0},
-                ],
-            },
-            "compressor": {
-                "device": "compressor",
-                "params": [
-                    {"name": "Threshold", "value": -12.0},
-                    {"name": "Ratio", "value": 4.0},
-                ],
-            },
-        },
-        "bass": { ... },
-        "master_bus": {
-            "glue_compressor": { ... },
-            "limiter": { ... },
-            "eq": { ... },
-        },
+INSTRUMENT = {
+    # Identity
+    "name": "Wavetable",                    # Display name (matches Ableton)
+    "id": "wavetable",                      # Canonical ID for lookup
+    "aliases": ["wavetable synth"],          # Alternative names
+    "type": "synthesizer",                   # synthesizer | sampler | drum_machine
+
+    # Sonic character -- what this instrument sounds like / is good at
+    "character": {
+        "description": "Modern wavetable synth with morphing capabilities...",
+        "strengths": [
+            "evolving textures",
+            "rich pads",
+            "modern digital leads",
+            "morphing timbres",
+        ],
+        "weaknesses": [
+            "raw analog warmth",
+            "simple classic waveforms",
+        ],
+    },
+
+    # Descriptor affinities -- the matching engine core
+    # Keys are descriptor tags; values are affinity weights 0.0-1.0
+    # Only include descriptors where this instrument has meaningful affinity (>= 0.3)
+    "descriptors": {
+        # Texture descriptors
+        "warm": 0.6,
+        "bright": 0.8,
+        "dark": 0.5,
+        "evolving": 0.95,
+        "static": 0.3,
+        "gritty": 0.6,
+        "clean": 0.7,
+        "lush": 0.9,
+        # Role descriptors
+        "pad": 0.9,
+        "lead": 0.8,
+        "bass": 0.7,
+        "pluck": 0.7,
+        "keys": 0.4,
+        "arp": 0.8,
+        # Character descriptors
+        "analog": 0.4,
+        "digital": 0.9,
+        "acoustic": 0.1,
+        "cinematic": 0.8,
+        "aggressive": 0.7,
+        "soft": 0.7,
+        "punchy": 0.6,
+    },
+
+    # Browser category map -- where to find presets in Ableton's browser
+    # Maps descriptor combinations to specific browser paths
+    "browser_paths": {
+        "pad": "Instruments/Wavetable/Pad",
+        "lead": "Instruments/Wavetable/Lead",
+        "bass": "Instruments/Wavetable/Bass",
+        "keys": "Instruments/Wavetable/Keys",
+        "pluck": "Instruments/Wavetable/Pluck",
+        "arp": "Instruments/Wavetable/Rhythmic",
+        "_default": "Instruments/Wavetable",
     },
 }
 ```
 
-### Pattern 2: Engine Module (Reuse theory/ pattern)
+### Why This Structure
 
-**What:** Pure computation module with no Ableton dependency -- takes data in, returns data out.
+1. **Plain dicts, not dataclasses:** Matches the established D-01/D-02 convention from genres/. Every data module in this codebase uses dicts. Consistency matters more than type safety here -- the catalog validates on discovery.
 
-**Applied to mixing:**
+2. **Affinity weights (0.0-1.0), not boolean tags:** A boolean "supports pad: yes/no" loses the critical nuance that Wavetable is excellent for pads (0.9) while Operator is decent (0.6). Weighted scoring enables the matching engine to rank instruments, not just filter them.
+
+3. **Sparse descriptors (only >= 0.3):** Instruments only list descriptors they have meaningful affinity for. Absence = 0.0 affinity. This keeps profiles lean and makes it obvious what each instrument is NOT good at.
+
+4. **browser_paths keyed by role descriptor:** After the matching engine picks an instrument, it needs to tell Claude WHERE in the browser to look. The role descriptor (pad, lead, bass) maps to a specific browser category. The `_default` key handles cases where no specific path exists.
+
+5. **Separate character.strengths/weaknesses from descriptors:** Strengths/weaknesses are human-readable text for the `get_instrument_profile` tool (Claude reads these to explain its choice). Descriptors are machine-readable weights for the matching engine. Different audiences, different formats.
+
+## Descriptor Matching Algorithm
+
+### Recommended: Weighted Sum Scoring
+
+**Not keyword matching** (too brittle -- "warm pad" would only match instruments tagged with both exact strings).
+
+**Not ML/embeddings** (overkill for 6 instruments and ~30 descriptors; adds dependencies; opaque reasoning).
+
+**Weighted sum scoring** because it is transparent, debuggable, and sufficient for the problem size:
+
 ```python
-# MCP_Server/mixing/engine.py
-def resolve_recipe(role: str, genre_id: str, device_type: str) -> ResolvedRecipe | None:
-    """Look up a recipe and resolve it against the device catalog."""
-    ...
+def recommend(tags: list[str]) -> list[dict]:
+    """Score all instruments against descriptor tags, return ranked results."""
+    results = []
+    for inst_id, profile in _registry.items():
+        affinities = profile["descriptors"]
+        score = 0.0
+        matched_tags = []
+        unmatched_tags = []
 
-def diff_against_recipe(current_params: list[dict], recipe: ResolvedRecipe) -> list[ParamDiff]:
-    """Compare current device state to recipe target, return diffs."""
-    ...
+        for tag in tags:
+            normalized = tag.lower().strip()
+            weight = affinities.get(normalized, 0.0)
+            score += weight
+            if weight > 0:
+                matched_tags.append((normalized, weight))
+            else:
+                unmatched_tags.append(normalized)
+
+        if score > 0:
+            # Determine best browser path from role-type tags
+            browser_path = _resolve_browser_path(profile, tags)
+            results.append({
+                "instrument": profile["name"],
+                "score": round(score, 2),
+                "browser_path": browser_path,
+                "matched": matched_tags,
+                "unmatched": unmatched_tags,
+                "reasoning": _build_reasoning(profile, matched_tags),
+            })
+
+    results.sort(key=lambda r: r["score"], reverse=True)
+    return results
 ```
 
-### Pattern 3: Thin Tool Layer (Reuse existing tools/ pattern)
+### Tag Parsing
 
-**What:** MCP tool functions are thin wrappers -- validate inputs, call library/engine, format output. No business logic in tools.
+The descriptor input from Claude is a free-form string like `"warm evolving pad"`. Parse by splitting on spaces and stripping punctuation. Each word becomes a tag. This is intentionally simple -- Claude already knows the valid descriptors (from `list_sound_descriptors`) and will use them correctly.
+
+### Browser Path Resolution
+
+After scoring picks an instrument, resolve the browser path:
+1. Check tags for role descriptors (pad, lead, bass, keys, pluck, arp)
+2. If found, use `browser_paths[role]`
+3. If not found, use `browser_paths["_default"]`
+4. If multiple role descriptors, prefer the one with highest affinity weight
+
+### Reasoning Generation
+
+Build a one-liner explaining why this instrument was chosen. Template:
+`"{instrument} excels at {top_matched_descriptors} (scored {score})"`. This helps Claude explain its recommendation to the user.
+
+## Catalog / Auto-Discovery Pattern
+
+Follow the exact pattern from `genres/catalog.py` and `mixing/catalog.py`:
 
 ```python
-# MCP_Server/tools/mixing.py
-@mcp.tool()
-def apply_mix_recipe(ctx: Context, track_index: int, role: str, genre: str,
-                     device_type: str, track_type: str = "track") -> str:
-    """Apply a mixing recipe..."""
-    recipe = engine.resolve_recipe(role, genre, device_type)
-    # ... call existing load + set_device_parameter commands
+# sounds/catalog.py
+
+import importlib
+import logging
+import pkgutil
+from typing import Dict, List, Optional
+
+import MCP_Server.sounds as sounds_package
+
+logger = logging.getLogger("AbletonMCPServer")
+
+_registry: Dict[str, dict] = {}      # inst_id -> INSTRUMENT dict
+_descriptor_index: Dict[str, list] = {}  # descriptor -> [(inst_id, weight)]
+_initialized = False
+_SKIP_MODULES = {"catalog"}
+
+
+def _discover_instruments() -> None:
+    global _initialized
+    for finder, modname, ispkg in pkgutil.iter_modules(sounds_package.__path__):
+        if modname.startswith("_") or modname in _SKIP_MODULES:
+            continue
+        try:
+            mod = importlib.import_module(f"MCP_Server.sounds.{modname}")
+        except Exception:
+            logger.error("Failed to import sound module '%s'", modname, exc_info=True)
+            continue
+
+        inst_data = getattr(mod, "INSTRUMENT", None)
+        if inst_data is None:
+            logger.warning("Sound module '%s' has no INSTRUMENT constant", modname)
+            continue
+
+        # Validate required keys
+        required = {"name", "id", "type", "character", "descriptors", "browser_paths"}
+        missing = required - set(inst_data.keys())
+        if missing:
+            logger.error("Sound module '%s' missing keys: %s", modname, missing)
+            continue
+
+        inst_id = inst_data["id"]
+        _registry[inst_id] = inst_data
+
+        # Build descriptor reverse index
+        for desc, weight in inst_data["descriptors"].items():
+            _descriptor_index.setdefault(desc, []).append((inst_id, weight))
+
+    _initialized = True
+
+
+def _ensure_initialized() -> None:
+    if not _initialized:
+        _discover_instruments()
 ```
+
+### Key Design Decisions
+
+1. **`INSTRUMENT` constant name** (not `PROFILE` or `SOUND`): Parallels `GENRE` in genres/ and `RECIPE` in mixing/. Noun that describes what the dict IS.
+
+2. **`_descriptor_index` reverse index**: Built at discovery time. Maps each descriptor to a list of (instrument_id, weight) tuples. Enables O(1) lookup per tag during scoring, and powers `list_descriptors()` trivially.
+
+3. **Validation at discovery time**: Missing required keys logged and skipped, matching the D-08 pattern from genres/catalog.py. Fail gracefully, never crash the server.
+
+## Patterns to Follow
+
+### Pattern 1: Peer Package with pkgutil Auto-Discovery
+**What:** New `sounds/` package sits alongside `genres/` and `mixing/`. Each instrument is a separate Python file exporting a dict constant. The catalog discovers them via `pkgutil.iter_modules`.
+**When:** Always -- this is the established pattern for all data packages in this codebase.
+**Why:** Zero-registration. Add a new instrument file, it appears automatically. Proven in genres/ (12 files) and mixing/ (12 files).
+
+### Pattern 2: Tool Module Imports Data Package
+**What:** `tools/sounds.py` imports from `sounds/` package and defines `@mcp.tool()` functions. Tool module handles formatting, error messages, and JSON serialization. Data package handles logic.
+**When:** Always -- every tool module follows this separation (tools/genres.py imports genres/, tools/mixing.py imports mixing/, tools/catalog.py imports devices/).
+**Why:** Separation of concerns. Data/logic is testable without MCP. Tools are thin wrappers.
+
+### Pattern 3: format_error for User-Facing Errors
+**What:** Use `MCP_Server.connection.format_error()` for structured error responses in tool functions.
+**When:** Any tool function that can fail (invalid instrument name, empty descriptor, etc.).
+**Why:** Consistent error format across all 100+ tools.
+
+### Pattern 4: JSON Serialization in Tool Layer Only
+**What:** Tool functions call `json.dumps()` on the data returned by the data package. The data package returns Python dicts/lists, never JSON strings.
+**When:** Always -- every tool module does this.
+**Why:** Data package stays testable with plain Python assertions. JSON is a presentation concern.
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Mega-Tool That Does Everything
+### Anti-Pattern 1: Genre Coupling
+**What:** Making sound recommendations depend on genre context.
+**Why bad:** Violates the milestone spec ("no genre dependency"). Adds complexity. If Claude wants genre-aware recommendations, it can call genre tools separately and combine the information itself.
+**Instead:** Pure descriptor-based matching. Genre awareness is a future milestone.
 
-**What:** A single `mix_track` tool that loads ALL devices AND sets ALL params for a role.
+### Anti-Pattern 2: Embedding/ML Matching
+**What:** Using sentence embeddings or ML models to match descriptors to instruments.
+**Why bad:** Adds heavy dependencies (torch, sentence-transformers) to a project that currently has zero ML deps beyond music21. Opaque reasoning. 6 instruments do not warrant ML.
+**Instead:** Weighted sum scoring with hand-tuned affinity values. Transparent, debuggable, zero new dependencies.
 
-**Why bad:** Too many socket calls in one tool invocation (could be 50+ round-trips). If one fails mid-way, partial state is hard to recover. Claude cannot inspect intermediate results.
+### Anti-Pattern 3: Static Lookup Table
+**What:** A giant if/elif chain or flat dict mapping exact descriptor strings to instruments.
+**Why bad:** Brittle. "warm pad" works but "lush warm pad" doesn't. No ranking. Adding new descriptors requires modifying the lookup table rather than just instrument profiles.
+**Instead:** Weighted scoring over individual tags. Naturally handles multi-tag queries and provides ranked results.
 
-**Instead:** One tool per device-type application. Claude calls per device: EQ, then compressor, then send setup. Matches how a human mixes -- device by device, with listening between.
+### Anti-Pattern 4: Remote Script Changes
+**What:** Adding any command handlers to the Ableton Remote Script.
+**Why bad:** Unnecessary. Sound selection is pure computation -- no Ableton API calls needed. Same principle as theory/ (server-side only, per the project's established pattern).
+**Instead:** All new code is MCP_Server-side only.
 
-### Anti-Pattern 2: Auto-Discovering Parameters from Live at Startup
+### Anti-Pattern 5: Dataclass/Pydantic Profiles
+**What:** Defining instrument profiles as dataclasses or Pydantic models.
+**Why bad:** Breaks established convention. Genres use dicts (D-01). Mixing uses dicts. Devices use dicts. Adding a different data representation for one package creates inconsistency.
+**Instead:** Plain Python dicts with validation in the catalog discovery step.
 
-**What:** Building the device catalog by querying Ableton for every built-in device's parameters.
+## Suggested Build Order
 
-**Why bad:** Requires Ableton running for tests. Slow startup. Recipe authoring can't happen offline.
+Build order follows dependency chain: data first, then logic, then tools, then registration.
 
-**Instead:** Static catalog, validated against live Ableton in integration tests only.
+### Phase 1: Package Skeleton + First Profile
+1. Create `MCP_Server/sounds/__init__.py` with public API stubs
+2. Create `MCP_Server/sounds/catalog.py` with auto-discovery + `get_profile()` + `list_descriptors()`
+3. Create `MCP_Server/sounds/wavetable.py` with full INSTRUMENT profile
+4. Write tests for catalog discovery and profile lookup
 
-### Anti-Pattern 3: Storing Recipes in Genre Blueprints
+### Phase 2: Remaining Profiles
+5. Create `analog.py`, `operator.py`, `drift.py`, `simpler.py`, `drum_rack.py`
+6. Test all 6 profiles discovered and queryable
 
-**What:** Adding parameter-level recipe data to the existing genre blueprint `mixing` section.
+### Phase 3: Matching Engine
+7. Add `recommend()` function to `catalog.py` with weighted scoring
+8. Add `_resolve_browser_path()` helper
+9. Add `_build_reasoning()` helper
+10. Write tests for scoring, ranking, browser path resolution
 
-**Why bad:** Breaks token budget. Breaks schema. Couples genre conventions with device specifics.
+### Phase 4: MCP Tools
+11. Create `MCP_Server/tools/sounds.py` with 3 tool functions
+12. Modify `MCP_Server/tools/__init__.py` to import sounds module
+13. Integration test: tools return valid JSON with expected fields
 
-**Instead:** `mixing/` package references genre IDs. Genre `mixing` section = the *why*. Recipes = the *how*.
-
-### Anti-Pattern 4: New Remote Script Command for Recipe Application
-
-**What:** A Remote Script command that receives a full recipe payload and applies it.
-
-**Why bad:** Puts business logic in Ableton's Python sandbox. Harder to test/debug. Couples recipe format to socket protocol.
-
-**Instead:** Keep intelligence server-side. Remote Script stays dumb.
-
-## Integration Points Summary (New vs. Modified)
-
-### New Components
-
-| Component | Type | Description |
-|-----------|------|-------------|
-| `MCP_Server/mixing/__init__.py` | New package | Public API exports |
-| `MCP_Server/mixing/schema.py` | New module | TypedDicts for catalog, recipes, diffs |
-| `MCP_Server/mixing/catalog.py` | New module | Static device parameter catalog (~10 devices) |
-| `MCP_Server/mixing/recipes/` | New subpackage | Per-genre recipe files with auto-discovery |
-| `MCP_Server/mixing/engine.py` | New module | Recipe resolution + diff logic |
-| `MCP_Server/mixing/gain.py` | New module | Gain staging analysis |
-| `MCP_Server/tools/mixing.py` | New module | MCP tool endpoints |
-
-### Modified Components
-
-| Component | Change | Reason |
-|-----------|--------|--------|
-| `MCP_Server/tools/__init__.py` | Add `import MCP_Server.tools.mixing` | Tool auto-registration |
-| Possibly `AbletonMCP_Remote_Script/handlers/browser.py` | Support `track_type: "master"` in `load_browser_item` | Master track device loading (needs verification) |
-
-### Existing Commands Reused (No Changes)
-
-| Command | Used For | Confidence |
-|---------|----------|------------|
-| `load_browser_item` | Loading devices onto tracks from recipes | HIGH (per-track); MEDIUM (master -- needs verification) |
-| `set_device_parameter` | Setting recipe parameter values | HIGH |
-| `get_device_parameters` | Reading current device state for diffs | HIGH |
-| `set_track_volume` | Gain staging adjustments | HIGH |
-| `set_send_level` | Setting up return track sends (reverb/delay) | HIGH |
-
-## Recipe Data Structure
-
-```python
-class RecipeParam(TypedDict):
-    name: str           # Exact Ableton parameter name (e.g., "1 Frequency A")
-    value: float        # Target value
-    unit: str           # Documentation: "Hz", "dB", "ratio", "%"
-    reason: str         # Why this value (e.g., "high-pass below kick fundamental")
-
-class DeviceRecipe(TypedDict):
-    device: str         # catalog key (e.g., "eq_eight")
-    params: list[RecipeParam]
-
-class RoleRecipes(TypedDict, total=False):
-    eq: DeviceRecipe
-    compressor: DeviceRecipe
-    reverb_send: float         # Send level 0.0-1.0
-    delay_send: float          # Send level 0.0-1.0
-    pan: float                 # -1.0 to 1.0
-    volume: float              # 0.0 to 1.0 (gain staging target)
-
-class GenreRecipes(TypedDict):
-    genre_id: str
-    roles: dict[str, RoleRecipes]
-```
+**Rationale:** Profiles must exist before the catalog can discover them. Catalog must work before matching engine can score. Matching engine must work before tools can expose it. Each phase is independently testable.
 
 ## Scalability Considerations
 
-| Concern | At 12 genres | At 30 genres | At 50+ genres |
-|---------|-------------|-------------|---------------|
-| Recipe file count | 12 files, manageable | 30 files, still fine with auto-discovery | Recipe inheritance (base -> subgenre override, like current SUBGENRES pattern) |
-| Device catalog | ~10 devices | ~10 devices (same built-in devices) | Same -- built-in devices are fixed |
-| Tool count | +5-8 new tools | Same tools | Same tools |
-| Token budget per recipe | ~800-1200 tokens per genre | Same | Same -- tool returns only requested recipe |
+| Concern | At 6 instruments (v1.5) | At 20 instruments (future) | At 50+ instruments (far future) |
+|---------|------------------------|---------------------------|-------------------------------|
+| Discovery time | Instant (<10ms) | Instant (<50ms) | Still fast -- pkgutil is O(n) |
+| Scoring time | Trivial -- 6 instruments x ~5 tags | Trivial -- 20 x 5 | Still trivial -- 50 x 10 = 500 multiplies |
+| Profile maintenance | Manual, manageable | Manual, needs conventions doc | Consider YAML/JSON data files |
+| Descriptor sprawl | ~30 descriptors, easy to reason about | ~50, needs categorization | Needs hierarchy or taxonomy |
+| Browser paths | Hardcoded per instrument, fine | Per-instrument hardcoding still works | May need browser API verification |
+
+The weighted scoring approach scales well up to hundreds of instruments. The bottleneck will be profile authoring quality, not computation.
 
 ## Sources
 
-- Ableton Live Object Model: [LOM Reference](https://docs.cycling74.com/max8/vignettes/live_object_model) -- MEDIUM confidence (Max 8 docs, structure same in Live 12)
-- Ableton Forum on Spectrum device: [Push 3 spectrum 'No parameter mapped'](https://forum.ableton.com/viewtopic.php?t=247697) -- confirms Spectrum has no mappable parameters
-- Existing codebase: `_resolve_track()`, device tools, genre catalog, browser handler -- HIGH confidence (direct code inspection)
-- Ableton Live 12 Release Notes: [ableton.com](https://www.ableton.com/en/release-notes/live-12/) -- HIGH confidence
+- Codebase analysis: `MCP_Server/genres/catalog.py` (pkgutil auto-discovery pattern)
+- Codebase analysis: `MCP_Server/mixing/catalog.py` (pkgutil auto-discovery pattern)
+- Codebase analysis: `MCP_Server/tools/__init__.py` (tool registration pattern)
+- Codebase analysis: `MCP_Server/genres/house.py` (dict-based data module pattern, D-01/D-02)
+- Codebase analysis: `MCP_Server/tools/genres.py` (tool-imports-package pattern)
+- Codebase analysis: `MCP_Server/tools/mixing.py` (tool-imports-package, format_error pattern)
+- Codebase analysis: `MCP_Server/tools/browser.py` (browser path navigation, integration point)
+- Codebase analysis: `MCP_Server/devices/__init__.py` (public API delegation pattern)
+- Project spec: `.planning/PROJECT.md` (v1.5 requirements, architecture constraints)
