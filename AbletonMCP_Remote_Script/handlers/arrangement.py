@@ -113,6 +113,53 @@ class ArrangementHandlers:
             self.log_message(f"Error getting arrangement clips: {e}")
             raise
 
+    @command("get_arrangement_clip_notes")
+    def _get_arrangement_clip_notes(self, params):
+        """Get MIDI notes from an arrangement clip identified by its start_time.
+
+        Params:
+            track_index: Index of the track.
+            clip_start_time: Beat position of the clip's start (float, 0-indexed).
+            track_type: "track", "return", or "master" (default "track").
+
+        Returns:
+            note_count, notes list with pitch, start_time, duration, velocity, mute.
+            Returns {"note_count": 0, "notes": []} if no clip found at that position.
+        """
+        track_index = params.get("track_index", 0)
+        clip_start_time = params.get("clip_start_time", 0.0)
+        track_type = params.get("track_type", "track")
+        TOLERANCE = 0.01
+
+        try:
+            track = _resolve_track(self._song, track_type, track_index)
+
+            # Find clip by start_time with tolerance
+            target_clip = None
+            for clip in track.arrangement_clips:
+                if abs(clip.start_time - clip_start_time) <= TOLERANCE:
+                    target_clip = clip
+                    break
+
+            if target_clip is None or target_clip.is_audio_clip:
+                return {"note_count": 0, "notes": []}
+
+            raw_notes = target_clip.get_notes_extended(0, 128, 0.0, target_clip.length)
+            notes = []
+            for note in raw_notes:
+                notes.append({
+                    "pitch": note.pitch,
+                    "start_time": note.start_time,
+                    "duration": note.duration,
+                    "velocity": note.velocity,
+                    "mute": bool(note.mute),
+                })
+            notes.sort(key=lambda n: (n["start_time"], n["pitch"]))
+            return {"note_count": len(notes), "notes": notes}
+        except Exception as e:
+            self.log_message(f"Error getting arrangement clip notes: {e}")
+            raise
+
     @command("duplicate_clip_to_arrangement", write=True)
     def _duplicate_clip_to_arrangement(self, params):
         """Copy a session clip to the arrangement at the specified time.
