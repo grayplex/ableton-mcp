@@ -42,16 +42,15 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 
 ### Active
 
-- ✓ INST-01: Instrument profile data for Wavetable — sonic character, strengths, descriptor affinities, browser category paths — v1.5 Phase 35
-- ✓ PKG-01: sounds/ peer package with pkgutil auto-discovery catalog — zero-registration, one file per instrument — v1.5 Phase 35
-- INST-02: Instrument profile data for Analog — sonic character, strengths, preset category map
-- INST-03: Instrument profile data for Operator — sonic character, strengths, preset category map
-- INST-04: Instrument profile data for Drift — sonic character, strengths, preset category map
-- INST-05: Instrument profile data for Simpler — sonic character, strengths, preset category map
-- INST-06: Instrument profile data for Drum Rack — sonic character, strengths, preset category map
-- SREC-01: get_sound_recommendation(descriptor) MCP tool — maps descriptor tags to instrument + browser category path + one-line reasoning
-- SREC-02: list_sound_descriptors MCP tool — returns all supported descriptor tags Claude can use
-- SREC-03: get_instrument_profile MCP tool — returns full instrument character doc for a specific instrument
+- EVAL-01: Evaluation issue schema — dimension, severity (critical/warning/info), message, and fix_hint (the MCP tool/action that resolves it) — v1.6
+- EVAL-02: Score model — DimensionScore (name, score 0-10, letter grade, issues list) and SessionScore (composite 0-10, letter grade, per-dimension breakdown) — v1.6
+- MIX-01: Mix balance evaluator — compares current device params vs. role×genre recipe targets; deviation-threshold flagging; builds on check_gain_staging + suggest_mix_adjustments logic — v1.6
+- MIX-02: Mix balance DimensionScore 0-10 derived from in-range parameter percentage + gain staging deviations — v1.6
+- ARNG-01: Arrangement completeness evaluator — checks scaffold tracks have instruments loaded and clips placed; empty/missing-instrument tracks flagged as critical issues — v1.6
+- SND-01: Sound selection coverage evaluator — checks each arrangement role has an instrument matching the role descriptor profile; mismatched instruments flagged as warnings — v1.6
+- HARM-01: Harmonic coherence evaluator — reads MIDI clip notes against session key/scale; out-of-key notes flagged with clip name, bar position, and MIDI note — v1.6
+- SESS-01: evaluate_session() MCP tool — runs all 4 dimensions, returns composite SessionScore (0-10, letter grade, per-dimension breakdown, issues ranked by severity) — v1.6
+- SESS-02: top_fixes — evaluate_session() response includes up to 3 highest-priority actionable fixes, each specifying the MCP tool call to resolve it — v1.6
 
 ### Out of Scope
 
@@ -60,14 +59,17 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
 
-## Current Milestone: v1.5 Sound Selection Intelligence
+## Current Milestone: None — v1.6 shipped, next milestone TBD
 
-**Goal:** Give Claude instrument-selection taste — map descriptor tags like "warm pad" or "punchy kick" to the right native Ableton instrument and browser category path, eliminating random preset fumbling.
+Run `/gsd:new-milestone` to define the next milestone.
 
-**Target features:**
-- Instrument profiles for all 6 native Ableton instruments (Wavetable, Analog, Operator, Drift, Simpler, Drum Rack) — sonic character, strengths, preset category map
-- `get_sound_recommendation(descriptor)` MCP tool — maps descriptor tags to instrument + browser category + one-line reasoning; descriptor-only, no genre dependency
-- `list_sound_descriptors` and `get_instrument_profile` supporting tools
+## Completed Milestone: v1.6 Self-evaluation (shipped 2026-03-31)
+
+**Delivered:** Production self-evaluation — `evaluate_session(genre)` MCP tool evaluates mix balance, arrangement completeness, sound selection coverage, and harmonic coherence; returns composite score (0-10 + letter grade), ranked issues, and up to 3 `top_fixes` with specific MCP tool calls.
+
+## Completed Milestone: v1.5 Sound Selection Intelligence (shipped 2026-03-31)
+
+**Delivered:** Instrument-selection intelligence — 6 native Ableton instrument profiles (Wavetable, Analog, Operator, Drift, Simpler, Drum Rack) with sonic character, descriptor affinities, and browser category paths; weighted-sum scoring engine; `get_sound_recommendation`, `list_sound_descriptors`, and `get_instrument_profile` MCP tools.
 
 ## Completed Milestone: v1.4 Mix/Master Intelligence (shipped 2026-03-30)
 
@@ -90,14 +92,15 @@ Curated genre reference documents giving Claude consistent knowledge of 12 elect
 
 ## Current State
 
-**Phase 35 complete** (2026-03-31) — sounds/ package with Wavetable profile
+**Milestone v1.6 complete** (2026-03-31) — Self-evaluation shipped
 
-- **Sound selection**: sounds/ package with pkgutil auto-discovery catalog and Wavetable instrument profile (reference implementation)
+- **Self-evaluation**: `MCP_Server/evaluation/` package with 4 evaluators + `evaluate_session()` MCP tool; 40 tests
+- **Sound selection**: sounds/ package with 6 instrument profiles + weighted-sum scoring engine + 3 MCP tools
 - **Mix/master intelligence**: 12-genre recipe system + apply tools + gain staging + adjustment suggestions
-- **~42,700 lines Python** total codebase
-- **116 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2 + 10 v1.3 + 14 v1.4 + 2 v1.5)
+- **~46,500 lines Python** total codebase (estimated)
+- **136 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2 + 10 v1.3 + 14 v1.4 + 11 v1.5 + 9 v1.6 = 144 — see REQUIREMENTS archives)
 - **12 genre mix recipes** with 9 roles each + master bus recipes (GlueCompressor + MultibandDynamics + Limiter)
-- **MCP tools**: `get_device_catalog`, `get_role_taxonomy`, `get_mix_recipe`, `apply_mix_recipe`, `apply_master_recipe`, `set_sidechain_source`, `get_mix_state`, `check_gain_staging`, `suggest_mix_adjustments`
+- **MCP tools**: `get_device_catalog`, `get_role_taxonomy`, `get_mix_recipe`, `apply_mix_recipe`, `apply_master_recipe`, `set_sidechain_source`, `get_mix_state`, `check_gain_staging`, `suggest_mix_adjustments`, `get_sound_recommendation`, `list_sound_descriptors`, `get_instrument_profile`, `evaluate_session`
 
 ### Capabilities
 
@@ -178,4 +181,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-31 — Phase 35 complete*
+*Last updated: 2026-03-31 — v1.6 Self-evaluation shipped*

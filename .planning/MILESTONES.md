@@ -1,5 +1,25 @@
 # Milestones
 
+## v1.6 Self-evaluation (Shipped: 2026-03-31)
+
+**Phases completed:** 3 phases (39-41), 3 plans
+**Requirements:** 9/9 complete
+**Files changed:** 24 files, +3,809 / -40 lines
+**Timeline:** 1 day (2026-03-31)
+
+**Delivered:** Production self-evaluation system for Ableton — single `evaluate_session(genre)` MCP tool running four dimension evaluators (mix balance, arrangement completeness, sound selection coverage, harmonic coherence), returning a composite score (0-10 + letter grade), all issues ranked by severity, and up to 3 `top_fixes` each with the specific MCP tool call to resolve it.
+
+**Key accomplishments:**
+
+- `MCP_Server/evaluation/` package with `EvaluationIssue`, `DimensionScore`, `SessionScore` TypedDicts and `grade_from_score()` helper — JSON-serializable schema used by all evaluators
+- Mix balance evaluator diffs device params vs. role×genre recipe targets with DIFF_THRESHOLD + CRITICAL_THRESHOLD severity mapping; gain staging deviations from GAIN_TARGETS included as issues
+- Arrangement completeness evaluator checks every track for loaded instrument (critical) and arrangement clips (warning); weighted scoring
+- Sound selection coverage evaluator pre-builds role→instrument map from sounds catalog, matches on device display name
+- Harmonic coherence evaluator computes in-key pitch classes via pure integer arithmetic (no music21); Session-view clip iteration; empty key → graceful skip with info issue
+- `evaluate_session()` MCP tool with `_run_evaluator` per-evaluator isolation, simple-average composite, critical-first issue sort, `top_fixes` with `tool_call = fix_hint`
+
+---
+
 ## v1.4 Mix/Master Intelligence (Shipped: 2026-03-30)
 
 **Phases completed:** 6 phases (29-34), 11 plans

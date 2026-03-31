@@ -1,60 +1,51 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.5
-milestone_name: Sound Selection Intelligence
+milestone: v1.6
+milestone_name: Self-evaluation
 status: Complete
-stopped_at: Milestone v1.5 shipped 2026-03-31
-last_updated: "2026-03-31T15:15:00.000Z"
+stopped_at: "Milestone v1.6 Self-evaluation shipped 2026-03-31"
+last_updated: "2026-03-31T00:00:00.000Z"
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 7
-  completed_plans: 7
+  total_phases: 3
+  completed_phases: 3
+  total_plans: 3
+  completed_plans: 3
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-30)
+See: .planning/PROJECT.md (updated 2026-03-31)
 
-**Core value:** An AI assistant can produce actual music in Ableton -- with sound selection intelligence that eliminates instrument fumbling.
-**Current focus:** v1.5 COMPLETE — Sound Selection Intelligence shipped 2026-03-31
+**Core value:** An AI assistant can produce actual music in Ableton -- and know when it's done well.
+**Current focus:** v1.6 — Self-evaluation (evaluation framework + evaluate_session() tool)
 
 ## Current Position
 
-Phase: 38 (complete)
-Milestone: v1.5 SHIPPED
+Phase: 41 Plan 01 COMPLETE
+Milestone: v1.6 COMPLETE
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 7 (v1.5)
-- Average duration: ~3m
-- Total execution time: ~21 minutes
+- Total plans completed: 1 (v1.6)
+- Average duration: ~20m (evaluation framework)
+- Total execution time: 20 minutes
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 35 | 2 | ~2m | ~1m |
-| 36 | 2 | ~11m | ~5.5m |
-| 37 | 1 | ~5m | ~5m |
-| 38 | 1 | ~3m | ~3m |
+| 39 | 1 | 20m | 20m |
+| 40 | TBD | — | — |
+| 41 | TBD | — | — |
 
-**Recent Trend:**
+**Recent Trend (v1.5 carry-over):**
 
-- Last 5 plans (v1.5): Phase 38 P01, Phase 37 P01, Phase 36 P02, Phase 36 P01, Phase 35 P02
-- Trend: Stable
-
-*Updated after each plan completion*
-| Phase 35 P01 | 1m | 1 tasks | 4 files |
-| Phase 35 P02 | 1m | 2 tasks | 0 files |
-| Phase 36 P01 | 8m | 7 tasks | 6 files |
-| Phase 36 P02 | 3m | 2 tasks | 0 files |
-| Phase 37 P01 | 5m | 4 tasks | 5 files |
-| Phase 38 P01 | 3m | 4 tasks | 3 files |
+- Last 5 plans: Phase 38 P01, Phase 37 P01, Phase 36 P02, Phase 36 P01, Phase 35 P02
+- Trend: Stable ~3m/plan
 
 ## Accumulated Context
 
@@ -64,10 +55,10 @@ Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
 - [v1.5]: sounds/ package mirrors genres/ and mixing/ pkgutil auto-discovery pattern
-- [Phase 35]: D-06 applied: Ableton unavailable, browser paths kept as assumed
-- [Phase 36]: All 6 browser roots assumed (Instruments/Name pattern); D-06 applied
-- [Phase 37]: Weighted-sum scoring over role+character affinity axes; vocabulary derived dynamically
-- [Phase 38]: All 3 sound tools in tools/sounds.py; MCP_Server.sounds in pyproject.toml
+- [v1.6]: evaluate_session() is the single entry-point; per-dimension evaluators are internal modules not exposed as individual MCP tools
+- [v1.6]: Evaluate-then-offer-fixes pattern (not auto-apply); SESS-02 returns top_fixes list, Claude proposes, user confirms
+- [39-01]: TypedDicts used for all schema types — JSON-serializable without .asdict()
+- [39-01]: Test fixtures must use params with no conversion (e.g. Compressor2.Ratio) for predictable normalized values
 
 ### Roadmap Evolution
 
@@ -77,6 +68,7 @@ Recent decisions affecting current work:
 - v1.3: Phases 25-28 (shipped 2026-03-28)
 - v1.4: Phases 29-34 (shipped 2026-03-30)
 - v1.5: Phases 35-38 (shipped 2026-03-31)
+- v1.6: Phases 39-41 (active)
 
 ### Pending Todos
 
@@ -84,10 +76,11 @@ None.
 
 ### Blockers/Concerns
 
-- Browser path validation for all 6 instruments deferred (Ableton unavailable) -- paths are assumed "Instruments/Name" pattern; validate against live session when available
+- Browser path validation for all 6 instruments still deferred (Ableton unavailable) -- carried from v1.5
+- Harmonic coherence evaluator depends on session key/scale being set; sessions without a key set will need a fallback strategy (skip dimension or flag as info)
 
 ## Session Continuity
 
-Last session: 2026-03-31T15:15:00.000Z
-Stopped at: Milestone v1.5 complete
+Last session: 2026-03-31T00:00:00.000Z
+Stopped at: "Milestone v1.6 Self-evaluation shipped 2026-03-31 — evaluate_session() tool complete"
 Resume file: None
