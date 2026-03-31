@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: Sound Selection Intelligence
 status: Ready to plan
-stopped_at: Completed 36-CONTEXT.md
-last_updated: "2026-03-31T13:15:00.000Z"
+stopped_at: Completed 36-02-PLAN.md
+last_updated: "2026-03-31T14:03:45.528Z"
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  completed_phases: 2
+  total_plans: 4
+  completed_plans: 4
 ---
 
 # Project State
@@ -48,6 +48,8 @@ Plan: Not started
 *Updated after each plan completion*
 | Phase 35 P01 | 1m | 1 tasks | 4 files |
 | Phase 35 P02 | 1m | 2 tasks | 0 files |
+| Phase 36 P02 | 3 | 2 tasks | 0 files |
+| Phase 36-instrument-profile-authoring P02 | 3m | 2 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -65,6 +67,8 @@ Recent decisions affecting current work:
 - [Phase 35]: D-06 applied: Ableton unavailable, kept assumed browser path Instruments/Wavetable for validation in Phase 36
 - [Phase 36]: All 5 instrument browser roots assumed (Analog/Operator/Drift/Simpler/Drum Rack follow Instruments/Name pattern); live validation in Plan 02
 - [Phase 36]: Drum Rack root assumed as "Instruments/Drum Rack" -- highest-uncertainty path, Plan 02 confirms
+- [Phase 36]: D-06 applied: Ableton unavailable (connection refused on localhost:9877), all 6 browser root paths kept as assumed per D-06 policy
+- [Phase 36-instrument-profile-authoring]: D-06 applied: Ableton unavailable (connection refused on localhost:9877), all 6 browser root paths kept as assumed per D-06 policy
 
 ### Roadmap Evolution
 
@@ -86,6 +90,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-31T13:03:30.419Z
-Stopped at: Completed 35-02-PLAN.md
+Last session: 2026-03-31T14:03:45.518Z
+Stopped at: Completed 36-02-PLAN.md
 Resume file: None
