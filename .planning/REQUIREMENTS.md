@@ -1,82 +1,73 @@
-# Requirements: AbletonMCP v1.7 Prompt Interpretation
+# Requirements: AbletonMCP v1.8 Iterative Refinement Protocol
 
 **Defined:** 2026-03-31
-**Core Value:** An AI assistant can produce actual music in Ableton — starting from a single natural-language description.
+**Core Value:** An AI assistant can refine a section of a production — "make the bridge darker" — by reading back what it already built, interpreting the instruction in context, and surgically modifying just that section without touching anything else.
 
-## v1.7 Requirements
+## v1.8 Requirements
 
-### Signal Extraction
+### Section State Reader
 
-- [x] **PARS-01**: The prompt parser tokenizes a free-text music prompt and classifies tokens into five signal types: genre signals (lo-fi, techno, ambient), mood/energy signals (dark, euphoric, chill, dreamy, driving), instrument references (Rhodes, 808, pad, piano), effect references (vinyl crackle, sidechain, reverb, distortion), and structural hints (beat, track, vibe, anthem); unrecognized tokens are passed through as raw descriptors
+- [ ] **SNAP-01**: `get_section_state(section_name)` MCP tool returns a `SectionState` TypedDict snapshot of everything in the named arrangement section: (a) section bar range (start_bar, end_bar resolved from locator names via `get_arrangement_overview`), (b) per-track list of `TrackStateEntry` dicts each containing track name, track index, role (inferred from track name), and a list of clips in that bar range with their positions, (c) per-clip note summary (pitch_min, pitch_max, note_count, dominant_octave, rhythm_density notes/bar); missing or empty sections return a descriptive error, not an exception
 
-- [x] **LEX-01**: The signal lexicon covers at minimum: all 12 genres in the blueprint catalog (with their aliases), 25+ mood/energy adjectives mapped to energy levels (1-10) and scale preference biases, 15+ instrument references mapped to role+descriptor pairs, 10+ effect references mapped to effect descriptor strings, and 5+ tempo signals (slow, mid-tempo, driving, fast, frantic) mapped to BPM modifier offsets
+- [ ] **SNAP-02**: Each `TrackStateEntry` in `SectionState` includes a `mix_context` dict: current normalized volume and pan, the loaded device names (top-level chain only), and for each recognized device type (EQ Three, Auto Filter, Compressor) the 3 most prominent current parameter values; if the track's role is resolvable and a genre recipe exists, `recipe_delta` lists params that deviate >20% from recipe targets (reuses `suggest_mix_adjustments` internals) — providing "what's already there" before any refinement
 
-### ProductionBrief Schema
+### Refinement Language Engine
 
-- [x] **BRIEF-01**: A `ProductionBrief` TypedDict schema captures all derived parameters in one serializable structure: `primary_genre` (blueprint id), `tempo_range` (min_bpm + max_bpm), `key_feel` (scale name + mode, e.g. `minor_pentatonic` / `minor`), `groove_feel` (pattern_type enum + swing_pct 0-100), `energy_level` (1-10), `instrument_hints` (list of `{role, descriptor}` dicts), `effect_hints` (list of effect descriptor strings), `velocity_style` (enum: `laid_back` / `medium` / `driving`), `raw_prompt` (original text), `confidence` (0.0-1.0), and `reasoning` (list of plain-English derivation notes)
+- [ ] **REFN-01**: A `RefinementLexicon` in `MCP_Server/refinement/lexicon.py` maps 20+ aesthetic adjectives to multi-domain `RefinementVector` TypedDicts: `{harmonic: {register_shift_semitones, mode_bias, density_delta}, timbral: {filter_cutoff_delta_pct, brightness_db, reverb_wet_delta}, dynamic: {velocity_shift, compression_ratio_delta}}`; adjectives covered include at minimum: darker, brighter, warmer, colder, harder, softer, heavier, lighter, sparser, denser, higher, lower, more energetic, less energetic, more melodic, more rhythmic, more spacious, tighter, dirtier, cleaner; each vector uses signed proportional deltas (not absolute values) so application is always relative to current state
 
-### Parameter Derivation
+- [ ] **REFN-02**: `interpret_section_refinement(section_name, instruction)` MCP tool: calls `get_section_state` to read the current section, tokenizes the instruction through the prompt parser's tokenizer for signal extraction, maps tokens through `RefinementLexicon` to produce a merged `RefinementVector`, then resolves the vector against actual current values to produce a `SectionRefinementPlan` TypedDict — listing per-track note operations (semitone shifts, density changes), per-track device parameter targets (absolute values derived from current + delta), and a plain-English `reasoning` list explaining each proposed change; tool is read-only (applies nothing)
 
-- [x] **DERV-01**: Tempo range is derived deterministically: if the prompt contains an explicit BPM number, use ±5 BPM as the range; otherwise start from the matched genre blueprint's `bpm_range` and apply an energy modifier (+10% max/min per energy point above 5, -10% per point below 5); result is always clamped to 40-200 BPM
+- [ ] **PARS-02**: `refine_prompt(brief, refinement_text)` MCP tool accepts an existing `ProductionBrief` dict and a follow-up refinement string ("add more swing", "make it darker", "speed it up to 140"), re-derives only the parameters affected by the refinement signals (leaving unaffected fields unchanged), returns an updated `ProductionBrief` plus a `diff` dict showing exactly which fields changed and why; confidence does not drop if primary_genre is unchanged; low-confidence original brief produces a warning in reasoning but derivation still runs
 
-- [x] **DERV-02**: Key feel is derived from genre convention first (e.g. lo-fi → `dorian`/`minor`, house → `minor`/`major`, trance → `minor`), then overridden by mood signal: euphoric/uplifting signals bias toward major modes, dark/melancholic signals bias toward minor/phrygian; result is a single (scale, mode) pair
+### Refinement Application
 
-- [x] **DERV-03**: Groove feel (drum pattern type + swing percentage) is derived from genre: lo-fi/hip-hop → `boom_bap` + 60-70% swing; house/techno → `four_on_floor` + 0-5% swing; DnB/jungle → `breakbeat` + 10-20% swing; trance/synthwave → `straight_16th` + 0% swing; explicit structural hints in the prompt (e.g. "boom-bap", "four-on-the-floor") override the genre default
+- [ ] **RFNA-01**: `apply_section_note_refinement(section_name, track_name, semitone_shift, density_delta, scale_substitutions)` MCP tool: resolves the section bar range, identifies all arrangement clips for `track_name` that fall within the range, applies the specified operations — `semitone_shift` transposes all notes via `transpose_notes` (positive = up, negative = down), `density_delta` trims (removes highest-velocity outliers) or doubles (duplicates pattern at half velocity) notes when nonzero, `scale_substitutions` (list of `{from_pitch_class, to_pitch_class}`) remaps MIDI note pitch classes via `apply_note_modifications`; clips outside the section range are untouched; returns a summary of how many clips and notes were modified
 
-- [x] **DERV-04**: Instrument hints list is built by merging: (a) explicit instrument references extracted from the prompt (mapped to role+descriptor), (b) the matched genre blueprint's canonical roles with their top sound recommendation descriptors; duplicates merged by role (explicit prompt signal wins)
+- [ ] **RFNA-02**: `apply_section_device_refinement(section_name, track_name, param_targets, write_automation)` MCP tool: resolves the section bar range from locators; if `write_automation=False` (default), applies `param_targets` dict (device_name → {param_name: normalized_value}) globally to the track via `set_device_parameters` with a warning that the change affects all sections; if `write_automation=True`, writes automation envelopes for each parameter over the section bar range (start_bar to end_bar) using existing automation tools, inserting breakpoints just before and just after the section to restore pre-refinement values — enabling per-section timbral changes without affecting other sections; returns applied parameters and automation point count
 
-- [x] **DERV-05**: Velocity style is derived from energy level: energy 1-3 → `laid_back` (low MIDI velocity 40-70), energy 4-6 → `medium` (velocity 65-90), energy 7-10 → `driving` (velocity 80-110); explicit prompt signals ("soft", "gentle", "hard", "aggressive") override the energy derivation
-
-### MCP Tools
-
-- [x] **TOOL-01**: `interpret_prompt(text)` MCP tool accepts a free-text string and returns a complete `ProductionBrief` — including `reasoning`: a list of plain-English notes explaining which signal triggered which parameter (e.g. "lo-fi detected → primary_genre=lo_fi, tempo 60-95 BPM"; "chill detected → energy_level=3, velocity_style=laid_back")
-
-- [x] **TOOL-02**: `interpret_prompt_to_plan(text, bars_per_section?)` MCP tool calls `interpret_prompt` internally, resolves the `ProductionBrief`, then routes directly to `generate_production_plan` with the derived genre + a structured overrides dict built from `tempo_range`, `groove_feel`, and `energy_level`; returns the full production plan alongside the `ProductionBrief` so Claude has both the interpretation and the execution plan in one call
+- [ ] **RFNA-03**: `refine_section(section_name, instruction, genre, write_automation)` MCP tool: end-to-end single-call refinement — calls `interpret_section_refinement` to get the `SectionRefinementPlan`, then for each track in the plan calls `apply_section_note_refinement` (if note operations present) and `apply_section_device_refinement` (if device changes present), collects all change summaries, and returns a structured result with `section`, `instruction`, `tracks_modified`, `note_changes`, `device_changes`, and `reasoning`; `genre` parameter enables recipe_delta context in state read; `write_automation` passed through to `apply_section_device_refinement`; if no changes are applicable (section empty or instruction unrecognized), returns a clear explanation rather than an error
 
 ## Future Requirements
 
-### Multi-prompt Refinement
+### Refinement History
 
-- **PARS-02**: `refine_prompt(brief, refinement_text)` — takes an existing `ProductionBrief` and a follow-up instruction ("make it darker", "add more swing"), re-runs derivation for affected parameters only, and returns an updated brief with a diff showing which parameters changed — deferred until TOOL-01/TOOL-02 are validated
+- **REFN-03**: `list_section_refinements(section_name)` — session-scoped log of refinements applied to a section, each entry recording the original instruction, `SectionRefinementPlan`, and timestamp; enables Claude to say "here's what was already changed" and detect conflicting refinements — deferred to post-v1.8
 
-### Conflict Resolution
+### Undo/Revert
 
-- **PARS-03**: When contradictory signals are present (e.g. "euphoric dark techno"), a `signal_conflicts` list is included in the `ProductionBrief` naming the conflict and which signal won; confidence drops proportionally — deferred to post-v1.7
+- **RFNA-04**: `revert_section_refinement(section_name, track_name, revert_to)` — reads a previous `SectionRefinementPlan` from history and applies inverse operations (negate semitone_shift, restore saved device params); requires REFN-03 — deferred
 
-### Prompt History
+### Cross-Section Comparison
 
-- **SESS-03**: Session-scoped prompt history — `list_production_briefs()` returns all briefs generated in the current session with their source prompts; allows Claude to compare briefs and avoid redundant calls — deferred
+- **SNAP-03**: `compare_sections(section_a, section_b)` — returns a diff of `SectionState` between two named sections: which tracks differ, by how much (note density, pitch register, device parameters); helps Claude explain "the bridge is already darker than the verse" without applying changes — deferred
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Audio sample analysis | No audio ingestion capability in MCP |
-| Real-time prompt streaming | MCP is request/response |
-| LLM-inside-parser | Parser is deterministic rule-based; Claude provides the NLP layer, not a nested LLM |
-| DAW-side prompt parsing | All computation server-side; no Remote Script changes needed |
-| Non-English prompts | English signal lexicon only for v1.7 |
+| Audio clip pitch manipulation via refinement | Audio pitch requires warp-based editing; out of scope for note refinement path |
+| Real-time parameter modulation | MCP is request/response; no streaming control |
+| Undo stack integration (Ableton native) | Ableton's undo tracks individual actions; batch undo not accessible via Remote Script API |
+| Cross-session state persistence | Session state is ephemeral; persistence requires external storage not yet scoped |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PARS-01 | Phase 42 | Complete |
-| LEX-01 | Phase 42 | Complete |
-| BRIEF-01 | Phase 42 | Complete |
-| DERV-01 | Phase 43 | Complete |
-| DERV-02 | Phase 43 | Complete |
-| DERV-03 | Phase 43 | Complete |
-| DERV-04 | Phase 43 | Complete |
-| DERV-05 | Phase 43 | Complete |
-| TOOL-01 | Phase 44 | Complete |
-| TOOL-02 | Phase 44 | Complete |
+| SNAP-01 | Phase 45 | Pending |
+| SNAP-02 | Phase 45 | Pending |
+| REFN-01 | Phase 46 | Pending |
+| REFN-02 | Phase 46 | Pending |
+| PARS-02 | Phase 46 | Pending |
+| RFNA-01 | Phase 47 | Pending |
+| RFNA-02 | Phase 47 | Pending |
+| RFNA-03 | Phase 47 | Pending |
 
 **Coverage:**
-- v1.7 requirements: 10 total
-- Mapped to phases: 10
+- v1.8 requirements: 8 total
+- Mapped to phases: 8
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-31*
-*Last updated: 2026-03-31 — v1.7 complete*
+*Last updated: 2026-03-31 — v1.8 milestone opened*

@@ -54,7 +54,14 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 
 ### Active
 
-None — v1.7 complete. Run `/gsd:new-milestone` to open the next milestone.
+- [ ] **SNAP-01**: `get_section_state(section_name)` MCP tool — full snapshot (bar range, clips, note summaries) for a named arrangement section — v1.8
+- [ ] **SNAP-02**: `mix_context` in `SectionState` — device params + recipe delta per track — v1.8
+- [ ] **REFN-01**: `RefinementLexicon` — 20+ aesthetic adjectives → multi-domain `RefinementVector` TypedDicts — v1.8
+- [ ] **REFN-02**: `interpret_section_refinement(section_name, instruction)` MCP tool — read-only `SectionRefinementPlan` — v1.8
+- [ ] **PARS-02**: `refine_prompt(brief, refinement_text)` MCP tool — partial re-derivation with diff — v1.8
+- [ ] **RFNA-01**: `apply_section_note_refinement` MCP tool — surgical note changes within section bar range — v1.8
+- [ ] **RFNA-02**: `apply_section_device_refinement` MCP tool — device param changes global or via automation envelope — v1.8
+- [ ] **RFNA-03**: `refine_section(section_name, instruction)` MCP tool — end-to-end interpret + apply — v1.8
 
 
 ### Out of Scope
@@ -64,11 +71,14 @@ None — v1.7 complete. Run `/gsd:new-milestone` to open the next milestone.
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
 
-## Current Milestone: None — v1.7 shipped, next milestone TBD
+## Current Milestone: v1.8 Iterative Refinement Protocol
 
-Run `/gsd:new-milestone` to define the next milestone.
+**Goal:** Give Claude the ability to handle follow-up refinement instructions like "make the bridge darker" — reading back what it already built in a section, interpreting aesthetic adjectives (darker = lower register + minor bias + filtered highs) relative to what's actually there, and applying surgical changes to only that section's notes and device parameters without affecting anything else.
+
+**Phases:** 45 (Section State Reader) → 46 (Refinement Language Engine) → 47 (Refinement Application Tools)
 
 ## Completed Milestone: v1.7 Prompt Interpretation (shipped 2026-03-31)
+
 
 **Delivered:** Deterministic NLP layer — `interpret_prompt(text)` converts any music description into a structured `ProductionBrief` (tempo range, scale/mode, groove pattern, instrument hints, effect hints, velocity style, reasoning); `interpret_prompt_to_plan(text)` chains directly to `generate_production_plan` for one-call prompt→plan workflow.
 
@@ -101,7 +111,9 @@ Curated genre reference documents giving Claude consistent knowledge of 12 elect
 
 ## Current State
 
-**Milestone v1.7 complete** (2026-03-31) — Prompt Interpretation shipped
+**Milestone v1.8 in progress** (opened 2026-03-31) — Iterative Refinement Protocol
+
+**v1.7 complete** (2026-03-31) — Prompt Interpretation shipped
 
 - **Prompt interpretation**: `MCP_Server/prompt/` package — schema.py, lexicon.py, parser.py, deriver.py; 100 tests
 - **Self-evaluation**: `MCP_Server/evaluation/` package with 4 evaluators + `evaluate_session()` MCP tool; 40 tests
@@ -111,6 +123,7 @@ Curated genre reference documents giving Claude consistent knowledge of 12 elect
 - **154 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2 + 10 v1.3 + 14 v1.4 + 11 v1.5 + 9 v1.6 + 10 v1.7 = 154)
 - **12 genre mix recipes** with 9 roles each + master bus recipes (GlueCompressor + MultibandDynamics + Limiter)
 - **MCP tools**: `get_device_catalog`, `get_role_taxonomy`, `get_mix_recipe`, `apply_mix_recipe`, `apply_master_recipe`, `set_sidechain_source`, `get_mix_state`, `check_gain_staging`, `suggest_mix_adjustments`, `get_sound_recommendation`, `list_sound_descriptors`, `get_instrument_profile`, `evaluate_session`, `interpret_prompt`, `interpret_prompt_to_plan`
+- **v1.8 target tools** (pending): `get_section_state`, `interpret_section_refinement`, `refine_prompt`, `apply_section_note_refinement`, `apply_section_device_refinement`, `refine_section`
 
 ### Capabilities
 
@@ -191,4 +204,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-31 — v1.7 Prompt Interpretation shipped*
+*Last updated: 2026-03-31 — v1.8 Iterative Refinement Protocol opened*
