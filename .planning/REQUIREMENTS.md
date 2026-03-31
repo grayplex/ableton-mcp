@@ -1,18 +1,18 @@
 # Requirements: AbletonMCP v1.5 Sound Selection Intelligence
 
 **Defined:** 2026-03-30
-**Core Value:** An AI assistant can produce actual music in Ableton — with sound selection intelligence that eliminates instrument fumbling.
+**Core Value:** An AI assistant can produce actual music in Ableton -- with sound selection intelligence that eliminates instrument fumbling.
 
 ## v1.5 Requirements
 
 ### Instrument Profiles
 
-- [ ] **INST-01**: Claude can retrieve the Wavetable instrument profile — sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
-- [ ] **INST-02**: Claude can retrieve the Analog instrument profile — sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
-- [ ] **INST-03**: Claude can retrieve the Operator instrument profile — sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
-- [ ] **INST-04**: Claude can retrieve the Drift instrument profile — sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
-- [ ] **INST-05**: Claude can retrieve the Simpler instrument profile — sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
-- [ ] **INST-06**: Claude can retrieve the Drum Rack instrument profile — sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
+- [ ] **INST-01**: Claude can retrieve the Wavetable instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
+- [ ] **INST-02**: Claude can retrieve the Analog instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
+- [ ] **INST-03**: Claude can retrieve the Operator instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
+- [ ] **INST-04**: Claude can retrieve the Drift instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
+- [ ] **INST-05**: Claude can retrieve the Simpler instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
+- [ ] **INST-06**: Claude can retrieve the Drum Rack instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
 
 ### Sound Recommendation Tools
 
@@ -22,19 +22,19 @@
 
 ### Infrastructure
 
-- [ ] **PKG-01**: `sounds/` peer package with pkgutil auto-discovery catalog (mirrors `genres/` and `mixing/` structure) — zero-registration, one file per instrument
-- [ ] **PKG-02**: Weighted sum scoring engine in `catalog.py` — descriptors parsed into individual tags, affinity weights summed per instrument, top match returned with browser path and reasoning
+- [ ] **PKG-01**: `sounds/` peer package with pkgutil auto-discovery catalog (mirrors `genres/` and `mixing/` structure) -- zero-registration, one file per instrument
+- [ ] **PKG-02**: Weighted sum scoring engine in `catalog.py` -- descriptors parsed into individual tags, affinity weights summed per instrument, top match returned with browser path and reasoning
 
 ## Future Requirements
 
 ### Genre-Aware Recommendations
 
-- **SREC-04**: Claude can call `get_sound_recommendation(descriptor, genre='techno')` and receive genre-informed recommendations — deferred to post-v1.5 when demand is proven
+- **SREC-04**: Claude can call `get_sound_recommendation(descriptor, genre='techno')` and receive genre-informed recommendations -- deferred to post-v1.5 when demand is proven
 
 ### Expanded Coverage
 
-- **INST-07**: Claude can retrieve profiles for third-party instruments (Serum, Omnisphere, etc.) — deferred; depends on user's installed plugins
-- **INST-08**: Claude can retrieve preset-level descriptions within instrument categories — deferred; too many presets, fragile to maintain across Live versions
+- **INST-07**: Claude can retrieve profiles for third-party instruments (Serum, Omnisphere, etc.) -- deferred; depends on user's installed plugins
+- **INST-08**: Claude can retrieve preset-level descriptions within instrument categories -- deferred; too many presets, fragile to maintain across Live versions
 
 ## Out of Scope
 
@@ -50,23 +50,23 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INST-01 | TBD | Pending |
-| INST-02 | TBD | Pending |
-| INST-03 | TBD | Pending |
-| INST-04 | TBD | Pending |
-| INST-05 | TBD | Pending |
-| INST-06 | TBD | Pending |
-| SREC-01 | TBD | Pending |
-| SREC-02 | TBD | Pending |
-| SREC-03 | TBD | Pending |
-| PKG-01 | TBD | Pending |
-| PKG-02 | TBD | Pending |
+| INST-01 | Phase 35 | Pending |
+| INST-02 | Phase 36 | Pending |
+| INST-03 | Phase 36 | Pending |
+| INST-04 | Phase 36 | Pending |
+| INST-05 | Phase 36 | Pending |
+| INST-06 | Phase 36 | Pending |
+| SREC-01 | Phase 38 | Pending |
+| SREC-02 | Phase 37 | Pending |
+| SREC-03 | Phase 38 | Pending |
+| PKG-01 | Phase 35 | Pending |
+| PKG-02 | Phase 37 | Pending |
 
 **Coverage:**
 - v1.5 requirements: 11 total
-- Mapped to phases: 0 (roadmap not yet created)
-- Unmapped: 11 ⚠️
+- Mapped to phases: 11
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-30*
-*Last updated: 2026-03-30 after initial definition*
+*Last updated: 2026-03-30 after roadmap creation*
