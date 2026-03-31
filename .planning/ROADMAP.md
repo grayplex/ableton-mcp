@@ -43,7 +43,7 @@ See `.planning/milestones/v1.3-ROADMAP.md` for full phase details.
 
 **Milestone Goal:** Give Claude instrument-selection taste -- map descriptor tags like "warm pad" or "punchy kick" to the right native Ableton instrument and browser category path, eliminating random preset fumbling.
 
-- [ ] **Phase 35: Package Skeleton and First Profile** - sounds/ package with auto-discovery, browser path validation against live Ableton, Wavetable profile as reference implementation
+- [x] **Phase 35: Package Skeleton and First Profile** - sounds/ package with auto-discovery, browser path validation against live Ableton, Wavetable profile as reference implementation (completed 2026-03-31)
 - [ ] **Phase 36: Instrument Profile Authoring** - Remaining 5 instrument profiles (Analog, Operator, Drift, Simpler, Drum Rack) following the Wavetable reference
 - [ ] **Phase 37: Descriptor Taxonomy and Scoring Engine** - Weighted sum scoring in catalog.py, descriptor tag vocabulary, list_sound_descriptors MCP tool
 - [ ] **Phase 38: Recommendation Tools and Registration** - get_sound_recommendation and get_instrument_profile MCP tools, tools/__init__.py registration, pyproject.toml update
@@ -62,7 +62,7 @@ See `.planning/milestones/v1.3-ROADMAP.md` for full phase details.
 **Plans**: 2 plans
 Plans:
 - [x] 35-01-PLAN.md -- Package skeleton, catalog, Wavetable profile, and tests (TDD)
-- [ ] 35-02-PLAN.md -- Browser path validation against live Ableton (checkpoint)
+- [x] 35-02-PLAN.md -- Browser path validation against live Ableton (checkpoint)
 
 ### Phase 36: Instrument Profile Authoring
 **Goal**: All 6 native Ableton instruments have complete profiles with validated browser paths, giving the scoring engine a full dataset to rank against
@@ -111,7 +111,7 @@ Phases execute in numeric order: 35 -> 36 -> 37 -> 38
 | 20-24. Genre Blueprints | v1.2 | 9/9 | Complete | 2026-03-27 |
 | 25-28. Arrangement Intelligence | v1.3 | 8/8 | Complete | 2026-03-28 |
 | 29-34. Mix/Master Intelligence | v1.4 | 11/11 | Complete | 2026-03-30 |
-| 35. Package Skeleton and First Profile | v1.5 | 1/2 | In Progress|  |
+| 35. Package Skeleton and First Profile | v1.5 | 2/2 | Complete   | 2026-03-31 |
 | 36. Instrument Profile Authoring | v1.5 | 0/TBD | Not started | - |
 | 37. Descriptor Taxonomy and Scoring Engine | v1.5 | 0/TBD | Not started | - |
 | 38. Recommendation Tools and Registration | v1.5 | 0/TBD | Not started | - |
