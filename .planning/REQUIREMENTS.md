@@ -7,7 +7,7 @@
 
 ### Instrument Profiles
 
-- [ ] **INST-01**: Claude can retrieve the Wavetable instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
+- [x] **INST-01**: Claude can retrieve the Wavetable instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
 - [ ] **INST-02**: Claude can retrieve the Analog instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
 - [ ] **INST-03**: Claude can retrieve the Operator instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
 - [ ] **INST-04**: Claude can retrieve the Drift instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
@@ -22,7 +22,7 @@
 
 ### Infrastructure
 
-- [ ] **PKG-01**: `sounds/` peer package with pkgutil auto-discovery catalog (mirrors `genres/` and `mixing/` structure) -- zero-registration, one file per instrument
+- [x] **PKG-01**: `sounds/` peer package with pkgutil auto-discovery catalog (mirrors `genres/` and `mixing/` structure) -- zero-registration, one file per instrument
 - [ ] **PKG-02**: Weighted sum scoring engine in `catalog.py` -- descriptors parsed into individual tags, affinity weights summed per instrument, top match returned with browser path and reasoning
 
 ## Future Requirements
@@ -50,7 +50,7 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INST-01 | Phase 35 | Pending |
+| INST-01 | Phase 35 | Complete |
 | INST-02 | Phase 36 | Pending |
 | INST-03 | Phase 36 | Pending |
 | INST-04 | Phase 36 | Pending |
@@ -59,7 +59,7 @@
 | SREC-01 | Phase 38 | Pending |
 | SREC-02 | Phase 37 | Pending |
 | SREC-03 | Phase 38 | Pending |
-| PKG-01 | Phase 35 | Pending |
+| PKG-01 | Phase 35 | Complete |
 | PKG-02 | Phase 37 | Pending |
 
 **Coverage:**
