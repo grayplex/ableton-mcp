@@ -7,9 +7,9 @@
 
 ### Section State Reader
 
-- [ ] **SNAP-01**: `get_section_state(section_name)` MCP tool returns a `SectionState` TypedDict snapshot of everything in the named arrangement section: (a) section bar range (start_bar, end_bar resolved from locator names via `get_arrangement_overview`), (b) per-track list of `TrackStateEntry` dicts each containing track name, track index, role (inferred from track name), and a list of clips in that bar range with their positions, (c) per-clip note summary (pitch_min, pitch_max, note_count, dominant_octave, rhythm_density notes/bar); missing or empty sections return a descriptive error, not an exception
+- [x] **SNAP-01**: `get_section_state(section_name)` MCP tool returns a `SectionState` TypedDict snapshot of everything in the named arrangement section: (a) section bar range (start_bar, end_bar resolved from locator names via `get_arrangement_overview`), (b) per-track list of `TrackStateEntry` dicts each containing track name, track index, role (inferred from track name), and a list of clips in that bar range with their positions, (c) per-clip note summary (pitch_min, pitch_max, note_count, dominant_octave, rhythm_density notes/bar); missing or empty sections return a descriptive error, not an exception
 
-- [ ] **SNAP-02**: Each `TrackStateEntry` in `SectionState` includes a `mix_context` dict: current normalized volume and pan, the loaded device names (top-level chain only), and for each recognized device type (EQ Three, Auto Filter, Compressor) the 3 most prominent current parameter values; if the track's role is resolvable and a genre recipe exists, `recipe_delta` lists params that deviate >20% from recipe targets (reuses `suggest_mix_adjustments` internals) — providing "what's already there" before any refinement
+- [x] **SNAP-02**: Each `TrackStateEntry` in `SectionState` includes a `mix_context` dict: current normalized volume and pan, the loaded device names (top-level chain only), and for each recognized device type (EQ Three, Auto Filter, Compressor) the 3 most prominent current parameter values; if the track's role is resolvable and a genre recipe exists, `recipe_delta` lists params that deviate >20% from recipe targets (reuses `suggest_mix_adjustments` internals) — providing "what's already there" before any refinement
 
 ### Refinement Language Engine
 
@@ -54,8 +54,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SNAP-01 | Phase 45 | Pending |
-| SNAP-02 | Phase 45 | Pending |
+| SNAP-01 | Phase 45 | Complete |
+| SNAP-02 | Phase 45 | Complete |
 | REFN-01 | Phase 46 | Pending |
 | REFN-02 | Phase 46 | Pending |
 | PARS-02 | Phase 46 | Pending |
