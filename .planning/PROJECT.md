@@ -39,18 +39,26 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - ✓ INTEL-01: suggest_mix_adjustments MCP tool — diffs current device state against role×genre recipe; per-parameter suggestions with one-sentence reasoning; read-only, no auto-apply — v1.4 Phase 33
 - ✓ RECIP-02: Full genre recipe expansion — 8 new genre recipe files (synthwave, dubstep, trance, future_bass, hip_hop_trap, disco_funk, neo_soul_rnb, lo_fi); pkgutil auto-discovery; all 12 genres available via get_mix_recipe — v1.4 Phase 34
 - ✓ MSTR-01: Master bus recipes for all 12 genres — MASTER_RECIPE constants (GlueCompressor + MultibandDynamics + Limiter) per genre; dynamic _get_master_genres() replaces hardcoded list — v1.4 Phase 34
+- ✓ EVAL-01..02: Evaluation issue schema (dimension/severity/message/fix_hint) and score model (DimensionScore + SessionScore TypedDicts with grade_from_score()) — v1.6 Phase 39
+- ✓ MIX-01..02: Mix balance evaluator — recipe-vs-current param diff with DIFF/CRITICAL thresholds; DimensionScore 0-10 from in-range % + gain staging deviations — v1.6 Phase 39
+- ✓ ARNG-01: Arrangement completeness evaluator — scaffold tracks checked for instrument (critical) and clips (warning); weighted scoring — v1.6 Phase 40
+- ✓ SND-01: Sound selection coverage evaluator — role→instrument match via sounds catalog descriptor affinities — v1.6 Phase 40
+- ✓ HARM-01: Harmonic coherence evaluator — in-key pitch class check via pure integer arithmetic; empty key → graceful info skip — v1.6 Phase 40
+- ✓ SESS-01..02: evaluate_session() MCP tool — 4-dimension composite score (0-10, A-F grade), critical-first issue sort, top_fixes list with specific MCP tool calls — v1.6 Phase 41
 
 ### Active
 
-- EVAL-01: Evaluation issue schema — dimension, severity (critical/warning/info), message, and fix_hint (the MCP tool/action that resolves it) — v1.6
-- EVAL-02: Score model — DimensionScore (name, score 0-10, letter grade, issues list) and SessionScore (composite 0-10, letter grade, per-dimension breakdown) — v1.6
-- MIX-01: Mix balance evaluator — compares current device params vs. role×genre recipe targets; deviation-threshold flagging; builds on check_gain_staging + suggest_mix_adjustments logic — v1.6
-- MIX-02: Mix balance DimensionScore 0-10 derived from in-range parameter percentage + gain staging deviations — v1.6
-- ARNG-01: Arrangement completeness evaluator — checks scaffold tracks have instruments loaded and clips placed; empty/missing-instrument tracks flagged as critical issues — v1.6
-- SND-01: Sound selection coverage evaluator — checks each arrangement role has an instrument matching the role descriptor profile; mismatched instruments flagged as warnings — v1.6
-- HARM-01: Harmonic coherence evaluator — reads MIDI clip notes against session key/scale; out-of-key notes flagged with clip name, bar position, and MIDI note — v1.6
-- SESS-01: evaluate_session() MCP tool — runs all 4 dimensions, returns composite SessionScore (0-10, letter grade, per-dimension breakdown, issues ranked by severity) — v1.6
-- SESS-02: top_fixes — evaluate_session() response includes up to 3 highest-priority actionable fixes, each specifying the MCP tool call to resolve it — v1.6
+- PARS-01: Prompt signal extractor — tokenizes free-text and classifies into genre/mood/instrument/effect/structural signal types — v1.7
+- LEX-01: Signal lexicon — 12 genres + aliases, 25+ mood adjectives, 15+ instrument refs, 10+ effect refs, 5+ tempo signals — v1.7
+- BRIEF-01: ProductionBrief TypedDict schema — tempo_range, key_feel, groove_feel, energy_level, instrument_hints, effect_hints, velocity_style, confidence, reasoning — v1.7
+- DERV-01: Tempo derivation — explicit BPM or genre blueprint range + energy modifier — v1.7
+- DERV-02: Key feel derivation — genre convention + mood signal override — v1.7
+- DERV-03: Groove derivation — pattern_type + swing_pct from genre + structural hints — v1.7
+- DERV-04: Instrument hints — explicit prompt refs merged with genre blueprint roles + sound descriptors — v1.7
+- DERV-05: Velocity style — derived from energy level, overridable by prompt signals — v1.7
+- TOOL-01: interpret_prompt(text) MCP tool — returns ProductionBrief + reasoning — v1.7
+- TOOL-02: interpret_prompt_to_plan(text) MCP tool — interpret_prompt → generate_production_plan in one call — v1.7
+
 
 ### Out of Scope
 
@@ -59,9 +67,12 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
 
-## Current Milestone: None — v1.6 shipped, next milestone TBD
+## Current Milestone: v1.7 Prompt Interpretation (active 2026-03-31)
 
-Run `/gsd:new-milestone` to define the next milestone.
+
+**Goal:** Formalize Claude's natural-language music prompt reasoning into a structured, repeatable planning step — so "lo-fi hip hop beat" consistently yields concrete parameters (tempo range, scale/mode, groove pattern, instrument hints, effect hints, velocity style) via a deterministic derivation engine rather than ad-hoc in-context reasoning.
+
+**Phases:** 42 (ProductionBrief schema + signal lexicon + parser), 43 (parameter derivation engine), 44 (MCP tools: interpret_prompt + interpret_prompt_to_plan)
 
 ## Completed Milestone: v1.6 Self-evaluation (shipped 2026-03-31)
 
@@ -92,13 +103,13 @@ Curated genre reference documents giving Claude consistent knowledge of 12 elect
 
 ## Current State
 
-**Milestone v1.6 complete** (2026-03-31) — Self-evaluation shipped
+**Milestone v1.7 active** (2026-03-31) — Prompt Interpretation in progress
 
 - **Self-evaluation**: `MCP_Server/evaluation/` package with 4 evaluators + `evaluate_session()` MCP tool; 40 tests
 - **Sound selection**: sounds/ package with 6 instrument profiles + weighted-sum scoring engine + 3 MCP tools
 - **Mix/master intelligence**: 12-genre recipe system + apply tools + gain staging + adjustment suggestions
 - **~46,500 lines Python** total codebase (estimated)
-- **136 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2 + 10 v1.3 + 14 v1.4 + 11 v1.5 + 9 v1.6 = 144 — see REQUIREMENTS archives)
+- **144 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2 + 10 v1.3 + 14 v1.4 + 11 v1.5 + 9 v1.6 = 144 — see REQUIREMENTS archives)
 - **12 genre mix recipes** with 9 roles each + master bus recipes (GlueCompressor + MultibandDynamics + Limiter)
 - **MCP tools**: `get_device_catalog`, `get_role_taxonomy`, `get_mix_recipe`, `apply_mix_recipe`, `apply_master_recipe`, `set_sidechain_source`, `get_mix_state`, `check_gain_staging`, `suggest_mix_adjustments`, `get_sound_recommendation`, `list_sound_descriptors`, `get_instrument_profile`, `evaluate_session`
 
@@ -181,4 +192,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-31 — v1.6 Self-evaluation shipped*
+*Last updated: 2026-03-31 — v1.7 Prompt Interpretation milestone opened*
