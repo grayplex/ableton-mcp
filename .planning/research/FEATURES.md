@@ -1,385 +1,286 @@
-# Feature Landscape: Mix/Master Intelligence (v1.4)
+# Feature Research: Sound Selection Intelligence (v1.5)
 
-**Domain:** AI-assisted mixing and mastering for electronic music production via Ableton Live MCP
-**Researched:** 2026-03-28
-**Confidence:** MEDIUM-HIGH (domain knowledge well-established; Ableton LOM parameter details need runtime validation)
+**Domain:** AI-driven instrument/preset recommendation for electronic music production via Ableton Live MCP
+**Researched:** 2026-03-30
+**Confidence:** MEDIUM-HIGH
 
-## Table Stakes
+## Feature Landscape
 
-Features that users expect from any AI mixing assistant. Missing = product feels incomplete.
+### Table Stakes (Users Expect These)
+
+Features that make the sound recommendation system minimally useful. Without these, the feature feels broken.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Role x genre mix recipes | Core value prop -- eliminates parameter guessing for AI | High | 12 genres x ~15 roles x ~6 device types = large data surface |
-| Apply recipe tool (load + set params) | One-call mixing is the whole point; multi-call load+set is fragile | Medium | Depends on existing `load_instrument_or_effect` + `set_device_parameter` |
-| Device state reader (current params) | Cannot suggest adjustments without reading current state | Low | `get_device_parameters` already exists; may need batch/summary wrapper |
-| Gain staging check | Every mixing guide starts with gain staging; foundational | Medium | Read all track volumes + output meters, flag outliers |
-| Master bus recipes per genre | Mastering is inseparable from mixing in electronic music | Medium | ~12 genre-specific chains, each 4-6 devices |
-| Master bus apply tool | Must be able to apply master chain, not just individual devices | Medium | Chain ordering matters: EQ > Comp > Multiband > Limiter |
+| `get_sound_recommendation(descriptor)` returning instrument + category path | Core promise of the feature; without it, Claude still fumbles randomly through the browser | MEDIUM | Must map descriptor tags to one of 6 native instruments + a browser category path (e.g., `Instruments/Wavetable/Bass`). Dynamic reasoning from instrument profiles, not a static lookup table. |
+| `list_sound_descriptors` returning all supported tags | Users (and Claude) need to know what vocabulary is available; without this, descriptor usage is guesswork | LOW | Returns the full set of descriptor tags. Critical for discoverability. |
+| `get_instrument_profile` returning full character doc | Producers want to understand *why* an instrument was recommended; profiles serve as the reasoning substrate | LOW | One profile per instrument. Returns sonic character, strengths, weaknesses, and preset category map. |
+| Instrument profiles for all 6 native instruments | Incomplete coverage = recommendations that silently fail for whole sound categories | MEDIUM | Wavetable, Analog, Operator, Drift, Simpler, Drum Rack. Each needs: sonic character, strengths/weaknesses, best-for roles, preset category map. |
+| Descriptor tags covering all 9 mix roles | Every role in the existing taxonomy (kick, bass, lead, pad, chords, vocal, atmospheric, return, master) must be addressable by at least one descriptor | LOW | If "pad" role exists but no descriptor maps to pad sounds, the system has a blind spot. |
+| Browser category paths that actually work | Recommended paths must resolve via existing `get_browser_items_at_path` and `load_instrument_or_effect` tools | LOW | Paths are in the format `instruments/Wavetable/Bass` or `instruments/Drift/Pad`. Must be validated against real Ableton browser structure. |
 
-## Differentiators
+### Differentiators (Competitive Advantage)
 
-Features that set the product apart. Not expected from basic mixing tools, but highly valued.
+Features that make this system notably better than "just browse manually."
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Suggest adjustments (diff with reasoning) | AI reads current state, compares to recipe, outputs param diffs with WHY | High | Requires device state reader + recipe lookup + diff logic |
-| Frequency conflict detection | Identifies overlapping frequency ranges between roles (e.g., kick vs bass sub) | High | Needs per-track EQ analysis or heuristic from role assignments |
-| Sidechain routing setup | Automates sidechain compression routing (kick > bass/pad compressor) | Medium | Uses existing routing tools + compressor sidechain params |
-| Section-aware mixing | Different mix settings per arrangement section (breakdown = more reverb, drop = tighter) | High | Builds on v1.3 section/arrangement infrastructure |
-| Mix validation checklist | "Is this mix ready?" -- checks gain staging, stereo field, frequency balance | Medium | Aggregates multiple checks into single report |
+| Two-axis descriptor system: role + character | Descriptors combine a role (what the sound does) with a tonal character (how it sounds), e.g., "warm pad" vs "bright pad" vs "dark pad" | MEDIUM | This is the key differentiator. Most preset browsers only categorize by role (Bass, Lead, Pad). Adding tonal character axis ("warm," "dark," "bright," "punchy") gives Claude real taste. |
+| Reasoning in recommendations | Each recommendation includes a one-line reasoning explaining *why* this instrument + category, not just *what* | LOW | Already specified in requirements. Makes recommendations transparent and educational. |
+| Coverage of tonal descriptors beyond basic role names | Tags like "glitchy," "ethereal," "aggressive," "lo-fi" that describe texture/mood, not just instrument role | LOW | Most DAW browsers don't support mood-based searching. This is where AI-driven selection adds value over manual browsing. |
+| Instrument strengths/weaknesses in profiles | Profiles say what each instrument is *bad* at, not just good at -- guides Claude away from poor choices | LOW | E.g., "Drift is poor for metallic/FM textures -- use Operator instead." Negative guidance prevents bad recommendations. |
 
-## Anti-Features
+### Anti-Features (Commonly Requested, Often Problematic)
 
-Features to explicitly NOT build.
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| Full preset path recommendation (specific preset name) | "Just tell me exactly which preset to load" | Preset names change across Live versions and Packs; preset availability depends on user's Live edition (Intro/Standard/Suite); specific preset taste is subjective | Recommend instrument + category path, then let Claude browse from there using existing browser tools. Depth stops at category, not preset. |
+| Genre-aware recommendations (descriptor + genre) | "A warm pad for house is different from ambient" | Adds combinatorial explosion (descriptors x genres = hundreds of mappings); genre context already available in genre blueprints; makes the tool tightly coupled to genre system | Keep `get_sound_recommendation` descriptor-only. Claude can combine genre blueprint knowledge with sound recommendation separately. Separation of concerns. |
+| Audio-analysis-based matching (Jamahook-style) | "Analyze this audio and find similar sounds" | Requires audio streaming capability the MCP protocol doesn't support; fundamentally different architecture (signal processing vs. knowledge graph) | Text descriptor approach. Producer describes what they want in words, system maps to instrument + category. |
+| Automatic preset loading without confirmation | "Just load the best preset automatically" | Removes user agency; preset selection is subjective; loading the wrong sound wastes more time than browsing | Recommend the path, let Claude (or user) browse and choose. The recommendation narrows the search space from hundreds to a manageable category. |
+| Per-preset sonic descriptions | "Describe every factory preset" | Hundreds of presets per instrument; descriptions would be stale if presets change; massive data maintenance burden | Category-level descriptions in instrument profiles are sufficient. Claude can audition presets within the recommended category using existing browser tools. |
+| Dynamic instrument profile updates | "Profiles should update when new Packs are installed" | Pack content varies per user; no API to introspect Pack contents programmatically; creates maintenance nightmare | Profiles cover factory instruments only. User library and Pack presets are browsable but not profiled. |
 
-| Anti-Feature | Why Avoid | What to Do Instead |
-|--------------|-----------|-------------------|
-| Real-time audio analysis / metering | LOM does not expose real-time audio buffers; Ableton's meter values are limited | Use heuristic analysis based on device params and role knowledge |
-| Full spectrum analyzer | LOM has no FFT / spectrum data access | Provide frequency guidance through recipes and role-based EQ conventions |
-| Reference track matching | Requires audio analysis capabilities outside LOM scope | Provide genre-specific target values that encode reference conventions |
-| Automatic mix without user confirmation | Users want AI assistance, not black-box automation | Always show what will change + reasoning; apply on confirmation |
-| VST/AU plugin parameter control | Parameter names are unpredictable across plugins | Focus exclusively on Ableton built-in devices where params are known |
+## Descriptor Tag Taxonomy
 
----
+### Design Principles
 
-## Detailed Feature Specifications
+Sound descriptors should follow a **role + character** two-axis model:
 
-### F1: Device Parameter Catalog
+- **Role axis**: What musical function the sound serves (bass, lead, pad, keys, etc.)
+- **Character axis**: How the sound feels tonally (warm, bright, dark, punchy, etc.)
 
-**What:** Static data mapping of priority Ableton built-in devices to their API parameter names, value ranges, and semantic meaning.
+A descriptor is typically `[character] [role]` -- e.g., "warm pad," "punchy kick," "bright pluck." Some descriptors are role-only ("kick," "hi-hat") or character-only ("ethereal," "aggressive") when context makes the other axis obvious.
 
-**Priority devices (12):**
+### Role Tags (aligned with Ableton Live 12 Sounds filter tags)
 
-| Device | Key Parameters (80/20 rule) | Notes |
-|--------|---------------------------|-------|
-| **EQ Eight** | Band 1-8 Frequency, Gain, Q, Filter Type, Band On/Off; Adaptive Q; Scale | 8 bands, each with ~5 params; only 3-4 bands typically active per recipe |
-| **Compressor** | Threshold, Ratio, Attack, Release, Knee, Makeup, Dry/Wet, Model (Peak/RMS/Expand), Sidechain | Core dynamics control; sidechain is critical for electronic music |
-| **Glue Compressor** | Threshold, Ratio, Attack, Release, Makeup, Range, Dry/Wet, Soft Clip | SSL-style bus glue; the "Range" param is unique and important |
-| **Drum Buss** | Drive, Crunch, Damp, Transients, Boom, Boom Freq, Decay, Dry/Wet | All-in-one drum processing; Boom is the secret weapon |
-| **Multiband Dynamics** | Low/Mid/High Threshold Above/Below, Ratio, Attack, Release; Crossover frequencies; Output Gain | 3-band dynamics; Above = compression, Below = expansion |
-| **Reverb** | Decay Time, Size, Pre-Delay, Diffusion, Dry/Wet, Hi/Lo Shelf Freq, Hi/Lo Shelf Gain, Input Filter | Wet/Dry critical; pre-delay separates source from space |
-| **Delay** | Delay Time L/R, Feedback, Dry/Wet, Filter Freq, Filter Width | Sync mode vs free time; ping-pong variant |
-| **Auto Filter** | Frequency, Resonance, Filter Type, Envelope Amount, LFO Amount, LFO Rate, Drive | Filter sweeps are bread and butter of electronic music |
-| **Gate** | Threshold, Return, Attack, Hold, Release, Floor | Noise gate for cleaning up; useful on breaks/samples |
-| **Limiter** | Gain, Ceiling, Release | Few params but critical for mastering; ceiling typically -0.3dB |
-| **Utility** | Gain, Balance, Width, Mono, Mute, Phase-L, Phase-R | Gain staging workhorse; Width for stereo control |
-| **Envelope Follower** | Rise, Fall, Map min/max | Sidechain-style dynamics without compressor; modulation source |
+Ableton Live 12's browser uses these Sound filter categories for instrument presets:
 
-**Complexity:** Medium (data authoring, not code complexity)
-**Depends on:** Existing `get_device_parameters` for runtime validation
-**Implementation note:** Parameter names must match what `set_device_parameter` accepts. The existing tool uses case-insensitive name matching. Catalog data should be authored, then validated against actual Ableton devices at test time.
+| Role Tag | Ableton Browser Equivalent | Notes |
+|----------|---------------------------|-------|
+| `bass` | Bass | Sub-bass, synth bass, 808, etc. |
+| `lead` | Lead | Monophonic melodic lines |
+| `pad` | Pad | Sustained, evolving textures |
+| `keys` | Keys | Piano-like, electric piano, Rhodes |
+| `pluck` | Plucked | Short-attack melodic sounds |
+| `strings` | Strings | Bowed string textures |
+| `brass` | Brass & Woodwind | Horn stabs, brass sections |
+| `organ` | Organ | Sustained organ tones |
+| `arp` | Arp | Arpeggiated sequences |
+| `drums` | Drums | Full drum kits, percussion |
+| `kick` | (within Drums) | Specific to electronic kick drums |
+| `hi-hat` | (within Drums) | Open/closed hi-hats |
+| `snare` | (within Drums) | Snare and clap sounds |
+| `percussion` | (within Drums) | Non-standard rhythmic hits |
+| `fx` | FX | Risers, impacts, sweeps, textures |
+| `vocal` | Vocal | Vocal chops, processed voices |
 
----
+### Character Tags (tonal/textural descriptors)
 
-### F2: Role Categories (Standardized)
+Derived from standard music production vocabulary and synthesis terminology:
 
-**What:** Canonical role taxonomy covering all 12 genres, with role groupings for mix recipe organization.
+| Character Tag | Meaning | Synthesis Implication |
+|---------------|---------|----------------------|
+| `warm` | Rich low-mids, gentle harmonics, analog feel | Low-pass filtered, moderate resonance, slight detune |
+| `bright` | Emphasized highs, crisp, present | Open filter, sawtooth-heavy, high harmonics |
+| `dark` | Rolled-off highs, deep, subdued | Heavy low-pass, sine/triangle basis, low resonance |
+| `punchy` | Fast attack, strong transient, compact | Short amp envelope, fast attack/decay, compression |
+| `lush` | Wide stereo, detuned, evolving | Unison voices, chorus, slow LFO modulation |
+| `gritty` | Distorted, raw, edgy | Drive/saturation, harsh waveforms, bit reduction |
+| `clean` | Pure tone, minimal processing | Simple waveform, no distortion, subtle filtering |
+| `aggressive` | Hard-hitting, intense, in-your-face | Distortion, fast envelopes, sharp resonance |
+| `ethereal` | Spacious, dreamy, atmospheric | Long reverb tail, slow attack, high-register |
+| `lo-fi` | Degraded, vintage, imperfect | Bit crush, vinyl noise, reduced bandwidth |
+| `glitchy` | Stuttering, digital artifacts, broken | Granular, sample manipulation, rhythmic gating |
+| `metallic` | Bell-like, inharmonic, FM-style | FM synthesis, ring modulation, inharmonic ratios |
+| `plucky` | Short decay, percussive attack | Fast envelope decay, no sustain |
+| `evolving` | Morphing, changing over time | Wavetable scanning, LFO on multiple params |
+| `thick` | Dense, full-bodied, heavy | Multiple oscillators, unison, saturation |
+| `thin` | Narrow, minimal harmonics | Single oscillator, high-pass, sine-based |
 
-**Role groups and their members (union across all genre blueprints):**
+### Compound Descriptors (examples)
 
-| Group | Roles | Mix Treatment |
-|-------|-------|---------------|
-| **Low-end** | kick, bass, sub_bass, 303_bass | Mono below ~120Hz; sidechain relationships; frequency separation |
-| **Drums** | snare, clap, hi-hats, percussion, break, amen_break | Transient shaping; stereo placement; bus compression |
-| **Melodic** | lead, stab, synth_stab, chords, arp | Mid-range EQ space; stereo width; delay/reverb sends |
-| **Harmonic bed** | pad, strings, drone, texture | Wide stereo; high-pass to avoid low-end mud; long reverb |
-| **Vocal** | vocal, vocal_chop | De-essing; compression; mid-range presence; reverb/delay |
-| **Atmospheric** | fx, noise, field_recording, granular, riser | Variable; often wide stereo; filtered; automated |
-| **Tonal color** | bell, piano | Genre-specific; often needs carving EQ space |
+These are the natural-language descriptors users will pass to `get_sound_recommendation`:
 
-**Complexity:** Low (taxonomy design, no new code infrastructure)
-**Depends on:** Existing `instrumentation.roles` in genre blueprints
+| Descriptor | Mapped Role | Mapped Character | Recommended Instrument |
+|------------|-------------|------------------|----------------------|
+| "warm pad" | pad | warm | Analog or Drift |
+| "dark bass" | bass | dark | Analog |
+| "bright pluck" | pluck | bright | Wavetable |
+| "punchy kick" | kick | punchy | Drum Rack |
+| "glitchy texture" | fx | glitchy | Simpler (slice mode) or Wavetable |
+| "metallic bell" | keys | metallic | Operator |
+| "lush strings" | strings | lush | Wavetable |
+| "aggressive lead" | lead | aggressive | Wavetable or Operator |
+| "ethereal pad" | pad | ethereal | Wavetable or Drift |
+| "lo-fi keys" | keys | lo-fi | Drift or Simpler |
+| "thick bass" | bass | thick | Analog or Wavetable |
+| "clean lead" | lead | clean | Drift |
+| "evolving texture" | fx/pad | evolving | Wavetable |
+| "gritty bass" | bass | gritty | Operator |
 
----
+## Instrument Profiles: Sonic Character Summary
 
-### F3: Role x Genre Mix Recipes
+### Wavetable
+- **Synthesis type**: Wavetable (two oscillators scanning through wavetable banks) + sub oscillator + dual filters + modulation matrix
+- **Sonic character**: Versatile, modern, can range from pristine to aggressive. Excels at evolving, complex timbres that subtractive synths cannot achieve.
+- **Best for**: Leads, pads, evolving textures, bright plucks, aggressive basses, complex sound design
+- **Weaknesses**: Can sound "digital" when unprocessed; not the first choice for classic warm analog sounds
+- **Preset categories**: Bass, Keys, Lead, Pad, Strings, Synths, Plucks (MEDIUM confidence -- needs runtime validation)
 
-**What:** For each (role, genre) pair, a recipe specifying which devices to load and what parameter values to set.
+### Analog
+- **Synthesis type**: Virtual analog (modeled analog circuits) with dual oscillators, filters, amplifiers, LFOs
+- **Sonic character**: Warm, fat, vintage. Delivers the classic analog synthesizer sound with authentic circuit-modeled warmth.
+- **Best for**: Warm basses, warm pads, classic leads, lo-fi textures, vintage-sounding keys
+- **Weaknesses**: Less capable of complex evolving textures or metallic/FM sounds; CPU heavier than Drift
+- **Preset categories**: Bass, Keys, Lead, Pad, Brass, Strings (MEDIUM confidence)
 
-**Recipe structure per role per genre:**
+### Operator
+- **Synthesis type**: FM synthesis (four operators) with additive and subtractive modes
+- **Sonic character**: Can produce timbres impossible with analog-style synths -- metallic, bell-like, inharmonic. Also capable of clean, precise digital tones.
+- **Best for**: Electric pianos, bells, metallic textures, complex bass, FM leads, organ sounds, percussive tones
+- **Weaknesses**: Less intuitive for beginners; FM synthesis is harder to predict; not ideal for classic warm/analog sounds
+- **Preset categories**: Bass, Keys, Lead, Pad, Organ (MEDIUM confidence)
 
-```
-recipe = {
-    "role": "bass",
-    "genre": "house",
-    "devices": [
-        {
-            "device_name": "EQ Eight",       # matches load_instrument_or_effect path
-            "params": {
-                "1 Filter On A": 1,           # high-pass to separate from kick
-                "1 Frequency A": 80.0,        # Hz
-                "1 Filter Type A": 1,         # high-pass
-                ...
-            }
-        },
-        {
-            "device_name": "Compressor",
-            "params": {
-                "Threshold": -18.0,
-                "Ratio": 4.0,
-                "Attack": 10.0,
-                "Release": 100.0,
-                ...
-            }
-        }
-    ]
-}
-```
+### Drift
+- **Synthesis type**: Subtractive (two oscillators, multi-mode filter, analog character via "drift" parameter)
+- **Sonic character**: Warm, organic, musical by default. The drift parameter adds subtle pitch/filter instability mimicking vintage hardware.
+- **Best for**: Simple warm basses, organic pads, clean leads, plucks, quick sketching, anything needing analog character with minimal effort
+- **Weaknesses**: Less capable of complex sound design; limited modulation compared to Wavetable; no FM or wavetable scanning
+- **Preset categories**: Bass, Pad, Strings, Synth Lead (MEDIUM confidence -- confirmed from documentation)
 
-**Genre-specific mixing conventions (key differentiators):**
+### Simpler
+- **Synthesis type**: Sample playback with Classic (one-shot/loop), 1-Shot (trigger), and Slice (auto-segment) modes
+- **Sonic character**: Depends entirely on loaded sample. As a sampler, it reproduces real-world timbres or processes them beyond recognition.
+- **Best for**: Sample-based sounds, lo-fi textures, vocal chops, sliced loops, one-shots, any sound that starts from a recording
+- **Weaknesses**: No synthesis engine -- requires samples; sound quality limited by source material
+- **Preset categories**: N/A (Simpler loads samples, not synth presets; category depends on loaded content)
 
-| Genre | Signature Mix Characteristic | Key Devices |
-|-------|------------------------------|-------------|
-| **House** | Pumping sidechain on bass/pads from kick; warm low-end; offbeat hat brightness | Compressor (sidechain), Glue Compressor, EQ Eight |
-| **Techno** | Heavy sidechain; aggressive parallel drum compression; filtered textures | Compressor (sidechain), Drum Buss, Auto Filter |
-| **Ambient** | Long reverb tails; minimal compression; wide stereo; very dynamic | Reverb (high wet), Delay, Utility (width), EQ Eight |
-| **DnB** | Tight fast compression on breaks; heavy sub-bass; snare crack emphasis | Compressor (fast attack), Drum Buss, EQ Eight |
-| **Dubstep** | Aggressive mid-range bass processing; heavy limiting; sidechain on everything | Multiband Dynamics, Compressor, Auto Filter |
-| **Trance** | Gated reverb on leads; supersaw layering width; pumping compression | Gate, Reverb, Compressor (sidechain), Utility (width) |
-| **Hip-hop/Trap** | 808 sub-bass saturation; crisp hi-hats; vocal presence carving | Drum Buss (boom), EQ Eight, Compressor |
-| **Lo-fi** | Warm saturation; rolled-off highs; gentle compression | Auto Filter (low-pass), Compressor, EQ Eight |
-| **Synthwave** | Wide synths; gated reverb on snare; chorus-like stereo | Reverb, Utility (width), Compressor |
-| **Neo-soul/R&B** | Warm analog compression; smooth EQ; vocal-forward mix | Glue Compressor, EQ Eight, Reverb |
-| **Future bass** | Heavy sidechain; bright supersaws; wide stereo image | Compressor (sidechain), Multiband Dynamics, Utility |
-| **Disco/Funk** | Natural dynamics; warm compression; live feel preservation | Glue Compressor, EQ Eight, Reverb |
+### Drum Rack
+- **Synthesis type**: Multi-pad instrument hosting individual samples or instruments per pad (128 pads)
+- **Sonic character**: Varies per pad -- each pad is its own instrument chain. The instrument of choice for all drum/percussion sounds.
+- **Best for**: Kick drums, snares, hi-hats, percussion, drum kits, layered percussive sounds
+- **Weaknesses**: Not a melodic instrument; primarily for drums and one-shots
+- **Preset categories**: Kit-Core (electronic kits), Kit-Acoustic (acoustic kits), Kit-Processed (processed/mangled kits), Hit (individual hits) (LOW confidence -- needs runtime validation)
 
-**Complexity:** HIGH (largest data surface in v1.4; ~12 genres x ~10 core roles x 2-4 devices each)
-**Depends on:** F1 (device parameter catalog), F2 (role taxonomy)
-**Implementation strategy:** Start with 3-4 most-used genres (house, techno, ambient, DnB), expand to remaining 8. Each recipe is a Python dict, same pattern as genre blueprints.
+## Ableton Live 12 Browser: Preset Category Paths
 
----
-
-### F4: Apply Recipe Tool
-
-**What:** Single MCP tool call that loads all devices in a recipe and sets all their parameters on a target track.
-
-**Interface:**
-```
-apply_mix_recipe(track_index, role, genre, [subgenre])
-  -> loads EQ Eight, Compressor, etc. onto track
-  -> sets all params per recipe
-  -> returns: devices loaded, params set, any warnings
-```
-
-**Complexity:** Medium
-**Depends on:** F3 (recipes), existing `load_instrument_or_effect`, existing `set_device_parameter`
-**Key constraint:** Device loading order matters. EQ before compressor is standard. Must wait for each device load before setting params (Ableton's async device loading).
-
----
-
-### F5: Device State Reader (Batch)
-
-**What:** Read all device params across all tracks (or a subset) in one call, returning a structured snapshot of the current mix state.
-
-**Interface:**
-```
-get_mix_state([track_indices], [track_type])
-  -> for each track: device chain with all param names + current values
-  -> returns: structured dict, not individual get_device_parameters calls
-```
-
-**Complexity:** Low-Medium
-**Depends on:** Existing `get_device_parameters` (wraps multiple calls)
-**Why needed:** Claude currently must call `get_device_parameters` per device per track. For a 16-track session with 3 devices each, that is 48 tool calls. A batch reader reduces this to 1.
-
----
-
-### F6: Gain Staging Check
-
-**What:** Reads all track volumes and output levels, compares to target gain staging conventions, flags issues.
-
-**Conventions (genre-independent baseline):**
-- Individual tracks: -6 to -12 dB headroom (volume fader ~0.70-0.85)
-- Kick: loudest element, typically -6 dB
-- Bass: -8 to -10 dB
-- Master bus: peaks at -3 to -6 dB before limiting
-- No track clipping (output > 0 dB)
-
-**Interface:**
-```
-check_gain_staging([genre])
-  -> reads all track volumes via existing mixer tools
-  -> reads master output level
-  -> returns: per-track status (ok/too-hot/too-quiet), overall assessment
-```
-
-**Complexity:** Medium
-**Depends on:** Existing `set_track_volume` / track info tools, F2 (role taxonomy for role-specific targets)
-**Limitation:** LOM exposes track.mixer_device.volume (fader position) but NOT real-time peak metering. Gain staging check is based on fader positions and Utility gain values, not actual signal level. This is still highly useful -- the most common gain staging mistake is wrong fader positions.
-
----
-
-### F7: Suggest Adjustments
-
-**What:** Reads current device state on a track, compares to the recipe for that role/genre, outputs a diff with reasoning for each parameter change.
-
-**Interface:**
-```
-suggest_mix_adjustments(track_index, role, genre)
-  -> reads current device params
-  -> looks up recipe
-  -> returns: list of {param, current_value, suggested_value, reason}
-```
-
-**Example output:**
-```json
-{
-  "suggestions": [
-    {
-      "device": "EQ Eight",
-      "param": "1 Frequency A",
-      "current": 50.0,
-      "suggested": 80.0,
-      "reason": "High-pass at 80Hz for house bass separates from kick sub (40-60Hz)"
-    },
-    {
-      "device": "Compressor",
-      "param": "Ratio",
-      "current": 2.0,
-      "suggested": 4.0,
-      "reason": "House bass needs tighter compression to sit under the kick"
-    }
-  ]
-}
-```
-
-**Complexity:** High (diff logic + reasoning text generation)
-**Depends on:** F5 (device state reader), F3 (recipes)
-
----
-
-### F8: Master Bus Recipes
-
-**What:** Genre-specific master bus chains with device order and parameter values.
-
-**Standard master bus chain order:**
+The `get_sound_recommendation` tool must return paths that resolve in the Ableton browser via `get_browser_items_at_path`. Based on research, the likely path format is:
 
 ```
-1. EQ Eight (subtractive) -- cut rumble, fix resonances
-2. Glue Compressor -- gentle 2-4 dB glue
-3. Multiband Dynamics -- balance frequency bands
-4. EQ Eight (additive) -- final tonal shaping (optional)
-5. Limiter -- ceiling at -0.3 dB, target 2-4 dB reduction
+instruments/{InstrumentName}/{CategoryName}
 ```
 
-**Genre-specific variations:**
+For example:
+- `instruments/Wavetable/Bass`
+- `instruments/Analog/Pad`
+- `instruments/Operator/Keys`
+- `instruments/Drift/Bass`
 
-| Genre | Chain Modifications | Key Settings |
-|-------|--------------------|-------------|
-| **Techno** | More aggressive Glue Comp (4:1 ratio); Multiband with tight low-end control | Ceiling -0.1 dB, 4-6 dB limiting |
-| **House** | Moderate Glue Comp (2:1); wider Multiband crossovers | Ceiling -0.3 dB, 2-4 dB limiting |
-| **Ambient** | Skip Glue Comp or very gentle; skip Multiband; preserve dynamics | Ceiling -1.0 dB, minimal limiting |
-| **DnB** | Fast-attack Compressor instead of Glue; tight Multiband on lows | Ceiling -0.3 dB, 4-6 dB limiting |
-| **Dubstep** | Aggressive Multiband; mid-range boost on final EQ | Ceiling -0.1 dB, 6+ dB limiting |
-| **Hip-hop/Trap** | Warm Glue Comp; bass-forward EQ; moderate limiting | Ceiling -0.3 dB, 3-5 dB limiting |
-| **Trance** | Similar to house but more aggressive limiting for loudness | Ceiling -0.1 dB, 4-6 dB limiting |
-| **Lo-fi** | Very gentle; maybe just EQ + Limiter; preserve character | Ceiling -1.0 dB, 1-2 dB limiting |
-| **Synthwave** | Warm compression; slight mid-scoop on EQ | Ceiling -0.3 dB, 2-4 dB limiting |
-| **Neo-soul** | Gentle Glue Comp; warm EQ; preserve dynamics | Ceiling -0.5 dB, 2-3 dB limiting |
-| **Future bass** | Aggressive Multiband; bright top-end EQ | Ceiling -0.1 dB, 4-6 dB limiting |
-| **Disco/Funk** | Gentle; preserve transients; light Glue Comp | Ceiling -0.3 dB, 2-3 dB limiting |
+**CRITICAL: These paths need runtime validation.** The exact category folder names within each instrument's browser node must be confirmed by running `get_browser_tree(category_type="instruments", max_depth=3)` in a live Ableton session. The categories listed above are best-effort from documentation and third-party sources but are not confirmed from the Ableton API.
 
-**Complexity:** Medium (12 chains, each 4-6 devices with ~5 params each)
-**Depends on:** F1 (device parameter catalog)
-**Implementation:** Separate from per-track recipes. Applied to master track using `track_type="master"`.
+Known Ableton Live 12 Sounds browser filter tags (HIGH confidence -- from official documentation):
+- Bass, Lead, Pad, Keys, Strings, Plucked, Brass & Woodwind, Organ, Arp, Drums, FX, Vocal, Piano, Mallet, Synth
 
----
-
-### F9: Master Bus Tools
-
-**What:** Apply/read master bus chain.
-
-**Interface:**
-```
-apply_master_recipe(genre, [subgenre])
-  -> loads chain onto master track in correct order
-  -> sets all params
-
-get_master_state()
-  -> reads all devices on master track with params
-```
-
-**Complexity:** Low-Medium (thin wrapper over F4 logic targeting master track)
-**Depends on:** F8 (master bus recipes), F4 (apply recipe tool)
-
----
+These are *tags* in the Live 12 tag system, not necessarily *folder paths* in the browser tree. The instrument-specific preset folders may use slightly different names.
 
 ## Feature Dependencies
 
 ```
-F1 (Device Parameter Catalog)
-  |
-  +---> F3 (Role x Genre Mix Recipes) ---> F4 (Apply Recipe Tool)
-  |         |                                    |
-  |         v                                    v
-  |     F7 (Suggest Adjustments) <--------- F5 (Device State Reader)
-  |
-  +---> F8 (Master Bus Recipes) ----------> F9 (Master Bus Tools)
+Instrument Profiles (INST-01..06)
+    |
+    +---> get_instrument_profile (SREC-03) [serves profiles as MCP tool]
+    |
+    +---> get_sound_recommendation (SREC-01) [reasons over profiles to map descriptors]
+    |         |
+    |         +---> requires: descriptor tag taxonomy (embedded in code)
+    |         +---> requires: browser category paths per instrument (in profiles)
+    |         +---> output feeds: load_instrument_or_effect (existing tool)
+    |         +---> output feeds: get_browser_items_at_path (existing tool)
+    |
+    +---> list_sound_descriptors (SREC-02) [returns all valid descriptor tags]
 
-F2 (Role Taxonomy)
-  |
-  +---> F3 (Role x Genre Mix Recipes)
-  +---> F6 (Gain Staging Check)
-
-Existing infrastructure:
-  - load_instrument_or_effect  --> F4, F9
-  - set_device_parameter       --> F4, F9
-  - get_device_parameters      --> F5
-  - set_track_volume/pan       --> F6
-  - get_track_info             --> F5, F6
-  - genre blueprints           --> F2, F3
+Existing tools (no changes needed):
+    get_browser_tree           -- validates category paths exist
+    get_browser_items_at_path  -- browses within recommended category
+    load_instrument_or_effect  -- loads the recommended instrument
+    get_role_taxonomy          -- 9 canonical roles already defined
 ```
 
-## MVP Recommendation
+### Dependency Notes
 
-**Phase 1 (foundation):** Build in this order:
-1. **F1: Device Parameter Catalog** -- everything depends on knowing param names/ranges
-2. **F2: Role Taxonomy** -- lightweight; categorize existing genre roles
-3. **F3: Role x Genre Mix Recipes** (top 4 genres: house, techno, ambient, DnB) -- core data
-4. **F4: Apply Recipe Tool** -- the headline feature
+- **Instrument profiles must exist before recommendation tool**: `get_sound_recommendation` reasons over profile data to select instruments. Profiles are the data layer; recommendation is the logic layer.
+- **Browser category paths must be validated**: The profiles include preset category maps with browser paths. These must be confirmed against a live Ableton session before the recommendation tool can be trusted.
+- **Descriptor taxonomy must align with existing role taxonomy**: The 9 roles in `ROLES` (kick, bass, lead, pad, chords, vocal, atmospheric, return, master) overlap with but don't match 1:1 the Ableton browser Sound tags. The descriptor system bridges both.
+- **No Remote Script changes needed**: All new tools are server-side only, operating on static data (instrument profiles) and existing browser tools.
 
-**Phase 2 (feedback loop):**
-5. **F5: Device State Reader** (batch) -- enables suggest adjustments
-6. **F6: Gain Staging Check** -- quick win, high user value
-7. **F8: Master Bus Recipes** -- complete the mastering story
-8. **F9: Master Bus Tools** -- apply master chains
+## MVP Definition
 
-**Phase 3 (intelligence):**
-9. **F7: Suggest Adjustments** -- the "AI mixing engineer" differentiator
-10. **F3 expansion** -- remaining 8 genres
+### Launch With (Phase 1: Instrument Profiles)
 
-**Defer:**
-- Section-aware mixing: Requires automation infrastructure; better as v1.5
-- Frequency conflict detection: Needs audio analysis or sophisticated heuristics; v1.5+
-- Sidechain routing setup: Complex routing automation; include basic sidechain params in recipes but defer full routing automation
+- [x] Instrument profile data for all 6 instruments (INST-01..06)
+  - Sonic character, strengths, weaknesses
+  - Best-for roles
+  - Preset category map with browser paths
+  - **Requires runtime browser validation for paths**
+- [x] `get_instrument_profile` MCP tool (SREC-03)
 
-## Data Scale Estimate
+### Launch With (Phase 2: Recommendation Engine)
 
-| Data Item | Count | Authoring Effort |
-|-----------|-------|-----------------|
-| Device parameter entries | ~120 params across 12 devices | 1 phase |
-| Role taxonomy entries | ~25 distinct roles, 7 groups | 0.5 phase |
-| Mix recipes (4 core genres) | ~40 recipes (10 roles x 4 genres) | 1-2 phases |
-| Mix recipes (remaining 8 genres) | ~80 recipes | 2 phases |
-| Master bus recipes | 12 chains (one per genre) | 0.5 phase |
-| Total data dicts | ~250 recipe dicts | Major authoring effort |
+- [x] Descriptor tag taxonomy: ~16 character tags x ~16 role tags
+- [x] `get_sound_recommendation(descriptor)` MCP tool (SREC-01)
+  - Parses compound descriptor into role + character
+  - Selects best instrument from profiles
+  - Returns: instrument name, browser category path, one-line reasoning
+- [x] `list_sound_descriptors` MCP tool (SREC-02)
+
+### Defer (Future Consideration)
+
+- [ ] Genre-aware recommendations -- wait for user demand; separation of concerns favors descriptor-only for now
+- [ ] Third-party plugin profiles -- scope limited to 6 native instruments
+- [ ] Preset-level descriptions -- too many presets, too fragile to maintain
+- [ ] Audio-based matching -- fundamentally different architecture, not MCP-compatible
+
+## Feature Prioritization Matrix
+
+| Feature | User Value | Implementation Cost | Priority |
+|---------|------------|---------------------|----------|
+| Instrument profiles (6 instruments) | HIGH | MEDIUM | P1 |
+| `get_sound_recommendation` | HIGH | MEDIUM | P1 |
+| `list_sound_descriptors` | MEDIUM | LOW | P1 |
+| `get_instrument_profile` | MEDIUM | LOW | P1 |
+| Character descriptor taxonomy | HIGH | LOW | P1 |
+| Browser path validation | HIGH | LOW | P1 |
+| Genre-aware recommendations | LOW | HIGH | P3 |
+| Third-party plugin profiles | LOW | HIGH | P3 |
+
+## Competitor Feature Analysis
+
+| Feature | Jamahook (AI Sound Matching) | FL Studio Gopher/Loop Starter | Our Approach |
+|---------|------------------------------|-------------------------------|--------------|
+| Sound selection | Audio-analysis matching (psychoacoustic) | Manual loop browsing with genre tags | Text descriptor to instrument + category mapping |
+| Input method | Audio signal (plays back, listens, matches) | Genre selection for loop loading | Natural language descriptor string |
+| Output | Matched sample/loop from library | Genre-specific loops in session | Instrument name + browser category path + reasoning |
+| Scope | Any audio content | Loops only | 6 native Ableton instruments |
+| Requires audio streaming | Yes | No | No (text-based, fits MCP protocol) |
+| Works offline | No (cloud-based) | Yes | Yes (static data, no network) |
+| Transparent reasoning | No (black box algorithm) | No | Yes (one-line reasoning per recommendation) |
+
+Our approach is deliberately narrower (6 instruments, text descriptors, no audio analysis) but fits perfectly within the MCP command/response model and provides transparent, explainable recommendations. The value is in eliminating random preset fumbling, not in replacing the producer's ears.
 
 ## Sources
 
-- [Ableton Live 12 Audio Effect Reference](https://www.ableton.com/en/manual/live-audio-effect-reference/) -- HIGH confidence, official
-- [Remotify Device Parameters](https://remotify.io/device-parameters/device_params_live11.html) -- MEDIUM confidence, community reference
-- [iZotope Mixing Tips for EDM](https://www.izotope.com/en/learn/12-tips-for-mixing-and-producing-edm) -- MEDIUM confidence
-- [iZotope Ideal Mastering Signal Chain](https://www.izotope.com/en/learn/what-is-an-ideal-mastering-signal-chain.html) -- HIGH confidence
-- [Toolroom Academy Mastering Chains](https://toolroomacademy.com/features/ableton-mastering-chains-an-in-depth-guide/) -- MEDIUM confidence
-- [Audeobox How to Master in Ableton](https://www.audeobox.com/learn/ableton/how-to-master-in-ableton/) -- MEDIUM confidence
-- [EDM Tips 30 Mixdown Techniques](https://edmtips.com/30-mix-techniques/) -- MEDIUM confidence
-- [Loopmasters Mixing Electronic Music Guidelines](https://www.loopmasters.com/articles/2718-Mixing-Electronic-Music-A-Few-Quick-And-Easy-Guidelines) -- MEDIUM confidence
-- Existing codebase: genre blueprints, device tools, mixer tools -- HIGH confidence (runtime-validated)
+- [Ableton Live 12 Browser and Tags FAQ](https://help.ableton.com/hc/en-us/articles/11425042663708-Browser-and-Tags-in-Live-12-FAQ) -- Sound filter tags
+- [Ableton Live 12 Browser documentation](https://help.ableton.com/hc/en-us/articles/12927340213660-The-Live-12-Browser) -- Browser categories
+- [Ableton Live Instrument Reference Manual](https://www.ableton.com/en/manual/live-instrument-reference/) -- Instrument architectures
+- [Ableton Drift blog post](https://www.ableton.com/en/blog/drift-exploring-the-new-synth-in-live-113/) -- Drift sonic character
+- [ADSR Sounds: Drift Presets](https://www.adsrsounds.com/synth/ableton-drift/) -- Drift preset categories
+- [Audeobox: Best Free Instruments for Ableton](https://www.audeobox.com/learn/ableton/best-free-instruments-for-ableton/) -- Instrument character comparison
+- [BeatShaper: Drift Guide](https://www.beatshaper.ai/blog/ableton-drift) -- Drift sonic character detail
+- [VI-Control: Taxonomy of Synth Sounds](https://vi-control.net/community/threads/taxonomy-of-synth-sounds.140158/) -- Descriptor taxonomy discussion
+- [Jamahook](https://jamahook.com/) -- AI sound matching competitor
+- [Soundfly: Learning to Describe Synth Sounds](https://flypaper.soundfly.com/discover/learning-to-describe-synth-sounds-to-rebuild-patches/) -- Sound descriptor vocabulary
 
-### Confidence Notes
-
-- **Device parameter names:** MEDIUM -- parameter names listed here are based on Ableton documentation and community references. Exact API names as returned by `get_device_parameters` MUST be validated at runtime during implementation. The existing tool uses case-insensitive matching which provides some tolerance.
-- **Genre mixing conventions:** HIGH -- well-established domain knowledge corroborated across multiple production education sources.
-- **Master bus chain order:** HIGH -- near-universal consensus: subtractive EQ > compression > multiband (if needed) > additive EQ > limiter.
-- **Recipe parameter values:** LOW -- specific numeric values (e.g., "threshold at -18 dB") are starting points that need ear-testing. The system should make these easily adjustable.
+---
+*Feature research for: Sound Selection Intelligence (v1.5)*
+*Researched: 2026-03-30*
