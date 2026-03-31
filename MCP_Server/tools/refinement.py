@@ -1,6 +1,7 @@
 """Refinement tools: section state reading for iterative refinement workflow."""
 
 import json
+import re
 
 from mcp.server.fastmcp import Context
 
@@ -8,6 +9,17 @@ from MCP_Server.connection import get_ableton_connection
 from MCP_Server.devices.catalog import CATALOG
 from MCP_Server.devices.convert import natural_to_normalized
 from MCP_Server.mixing.catalog import get_recipe
+from MCP_Server.prompt.deriver import (
+    _derive_effect_hints,
+    _derive_energy_level,
+    _derive_groove_feel,
+    _derive_key_feel,
+    _derive_tempo,
+    _derive_velocity_style,
+)
+from MCP_Server.prompt.lexicon import GROOVE_HINTS
+from MCP_Server.prompt.parser import classify_prompt
+from MCP_Server.refinement.interpreter import build_section_refinement_plan
 from MCP_Server.refinement.schema import ClipSummary, SectionState, TrackStateEntry
 from MCP_Server.server import mcp
 from MCP_Server.tools.analysis import _infer_role
@@ -256,3 +268,164 @@ def get_section_state(ctx: Context, section_name: str, genre: str = None) -> str
         "error": None,
     }
     return json.dumps(result)
+
+
+@mcp.tool()
+def interpret_section_refinement(ctx: Context, section_name: str, instruction: str) -> str:
+    """Interpret a refinement instruction for a named section — returns a read-only plan.
+
+    Reads the current section state, maps the instruction through the refinement
+    lexicon to a concrete SectionRefinementPlan: per-track note operations (semitone
+    shifts, scale substitutions) and device parameter targets. Does NOT apply changes.
+
+    Use refine_section() to apply changes from this plan.
+
+    Args:
+        section_name: Named arrangement section (matches locator, case-insensitive)
+        instruction: Refinement instruction ("make it darker", "add more swing", "higher register")
+    """
+    conn = get_ableton_connection()
+    plan = build_section_refinement_plan(section_name, instruction, conn)
+    return json.dumps(plan)
+
+
+@mcp.tool()
+def refine_prompt(ctx: Context, brief: dict, refinement_text: str) -> str:
+    """Refine an existing ProductionBrief with a follow-up instruction.
+
+    Takes an existing ProductionBrief (from interpret_prompt) and a refinement
+    string ("make it faster", "darker key feel", "add more swing"), re-derives
+    only the parameters affected by the new signals, and returns the updated
+    brief plus a diff showing which fields changed.
+
+    Fields not mentioned in the refinement are preserved verbatim.
+
+    Args:
+        brief: Existing ProductionBrief dict (from interpret_prompt output)
+        refinement_text: Follow-up refinement string
+    """
+    # 1. Classify refinement text
+    signals = classify_prompt(refinement_text)
+
+    # 2. Start with copy of original brief
+    updated = dict(brief)
+    reasoning = list(brief.get("reasoning", []))
+    diff = {}
+
+    # 3. Low-confidence warning
+    if brief.get("confidence", 1.0) < 0.3:
+        reasoning.append(
+            f"Warning: original brief has low confidence ({brief['confidence']:.2f}) — some fields may be unreliable"
+        )
+
+    # 4. Genre signals → re-derive genre-dependent fields
+    if signals["genre_signals"]:
+        original_genre = updated.get("primary_genre")
+        new_genre = signals["genre_signals"][0]
+        updated["primary_genre"] = new_genre
+        diff["primary_genre"] = {"before": original_genre, "after": new_genre}
+
+        # Re-derive all genre-dependent fields using actual _derive_tempo signature:
+        # _derive_tempo(genre_id, mood_signals, tempo_signals, energy_level, raw_prompt)
+        energy_level = updated.get("energy_level", 5)
+        new_tempo, t_reason = _derive_tempo(
+            new_genre,
+            signals["mood_signals"],
+            signals["tempo_signals"],
+            energy_level,
+            refinement_text,
+        )
+        if new_tempo != updated.get("tempo_range"):
+            diff["tempo_range"] = {"before": updated["tempo_range"], "after": new_tempo}
+            updated["tempo_range"] = new_tempo
+        new_key, k_reason = _derive_key_feel(new_genre, signals["mood_signals"])
+        if new_key != updated.get("key_feel"):
+            diff["key_feel"] = {"before": updated["key_feel"], "after": new_key}
+            updated["key_feel"] = new_key
+        reasoning.append(t_reason)
+        reasoning.append(k_reason)
+
+    # 5. Mood signals (without genre override)
+    elif signals["mood_signals"]:
+        original_key = updated.get("key_feel")
+        new_key, k_reason = _derive_key_feel(updated.get("primary_genre"), signals["mood_signals"])
+        if new_key != original_key:
+            diff["key_feel"] = {"before": original_key, "after": new_key}
+            updated["key_feel"] = new_key
+            reasoning.append(k_reason)
+
+        energy, e_reason = _derive_energy_level(signals["mood_signals"])
+        if energy != updated.get("energy_level"):
+            diff["energy_level"] = {"before": updated.get("energy_level"), "after": energy}
+            updated["energy_level"] = energy
+            reasoning.append(e_reason)
+
+        vel, v_reason = _derive_velocity_style(updated["energy_level"], signals["mood_signals"])
+        if vel != updated.get("velocity_style"):
+            diff["velocity_style"] = {"before": updated.get("velocity_style"), "after": vel}
+            updated["velocity_style"] = vel
+            reasoning.append(v_reason)
+
+    # 6. Tempo signals (explicit BPM or tempo words)
+    # Also detect explicit BPM numbers in raw text (e.g. "140 BPM") — these are
+    # extracted by _derive_tempo's regex but don't produce a tempo_signal token.
+    _has_explicit_bpm = bool(
+        re.search(r"\b(\d{2,3})\s*(?:bpm|beats?\s+per\s+minute)\b", refinement_text, re.IGNORECASE)
+    )
+    if signals["tempo_signals"] or _has_explicit_bpm:
+        original_tempo = updated.get("tempo_range")
+        energy_level = updated.get("energy_level", 5)
+        new_tempo, t_reason = _derive_tempo(
+            updated.get("primary_genre"),
+            signals["mood_signals"],
+            signals["tempo_signals"],
+            energy_level,
+            refinement_text,
+        )
+        if new_tempo != original_tempo:
+            diff["tempo_range"] = {"before": original_tempo, "after": new_tempo}
+            updated["tempo_range"] = new_tempo
+            reasoning.append(t_reason)
+
+    # 7. Groove structural hints
+    groove_override = None
+    for hint in signals.get("structural_hints", []):
+        if hint in GROOVE_HINTS:
+            groove_override = hint
+            break
+    if groove_override:
+        original_groove = updated.get("groove_feel")
+        # _derive_groove_feel(genre_id, structural_hints, raw_descriptors)
+        new_groove, g_reason = _derive_groove_feel(
+            updated.get("primary_genre"),
+            signals["structural_hints"],
+            signals.get("raw_descriptors", []),
+        )
+        if new_groove != original_groove:
+            diff["groove_feel"] = {"before": original_groove, "after": new_groove}
+            updated["groove_feel"] = new_groove
+            reasoning.append(g_reason)
+
+    # 8. Effect signals
+    if signals["effect_signals"]:
+        original_effects = updated.get("effect_hints", [])
+        # _derive_effect_hints takes a list of effect signal strings
+        new_effects, fx_reason = _derive_effect_hints(signals["effect_signals"])
+        merged = list({*original_effects, *new_effects})
+        if merged != original_effects:
+            diff["effect_hints"] = {"before": original_effects, "after": merged}
+            updated["effect_hints"] = merged
+            reasoning.append(fx_reason)
+
+    # 9. If no signals matched at all, add a note to reasoning
+    if not any([
+        signals["genre_signals"],
+        signals["mood_signals"],
+        signals["tempo_signals"],
+        signals["effect_signals"],
+    ]):
+        reasoning.append(f"No recognized signals in '{refinement_text}' — brief unchanged")
+
+    updated["reasoning"] = reasoning
+
+    return json.dumps({"brief": updated, "diff": diff})
