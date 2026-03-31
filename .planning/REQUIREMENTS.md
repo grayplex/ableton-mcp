@@ -8,11 +8,11 @@
 ### Instrument Profiles
 
 - [x] **INST-01**: Claude can retrieve the Wavetable instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
-- [ ] **INST-02**: Claude can retrieve the Analog instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
-- [ ] **INST-03**: Claude can retrieve the Operator instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
-- [ ] **INST-04**: Claude can retrieve the Drift instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
-- [ ] **INST-05**: Claude can retrieve the Simpler instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
-- [ ] **INST-06**: Claude can retrieve the Drum Rack instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
+- [x] **INST-02**: Claude can retrieve the Analog instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
+- [x] **INST-03**: Claude can retrieve the Operator instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
+- [x] **INST-04**: Claude can retrieve the Drift instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
+- [x] **INST-05**: Claude can retrieve the Simpler instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
+- [x] **INST-06**: Claude can retrieve the Drum Rack instrument profile -- sonic character, strengths/weaknesses, descriptor affinities, and browser category paths validated against live Ableton
 
 ### Sound Recommendation Tools
 
@@ -51,11 +51,11 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | INST-01 | Phase 35 | Complete |
-| INST-02 | Phase 36 | Pending |
-| INST-03 | Phase 36 | Pending |
-| INST-04 | Phase 36 | Pending |
-| INST-05 | Phase 36 | Pending |
-| INST-06 | Phase 36 | Pending |
+| INST-02 | Phase 36 | Complete |
+| INST-03 | Phase 36 | Complete |
+| INST-04 | Phase 36 | Complete |
+| INST-05 | Phase 36 | Complete |
+| INST-06 | Phase 36 | Complete |
 | SREC-01 | Phase 38 | Pending |
 | SREC-02 | Phase 37 | Pending |
 | SREC-03 | Phase 38 | Pending |
