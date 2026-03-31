@@ -1,5 +1,25 @@
 # Milestones
 
+## v1.7 Prompt Interpretation (Shipped: 2026-03-31)
+
+**Phases completed:** 3 phases (42-44), 3 plans
+**Requirements:** 10/10 complete
+**Files changed:** 10 files, +1,200 / -0 lines (new package)
+**Timeline:** 1 day (2026-03-31)
+**Tests:** 100 new tests
+
+**Delivered:** Deterministic NLP prompt interpretation layer for Ableton — `MCP_Server/prompt/` package with signal lexicon (12 genres, 40+ moods, 20+ instruments, 20+ effects), greedy longest-match parser, and parameter derivation engine. Two new MCP tools: `interpret_prompt(text)` returns a structured `ProductionBrief` with tempo range, scale/mode, groove pattern, instrument hints, effect hints, velocity style, and plain-English reasoning; `interpret_prompt_to_plan(text)` chains directly to `generate_production_plan` for one-call prompt→arrangement workflow.
+
+**Key accomplishments:**
+
+- `schema.py`: `SignalSet` and `ProductionBrief` TypedDicts — JSON-serializable, 11-field brief with nullable primary_genre
+- `lexicon.py`: 12-genre map (with all blueprint aliases), 40+ mood adjectives (energy_level + scale_bias), 20+ instrument refs (role + descriptor), 20+ effect refs, 12+ tempo signals, groove hint overrides
+- `parser.py`: Greedy longest-match tokenizer — multi-word phrases first (lo_fi_hip_hop → lo_fi), stop words preserved for phrase matching ("drum and bass"), 5-level priority (genre > instrument > effect > mood > tempo)
+- `deriver.py`: 5 DERV-* derivation steps — explicit BPM extraction, genre+energy tempo, genre+mood key feel, genre+structural hint groove, blueprint role instrument hints; reasoning list on every call
+- `tools/prompt.py`: `interpret_prompt` + `interpret_prompt_to_plan` registered MCP tools; low-confidence warning when genre unresolved; `bars_per_section` override support
+
+---
+
 ## v1.6 Self-evaluation (Shipped: 2026-03-31)
 
 **Phases completed:** 3 phases (39-41), 3 plans
