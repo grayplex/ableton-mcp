@@ -71,7 +71,8 @@ def _make_meter_state(tracks=None, return_tracks=None, master=None):
     }
 
 
-# A kick track with one Compressor2 device, one param at recipe-normalized value 0.5
+# A kick track with one Compressor2 device using Ratio param (no conversion, 0-1 range).
+# natural_to_normalized("Compressor2", "Ratio", 0.5) == 0.5 (no conversion: clamp to [0,1])
 KICK_TRACK_IN_RANGE = {
     "index": 0,
     "name": "KICK_01",
@@ -82,17 +83,16 @@ KICK_TRACK_IN_RANGE = {
             "class_name": "Compressor2",
             "device_name": "Compressor",
             "parameters": [
-                {"name": "Threshold", "value": 0.5},  # will be compared to recipe
+                {"name": "Ratio", "value": 0.5},  # recipe also 0.5 → delta=0 → in range
             ],
         }
     ],
 }
 
-# Canned recipe that exactly matches KICK_TRACK_IN_RANGE at normalized 0.5
-# natural_to_normalized("Compressor2", "Threshold", X) == 0.5
-# Threshold is linear: natural 0.5 maps to normalized 0.5 (no conversion in catalog)
+# Canned recipe that exactly matches KICK_TRACK_IN_RANGE at normalized 0.5.
+# Ratio has no conversion: natural_to_normalized("Compressor2", "Ratio", 0.5) == 0.5.
 CANNED_RECIPE_IN_RANGE = {
-    "Compressor2": {"Threshold": 0.5},
+    "Compressor2": {"Ratio": 0.5},
 }
 
 # Track with a large deviation: recipe wants 0.5, track has 0.0 (delta=0.5 > CRITICAL_THRESHOLD)
@@ -106,7 +106,7 @@ KICK_TRACK_OUT_OF_RANGE = {
             "class_name": "Compressor2",
             "device_name": "Compressor",
             "parameters": [
-                {"name": "Threshold", "value": 0.0},  # large deviation from 0.5
+                {"name": "Ratio", "value": 0.0},  # large deviation from recipe 0.5
             ],
         }
     ],
@@ -245,8 +245,8 @@ class TestMixBalanceEvaluator:
     @patch("MCP_Server.evaluation.mix_balance.get_recipe")
     def test_all_params_in_range_scores_ten(self, mock_get_recipe):
         """When all params are at recipe target, score == 10.0."""
-        # natural_to_normalized("Compressor2", "Threshold", 0.5) returns 0.5
-        # KICK_TRACK_IN_RANGE also has Threshold=0.5 → delta=0 < DIFF_THRESHOLD
+        # natural_to_normalized("Compressor2", "Ratio", 0.5) returns 0.5 (no conversion)
+        # KICK_TRACK_IN_RANGE also has Ratio=0.5 → delta=0 < DIFF_THRESHOLD
         mock_get_recipe.return_value = CANNED_RECIPE_IN_RANGE
         conn = self._make_conn(
             _make_mix_state(tracks=[KICK_TRACK_IN_RANGE]),
@@ -258,8 +258,9 @@ class TestMixBalanceEvaluator:
     @patch("MCP_Server.evaluation.mix_balance.get_recipe")
     def test_out_of_range_param_creates_issue(self, mock_get_recipe):
         """A param deviating by 0.10 (>DIFF_THRESHOLD, <CRITICAL_THRESHOLD) creates a warning."""
-        # Track Threshold=0.5, recipe target converts to ~0.6 → delta ~0.1 → warning
-        recipe = {"Compressor2": {"Threshold": 0.6}}  # normalized will be 0.6 (no conversion)
+        # Ratio has no conversion: natural_to_normalized("Compressor2", "Ratio", 0.6) == 0.6
+        # Current value=0.5, recipe_norm=0.6 → delta=0.1 → warning (0.03 < 0.1 < 0.15)
+        recipe = {"Compressor2": {"Ratio": 0.6}}
         mock_get_recipe.return_value = recipe
         track = {
             "index": 0,
@@ -270,7 +271,7 @@ class TestMixBalanceEvaluator:
                     "index": 0,
                     "class_name": "Compressor2",
                     "device_name": "Compressor",
-                    "parameters": [{"name": "Threshold", "value": 0.5}],
+                    "parameters": [{"name": "Ratio", "value": 0.5}],
                 }
             ],
         }
@@ -327,10 +328,13 @@ class TestMixBalanceEvaluator:
     @patch("MCP_Server.evaluation.mix_balance.get_recipe")
     def test_partial_params_score_between_zero_and_ten(self, mock_get_recipe):
         """With one in-range and one out-of-range param, score is between 0 and 10."""
+        # Both Ratio and S/C Mix have no conversion: natural_to_normalized returns value directly
+        # Ratio: current=0.5, recipe=0.5 → delta=0 → in range
+        # S/C Mix: current=0.1, recipe=0.9 → delta=0.8 → out of range (critical)
         recipe = {
             "Compressor2": {
-                "Threshold": 0.5,   # current=0.5 → in range (delta=0)
-                "Ratio": 0.9,       # current=0.1 → out of range (delta=0.8)
+                "Ratio": 0.5,       # current=0.5 → in range (delta=0)
+                "S/C Mix": 0.9,     # current=0.1 → out of range (delta=0.8)
             }
         }
         mock_get_recipe.return_value = recipe
@@ -344,8 +348,8 @@ class TestMixBalanceEvaluator:
                     "class_name": "Compressor2",
                     "device_name": "Compressor",
                     "parameters": [
-                        {"name": "Threshold", "value": 0.5},
-                        {"name": "Ratio", "value": 0.1},
+                        {"name": "Ratio", "value": 0.5},
+                        {"name": "S/C Mix", "value": 0.1},
                     ],
                 }
             ],
