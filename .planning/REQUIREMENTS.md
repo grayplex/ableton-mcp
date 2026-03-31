@@ -13,19 +13,19 @@
 
 ### Refinement Language Engine
 
-- [ ] **REFN-01**: A `RefinementLexicon` in `MCP_Server/refinement/lexicon.py` maps 20+ aesthetic adjectives to multi-domain `RefinementVector` TypedDicts: `{harmonic: {register_shift_semitones, mode_bias, density_delta}, timbral: {filter_cutoff_delta_pct, brightness_db, reverb_wet_delta}, dynamic: {velocity_shift, compression_ratio_delta}}`; adjectives covered include at minimum: darker, brighter, warmer, colder, harder, softer, heavier, lighter, sparser, denser, higher, lower, more energetic, less energetic, more melodic, more rhythmic, more spacious, tighter, dirtier, cleaner; each vector uses signed proportional deltas (not absolute values) so application is always relative to current state
+- [x] **REFN-01**: A `RefinementLexicon` in `MCP_Server/refinement/lexicon.py` maps 20+ aesthetic adjectives to multi-domain `RefinementVector` TypedDicts: `{harmonic: {register_shift_semitones, mode_bias, density_delta}, timbral: {filter_cutoff_delta_pct, brightness_db, reverb_wet_delta}, dynamic: {velocity_shift, compression_ratio_delta}}`; adjectives covered include at minimum: darker, brighter, warmer, colder, harder, softer, heavier, lighter, sparser, denser, higher, lower, more energetic, less energetic, more melodic, more rhythmic, more spacious, tighter, dirtier, cleaner; each vector uses signed proportional deltas (not absolute values) so application is always relative to current state
 
-- [ ] **REFN-02**: `interpret_section_refinement(section_name, instruction)` MCP tool: calls `get_section_state` to read the current section, tokenizes the instruction through the prompt parser's tokenizer for signal extraction, maps tokens through `RefinementLexicon` to produce a merged `RefinementVector`, then resolves the vector against actual current values to produce a `SectionRefinementPlan` TypedDict — listing per-track note operations (semitone shifts, density changes), per-track device parameter targets (absolute values derived from current + delta), and a plain-English `reasoning` list explaining each proposed change; tool is read-only (applies nothing)
+- [x] **REFN-02**: `interpret_section_refinement(section_name, instruction)` MCP tool: calls `get_section_state` to read the current section, tokenizes the instruction through the prompt parser's tokenizer for signal extraction, maps tokens through `RefinementLexicon` to produce a merged `RefinementVector`, then resolves the vector against actual current values to produce a `SectionRefinementPlan` TypedDict — listing per-track note operations (semitone shifts, density changes), per-track device parameter targets (absolute values derived from current + delta), and a plain-English `reasoning` list explaining each proposed change; tool is read-only (applies nothing)
 
-- [ ] **PARS-02**: `refine_prompt(brief, refinement_text)` MCP tool accepts an existing `ProductionBrief` dict and a follow-up refinement string ("add more swing", "make it darker", "speed it up to 140"), re-derives only the parameters affected by the refinement signals (leaving unaffected fields unchanged), returns an updated `ProductionBrief` plus a `diff` dict showing exactly which fields changed and why; confidence does not drop if primary_genre is unchanged; low-confidence original brief produces a warning in reasoning but derivation still runs
+- [x] **PARS-02**: `refine_prompt(brief, refinement_text)` MCP tool accepts an existing `ProductionBrief` dict and a follow-up refinement string ("add more swing", "make it darker", "speed it up to 140"), re-derives only the parameters affected by the refinement signals (leaving unaffected fields unchanged), returns an updated `ProductionBrief` plus a `diff` dict showing exactly which fields changed and why; confidence does not drop if primary_genre is unchanged; low-confidence original brief produces a warning in reasoning but derivation still runs
 
 ### Refinement Application
 
-- [ ] **RFNA-01**: `apply_section_note_refinement(section_name, track_name, semitone_shift, density_delta, scale_substitutions)` MCP tool: resolves the section bar range, identifies all arrangement clips for `track_name` that fall within the range, applies the specified operations — `semitone_shift` transposes all notes via `transpose_notes` (positive = up, negative = down), `density_delta` trims (removes highest-velocity outliers) or doubles (duplicates pattern at half velocity) notes when nonzero, `scale_substitutions` (list of `{from_pitch_class, to_pitch_class}`) remaps MIDI note pitch classes via `apply_note_modifications`; clips outside the section range are untouched; returns a summary of how many clips and notes were modified
+- [x] **RFNA-01**: `apply_section_note_refinement(section_name, track_name, semitone_shift, density_delta, scale_substitutions)` MCP tool: resolves the section bar range, identifies all arrangement clips for `track_name` that fall within the range, applies the specified operations — `semitone_shift` transposes all notes via `transpose_notes` (positive = up, negative = down), `density_delta` trims (removes highest-velocity outliers) or doubles (duplicates pattern at half velocity) notes when nonzero, `scale_substitutions` (list of `{from_pitch_class, to_pitch_class}`) remaps MIDI note pitch classes via `apply_note_modifications`; clips outside the section range are untouched; returns a summary of how many clips and notes were modified
 
-- [ ] **RFNA-02**: `apply_section_device_refinement(section_name, track_name, param_targets, write_automation)` MCP tool: resolves the section bar range from locators; if `write_automation=False` (default), applies `param_targets` dict (device_name → {param_name: normalized_value}) globally to the track via `set_device_parameters` with a warning that the change affects all sections; if `write_automation=True`, writes automation envelopes for each parameter over the section bar range (start_bar to end_bar) using existing automation tools, inserting breakpoints just before and just after the section to restore pre-refinement values — enabling per-section timbral changes without affecting other sections; returns applied parameters and automation point count
+- [x] **RFNA-02**: `apply_section_device_refinement(section_name, track_name, param_targets, write_automation)` MCP tool: resolves the section bar range from locators; if `write_automation=False` (default), applies `param_targets` dict (device_name → {param_name: normalized_value}) globally to the track via `set_device_parameters` with a warning that the change affects all sections; if `write_automation=True`, writes automation envelopes for each parameter over the section bar range (start_bar to end_bar) using existing automation tools, inserting breakpoints just before and just after the section to restore pre-refinement values — enabling per-section timbral changes without affecting other sections; returns applied parameters and automation point count
 
-- [ ] **RFNA-03**: `refine_section(section_name, instruction, genre, write_automation)` MCP tool: end-to-end single-call refinement — calls `interpret_section_refinement` to get the `SectionRefinementPlan`, then for each track in the plan calls `apply_section_note_refinement` (if note operations present) and `apply_section_device_refinement` (if device changes present), collects all change summaries, and returns a structured result with `section`, `instruction`, `tracks_modified`, `note_changes`, `device_changes`, and `reasoning`; `genre` parameter enables recipe_delta context in state read; `write_automation` passed through to `apply_section_device_refinement`; if no changes are applicable (section empty or instruction unrecognized), returns a clear explanation rather than an error
+- [x] **RFNA-03**: `refine_section(section_name, instruction, genre, write_automation)` MCP tool: end-to-end single-call refinement — calls `interpret_section_refinement` to get the `SectionRefinementPlan`, then for each track in the plan calls `apply_section_note_refinement` (if note operations present) and `apply_section_device_refinement` (if device changes present), collects all change summaries, and returns a structured result with `section`, `instruction`, `tracks_modified`, `note_changes`, `device_changes`, and `reasoning`; `genre` parameter enables recipe_delta context in state read; `write_automation` passed through to `apply_section_device_refinement`; if no changes are applicable (section empty or instruction unrecognized), returns a clear explanation rather than an error
 
 ## Future Requirements
 
@@ -56,12 +56,12 @@
 |-------------|-------|--------|
 | SNAP-01 | Phase 45 | Complete |
 | SNAP-02 | Phase 45 | Complete |
-| REFN-01 | Phase 46 | Pending |
-| REFN-02 | Phase 46 | Pending |
-| PARS-02 | Phase 46 | Pending |
-| RFNA-01 | Phase 47 | Pending |
-| RFNA-02 | Phase 47 | Pending |
-| RFNA-03 | Phase 47 | Pending |
+| REFN-01 | Phase 46 | Complete |
+| REFN-02 | Phase 46 | Complete |
+| PARS-02 | Phase 46 | Complete |
+| RFNA-01 | Phase 47 | Complete |
+| RFNA-02 | Phase 47 | Complete |
+| RFNA-03 | Phase 47 | Complete |
 
 **Coverage:**
 - v1.8 requirements: 8 total
@@ -70,4 +70,4 @@
 
 ---
 *Requirements defined: 2026-03-31*
-*Last updated: 2026-03-31 — v1.8 milestone opened*
+*Last updated: 2026-03-31 — v1.8 milestone complete*

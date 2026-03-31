@@ -52,16 +52,18 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - ✓ TOOL-01: interpret_prompt(text) MCP tool — returns ProductionBrief JSON + reasoning list — v1.7 Phase 44
 - ✓ TOOL-02: interpret_prompt_to_plan(text, bars_per_section?) MCP tool — brief + full production plan in one call — v1.7 Phase 44
 
+- ✓ SNAP-01: `get_section_state(section_name)` MCP tool — full snapshot (bar range, clips, note summaries) for a named arrangement section — v1.8 Phase 45
+- ✓ SNAP-02: `mix_context` in `SectionState` — device params + recipe delta per track — v1.8 Phase 45
+- ✓ REFN-01: `RefinementLexicon` — 22 aesthetic adjectives → multi-domain `RefinementVector` TypedDicts — v1.8 Phase 46
+- ✓ REFN-02: `interpret_section_refinement(section_name, instruction)` MCP tool — read-only `SectionRefinementPlan` — v1.8 Phase 46
+- ✓ PARS-02: `refine_prompt(brief, refinement_text)` MCP tool — partial re-derivation with diff — v1.8 Phase 46
+- ✓ RFNA-01: `apply_section_note_refinement` MCP tool — surgical note changes within section bar range — v1.8 Phase 47
+- ✓ RFNA-02: `apply_section_device_refinement` MCP tool — device param changes globally with automation guidance note — v1.8 Phase 47
+- ✓ RFNA-03: `refine_section(section_name, instruction)` MCP tool — end-to-end interpret + apply — v1.8 Phase 47
+
 ### Active
 
-- [ ] **SNAP-01**: `get_section_state(section_name)` MCP tool — full snapshot (bar range, clips, note summaries) for a named arrangement section — v1.8
-- [ ] **SNAP-02**: `mix_context` in `SectionState` — device params + recipe delta per track — v1.8
-- [ ] **REFN-01**: `RefinementLexicon` — 20+ aesthetic adjectives → multi-domain `RefinementVector` TypedDicts — v1.8
-- [ ] **REFN-02**: `interpret_section_refinement(section_name, instruction)` MCP tool — read-only `SectionRefinementPlan` — v1.8
-- [ ] **PARS-02**: `refine_prompt(brief, refinement_text)` MCP tool — partial re-derivation with diff — v1.8
-- [ ] **RFNA-01**: `apply_section_note_refinement` MCP tool — surgical note changes within section bar range — v1.8
-- [ ] **RFNA-02**: `apply_section_device_refinement` MCP tool — device param changes global or via automation envelope — v1.8
-- [ ] **RFNA-03**: `refine_section(section_name, instruction)` MCP tool — end-to-end interpret + apply — v1.8
+None — v1.8 complete. Ready for v1.9.
 
 
 ### Out of Scope
@@ -71,11 +73,11 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
 
-## Current Milestone: v1.8 Iterative Refinement Protocol
+## Current Milestone: None — v1.8 complete, v1.9 not yet started
 
-**Goal:** Give Claude the ability to handle follow-up refinement instructions like "make the bridge darker" — reading back what it already built in a section, interpreting aesthetic adjectives (darker = lower register + minor bias + filtered highs) relative to what's actually there, and applying surgical changes to only that section's notes and device parameters without affecting anything else.
+## Completed Milestone: v1.8 Iterative Refinement Protocol (shipped 2026-03-31)
 
-**Phases:** 45 (Section State Reader) → 46 (Refinement Language Engine) → 47 (Refinement Application Tools)
+**Delivered:** Surgical section refinement — `get_section_state` reads everything built in a named arrangement section (clips, notes, device params); `interpret_section_refinement` maps aesthetic adjectives through a 22-entry lexicon to a `SectionRefinementPlan`; `apply_section_note_refinement` and `apply_section_device_refinement` apply changes to only the target section's clips; `refine_section` chains all steps in a single call. Two new RS commands (`transpose_arrangement_clip`, `modify_arrangement_clip_notes`) handle arrangement-view note editing that existing session-view commands can't reach.
 
 ## Completed Milestone: v1.7 Prompt Interpretation (shipped 2026-03-31)
 

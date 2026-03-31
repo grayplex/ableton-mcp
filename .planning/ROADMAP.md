@@ -12,7 +12,7 @@
 | v1.5 Sound Selection Intelligence | 35-38 | 7 | 11 | Complete | 2026-03-31 |
 | v1.6 Self-evaluation | 39-41 | 3 | 9 | Complete | 2026-03-31 |
 | v1.7 Prompt Interpretation | 42-44 | 3 | 10 | Complete | 2026-03-31 |
-| v1.8 Iterative Refinement Protocol | 45-47 | TBD | 8 | In Progress | — |
+| v1.8 Iterative Refinement Protocol | 45-47 | 3 | 8 | Complete | 2026-03-31 |
 
 ## Phases
 
@@ -152,5 +152,5 @@ Phases execute in numeric order: 42 -> 43 -> 44 -> 45 -> 46 -> 47
 | 43. Parameter Derivation Engine | v1.7 | 1/1 | Complete | 2026-03-31 |
 | 44. interpret_prompt and interpret_prompt_to_plan MCP Tools | v1.7 | 1/1 | Complete | 2026-03-31 |
 | 45. Section State Reader | v1.8 | 1/1 | Complete | 2026-03-31 |
-| 46. Refinement Language Engine | v1.8 | 0/TBD | Pending | — |
-| 47. Refinement Application Tools | v1.8 | 0/TBD | Pending | — |
+| 46. Refinement Language Engine | v1.8 | 1/1 | Complete | 2026-03-31 |
+| 47. Refinement Application Tools | v1.8 | 1/1 | Complete | 2026-03-31 |
