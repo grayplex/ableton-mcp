@@ -10,7 +10,7 @@
 | v1.3 Arrangement Intelligence | 25-28 | 8 | 10 | Complete | 2026-03-28 |
 | v1.4 Mix/Master Intelligence | 29-34 | 11 | 14 | Complete | 2026-03-30 |
 | v1.5 Sound Selection Intelligence | 35-38 | 7 | 11 | Complete | 2026-03-31 |
-| v1.6 Self-evaluation | 39-41 | TBD | 9 | Active | — |
+| v1.6 Self-evaluation | 39-41 | 3 | 9 | Complete | 2026-03-31 |
 
 ## Phases
 
@@ -49,13 +49,13 @@ See `.planning/milestones/v1.3-ROADMAP.md` for full phase details.
 - [x] **Phase 37: Descriptor Taxonomy and Scoring Engine** - Weighted sum scoring in catalog.py, descriptor tag vocabulary, list_sound_descriptors MCP tool (completed 2026-03-31)
 - [x] **Phase 38: Recommendation Tools and Registration** - get_sound_recommendation and get_instrument_profile MCP tools, tools/__init__.py registration, pyproject.toml update (completed 2026-03-31)
 
-### v1.6 Self-evaluation -- ACTIVE
+### v1.6 Self-evaluation -- SHIPPED 2026-03-31
 
 **Milestone Goal:** Give Claude production self-awareness — evaluate the current Ableton session across four dimensions (mix balance, arrangement completeness, harmonic coherence, sound selection coverage), return a composite score with letter grade and ranked issues, and offer the top-priority fixes by name.
 
 - [x] **Phase 39: Evaluation Framework and Mix Balance Evaluator** - `MCP_Server/evaluation/` package with issue schema, score model, dimension protocol; mix balance evaluator wrapping check_gain_staging + suggest_mix_adjustments (completed 2026-03-31)
 - [x] **Phase 40: Arrangement, Sound Selection, and Harmonic Evaluators** - Arrangement completeness, sound selection coverage, and harmonic coherence evaluators (completed 2026-03-31)
-- [ ] **Phase 41: evaluate_session() Tool and Fix Offer Workflow** - Composite evaluate_session() MCP tool, SessionScore, top_fixes list, registration in tools/__init__.py (planned 2026-03-31)
+- [x] **Phase 41: evaluate_session() Tool and Fix Offer Workflow** - Composite evaluate_session() MCP tool, SessionScore, top_fixes list, registration in tools/__init__.py (completed 2026-03-31)
 
 ## Phase Details
 
@@ -161,4 +161,4 @@ Phases execute in numeric order: 35 -> 36 -> 37 -> 38
 | 38. Recommendation Tools and Registration | v1.5 | 1/1 | Complete | 2026-03-31 |
 | 39. Evaluation Framework and Mix Balance Evaluator | v1.6 | 1/1 | Complete | 2026-03-31 |
 | 40. Arrangement, Sound Selection, and Harmonic Evaluators | v1.6 | 1/1 | Complete | 2026-03-31 |
-| 41. evaluate_session() Tool and Fix Offer Workflow | v1.6 | 0/TBD | Pending | — |
+| 41. evaluate_session() Tool and Fix Offer Workflow | v1.6 | 1/1 | Complete | 2026-03-31 |

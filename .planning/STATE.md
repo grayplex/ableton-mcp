@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Self-evaluation
-status: Active
-stopped_at: "Completed 39-01-PLAN.md (evaluation framework and mix balance evaluator)"
+status: Complete
+stopped_at: "Milestone v1.6 Self-evaluation shipped 2026-03-31"
 last_updated: "2026-03-31T00:00:00.000Z"
 progress:
   total_phases: 3
-  completed_phases: 0
-  total_plans: 1
-  completed_plans: 1
+  completed_phases: 3
+  total_plans: 3
+  completed_plans: 3
 ---
 
 # Project State
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 ## Current Position
 
-Phase: 39 Plan 01 COMPLETE
-Milestone: v1.6 ACTIVE
+Phase: 41 Plan 01 COMPLETE
+Milestone: v1.6 COMPLETE
 
 ## Performance Metrics
 
@@ -82,5 +82,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-31T00:00:00.000Z
-Stopped at: "Completed 39-01-PLAN.md — evaluation framework and mix balance evaluator"
+Stopped at: "Milestone v1.6 Self-evaluation shipped 2026-03-31 — evaluate_session() tool complete"
 Resume file: None

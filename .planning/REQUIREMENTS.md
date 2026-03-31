@@ -29,8 +29,8 @@
 
 ### Composite Evaluation
 
-- [ ] **SESS-01**: Claude can call `evaluate_session()` — a single MCP tool that runs all four evaluators in sequence and returns a SessionScore with composite score (0–10), composite letter grade, per-dimension DimensionScore breakdown, and all issues from all dimensions ranked by severity (critical first)
-- [ ] **SESS-02**: `evaluate_session()` response includes a `top_fixes` list — up to 3 highest-severity unfixed issues, each annotated with the specific MCP tool call (tool name + suggested arguments) that directly resolves it; this is the "offer fixes" output Claude uses to propose next actions
+- [x] **SESS-01**: Claude can call `evaluate_session()` — a single MCP tool that runs all four evaluators in sequence and returns a SessionScore with composite score (0–10), composite letter grade, per-dimension DimensionScore breakdown, and all issues from all dimensions ranked by severity (critical first)
+- [x] **SESS-02**: `evaluate_session()` response includes a `top_fixes` list — up to 3 highest-severity unfixed issues, each annotated with the specific MCP tool call (tool name + suggested arguments) that directly resolves it; this is the "offer fixes" output Claude uses to propose next actions
 
 ## Future Requirements
 
@@ -67,8 +67,8 @@
 | ARNG-01 | Phase 40 | Complete |
 | SND-01 | Phase 40 | Complete |
 | HARM-01 | Phase 40 | Complete |
-| SESS-01 | Phase 41 | Pending |
-| SESS-02 | Phase 41 | Pending |
+| SESS-01 | Phase 41 | Complete |
+| SESS-02 | Phase 41 | Complete |
 
 **Coverage:**
 - v1.6 requirements: 9 total
