@@ -59,7 +59,10 @@ See `.planning/milestones/v1.3-ROADMAP.md` for full phase details.
   2. The Wavetable profile contains sonic character, strengths, weaknesses, descriptor affinities (role + character axes with 0.0-1.0 weights), and browser category paths
   3. Browser load paths in the Wavetable profile have been validated against a live Ableton session using `get_browser_items_at_path` -- the instrument root path loads successfully via `load_instrument_or_effect`
   4. `catalog.get_profile("wavetable")` returns the complete Wavetable profile dict with alias normalization (case-insensitive, whitespace-tolerant)
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 35-01-PLAN.md -- Package skeleton, catalog, Wavetable profile, and tests (TDD)
+- [ ] 35-02-PLAN.md -- Browser path validation against live Ableton (checkpoint)
 
 ### Phase 36: Instrument Profile Authoring
 **Goal**: All 6 native Ableton instruments have complete profiles with validated browser paths, giving the scoring engine a full dataset to rank against
@@ -108,7 +111,7 @@ Phases execute in numeric order: 35 -> 36 -> 37 -> 38
 | 20-24. Genre Blueprints | v1.2 | 9/9 | Complete | 2026-03-27 |
 | 25-28. Arrangement Intelligence | v1.3 | 8/8 | Complete | 2026-03-28 |
 | 29-34. Mix/Master Intelligence | v1.4 | 11/11 | Complete | 2026-03-30 |
-| 35. Package Skeleton and First Profile | v1.5 | 0/TBD | Not started | - |
+| 35. Package Skeleton and First Profile | v1.5 | 0/2 | Not started | - |
 | 36. Instrument Profile Authoring | v1.5 | 0/TBD | Not started | - |
 | 37. Descriptor Taxonomy and Scoring Engine | v1.5 | 0/TBD | Not started | - |
 | 38. Recommendation Tools and Registration | v1.5 | 0/TBD | Not started | - |
