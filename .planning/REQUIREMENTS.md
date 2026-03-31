@@ -7,13 +7,13 @@
 
 ### Evaluation Framework
 
-- [ ] **EVAL-01**: Claude has access to a structured evaluation issue schema — each issue captures dimension (mix/arrangement/harmony/sounds), severity (critical/warning/info), a plain-language message, and a fix_hint naming the specific MCP tool or action to resolve it
-- [ ] **EVAL-02**: Claude has access to a score model — DimensionScore (dimension name, score 0–10, letter grade A–F, issues list) and SessionScore (composite 0–10, letter grade, per-dimension DimensionScore breakdown)
+- [x] **EVAL-01**: Claude has access to a structured evaluation issue schema — each issue captures dimension (mix/arrangement/harmony/sounds), severity (critical/warning/info), a plain-language message, and a fix_hint naming the specific MCP tool or action to resolve it
+- [x] **EVAL-02**: Claude has access to a score model — DimensionScore (dimension name, score 0–10, letter grade A–F, issues list) and SessionScore (composite 0–10, letter grade, per-dimension DimensionScore breakdown)
 
 ### Mix Balance Evaluator
 
-- [ ] **MIX-01**: Claude can trigger the mix balance evaluator, which compares current device parameters against role×genre recipe targets for every track; tracks where more than a threshold percentage of parameters deviate significantly are flagged as issues with severity proportional to deviation magnitude (builds on check_gain_staging + suggest_mix_adjustments logic)
-- [ ] **MIX-02**: Mix balance produces a DimensionScore 0–10 derived from the percentage of parameters within target range across all tracks; gain staging deviations (dBFS vs. role targets) are included as additional issues
+- [x] **MIX-01**: Claude can trigger the mix balance evaluator, which compares current device parameters against role×genre recipe targets for every track; tracks where more than a threshold percentage of parameters deviate significantly are flagged as issues with severity proportional to deviation magnitude (builds on check_gain_staging + suggest_mix_adjustments logic)
+- [x] **MIX-02**: Mix balance produces a DimensionScore 0–10 derived from the percentage of parameters within target range across all tracks; gain staging deviations (dBFS vs. role targets) are included as additional issues
 
 ### Arrangement Completeness Evaluator
 
@@ -60,10 +60,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| EVAL-01 | Phase 39 | Pending |
-| EVAL-02 | Phase 39 | Pending |
-| MIX-01 | Phase 39 | Pending |
-| MIX-02 | Phase 39 | Pending |
+| EVAL-01 | Phase 39 | Complete |
+| EVAL-02 | Phase 39 | Complete |
+| MIX-01 | Phase 39 | Complete |
+| MIX-02 | Phase 39 | Complete |
 | ARNG-01 | Phase 40 | Pending |
 | SND-01 | Phase 40 | Pending |
 | HARM-01 | Phase 40 | Pending |

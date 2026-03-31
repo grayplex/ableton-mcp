@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.6
 milestone_name: Self-evaluation
 status: Active
-stopped_at: Milestone v1.6 started 2026-03-31
+stopped_at: "Completed 39-01-PLAN.md (evaluation framework and mix balance evaluator)"
 last_updated: "2026-03-31T00:00:00.000Z"
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 1
+  completed_plans: 1
 ---
 
 # Project State
@@ -23,22 +23,22 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 ## Current Position
 
-Phase: 39 (pending)
+Phase: 39 Plan 01 COMPLETE
 Milestone: v1.6 ACTIVE
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0 (v1.6)
-- Average duration: ~3m (carry-over from v1.5)
-- Total execution time: 0 minutes
+- Total plans completed: 1 (v1.6)
+- Average duration: ~20m (evaluation framework)
+- Total execution time: 20 minutes
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 39 | TBD | — | — |
+| 39 | 1 | 20m | 20m |
 | 40 | TBD | — | — |
 | 41 | TBD | — | — |
 
@@ -57,6 +57,8 @@ Recent decisions affecting current work:
 - [v1.5]: sounds/ package mirrors genres/ and mixing/ pkgutil auto-discovery pattern
 - [v1.6]: evaluate_session() is the single entry-point; per-dimension evaluators are internal modules not exposed as individual MCP tools
 - [v1.6]: Evaluate-then-offer-fixes pattern (not auto-apply); SESS-02 returns top_fixes list, Claude proposes, user confirms
+- [39-01]: TypedDicts used for all schema types — JSON-serializable without .asdict()
+- [39-01]: Test fixtures must use params with no conversion (e.g. Compressor2.Ratio) for predictable normalized values
 
 ### Roadmap Evolution
 
@@ -80,5 +82,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-31T00:00:00.000Z
-Stopped at: v1.6 milestone initialized
+Stopped at: "Completed 39-01-PLAN.md — evaluation framework and mix balance evaluator"
 Resume file: None
