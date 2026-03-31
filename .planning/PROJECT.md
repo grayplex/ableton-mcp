@@ -42,7 +42,8 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 
 ### Active
 
-- INST-01: Instrument profile data for Wavetable — sonic character, strengths, preset category map
+- ✓ INST-01: Instrument profile data for Wavetable — sonic character, strengths, descriptor affinities, browser category paths — v1.5 Phase 35
+- ✓ PKG-01: sounds/ peer package with pkgutil auto-discovery catalog — zero-registration, one file per instrument — v1.5 Phase 35
 - INST-02: Instrument profile data for Analog — sonic character, strengths, preset category map
 - INST-03: Instrument profile data for Operator — sonic character, strengths, preset category map
 - INST-04: Instrument profile data for Drift — sonic character, strengths, preset category map
@@ -89,11 +90,12 @@ Curated genre reference documents giving Claude consistent knowledge of 12 elect
 
 ## Current State
 
-**Shipped: v1.4 Mix/Master Intelligence** (2026-03-30) — Phases 29-34 complete
+**Phase 35 complete** (2026-03-31) — sounds/ package with Wavetable profile
 
+- **Sound selection**: sounds/ package with pkgutil auto-discovery catalog and Wavetable instrument profile (reference implementation)
 - **Mix/master intelligence**: 12-genre recipe system + apply tools + gain staging + adjustment suggestions
-- **42,517 lines Python** total codebase
-- **114 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2 + 10 v1.3 + 14 v1.4)
+- **~42,700 lines Python** total codebase
+- **116 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2 + 10 v1.3 + 14 v1.4 + 2 v1.5)
 - **12 genre mix recipes** with 9 roles each + master bus recipes (GlueCompressor + MultibandDynamics + Limiter)
 - **MCP tools**: `get_device_catalog`, `get_role_taxonomy`, `get_mix_recipe`, `apply_mix_recipe`, `apply_master_recipe`, `set_sidechain_source`, `get_mix_state`, `check_gain_staging`, `suggest_mix_adjustments`
 
@@ -176,4 +178,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-30 — Milestone v1.5 started*
+*Last updated: 2026-03-31 — Phase 35 complete*
