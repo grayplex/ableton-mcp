@@ -54,7 +54,7 @@ See `.planning/milestones/v1.3-ROADMAP.md` for full phase details.
 **Milestone Goal:** Give Claude production self-awareness — evaluate the current Ableton session across four dimensions (mix balance, arrangement completeness, harmonic coherence, sound selection coverage), return a composite score with letter grade and ranked issues, and offer the top-priority fixes by name.
 
 - [x] **Phase 39: Evaluation Framework and Mix Balance Evaluator** - `MCP_Server/evaluation/` package with issue schema, score model, dimension protocol; mix balance evaluator wrapping check_gain_staging + suggest_mix_adjustments (completed 2026-03-31)
-- [ ] **Phase 40: Arrangement, Sound Selection, and Harmonic Evaluators** - Arrangement completeness, sound selection coverage, and harmonic coherence evaluators (planned 2026-03-31)
+- [x] **Phase 40: Arrangement, Sound Selection, and Harmonic Evaluators** - Arrangement completeness, sound selection coverage, and harmonic coherence evaluators (completed 2026-03-31)
 - [ ] **Phase 41: evaluate_session() Tool and Fix Offer Workflow** - Composite evaluate_session() MCP tool, SessionScore, top_fixes list, registration in tools/__init__.py (planned 2026-03-31)
 
 ## Phase Details
@@ -159,6 +159,6 @@ Phases execute in numeric order: 35 -> 36 -> 37 -> 38
 | 36. Instrument Profile Authoring | v1.5 | 2/2 | Complete   | 2026-03-31 |
 | 37. Descriptor Taxonomy and Scoring Engine | v1.5 | 1/1 | Complete | 2026-03-31 |
 | 38. Recommendation Tools and Registration | v1.5 | 1/1 | Complete | 2026-03-31 |
-| 39. Evaluation Framework and Mix Balance Evaluator | v1.6 | 0/TBD | Pending | — |
-| 40. Arrangement, Sound Selection, and Harmonic Evaluators | v1.6 | 0/TBD | Pending | — |
+| 39. Evaluation Framework and Mix Balance Evaluator | v1.6 | 1/1 | Complete | 2026-03-31 |
+| 40. Arrangement, Sound Selection, and Harmonic Evaluators | v1.6 | 1/1 | Complete | 2026-03-31 |
 | 41. evaluate_session() Tool and Fix Offer Workflow | v1.6 | 0/TBD | Pending | — |

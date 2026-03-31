@@ -17,15 +17,15 @@
 
 ### Arrangement Completeness Evaluator
 
-- [ ] **ARNG-01**: Claude can trigger the arrangement completeness evaluator, which reads the scaffold structure and checks that every scaffolded track has (a) an instrument loaded and (b) at least one clip placed; tracks missing an instrument are flagged as critical; tracks with an instrument but no clips are flagged as warnings
+- [x] **ARNG-01**: Claude can trigger the arrangement completeness evaluator, which reads the scaffold structure and checks that every scaffolded track has (a) an instrument loaded and (b) at least one clip placed; tracks missing an instrument are flagged as critical; tracks with an instrument but no clips are flagged as warnings
 
 ### Sound Selection Coverage Evaluator
 
-- [ ] **SND-01**: Claude can trigger the sound selection coverage evaluator, which maps each instrument-loaded track's role tag to the expected descriptor profile in the sounds/ package and flags tracks whose loaded instrument does not match the role's top descriptor affinity as a warning
+- [x] **SND-01**: Claude can trigger the sound selection coverage evaluator, which maps each instrument-loaded track's role tag to the expected descriptor profile in the sounds/ package and flags tracks whose loaded instrument does not match the role's top descriptor affinity as a warning
 
 ### Harmonic Coherence Evaluator
 
-- [ ] **HARM-01**: Claude can trigger the harmonic coherence evaluator, which reads MIDI clip notes from the session and compares each note against the detected session key and scale; notes outside the scale are flagged as issues carrying clip name, bar position, and MIDI note number
+- [x] **HARM-01**: Claude can trigger the harmonic coherence evaluator, which reads MIDI clip notes from the session and compares each note against the detected session key and scale; notes outside the scale are flagged as issues carrying clip name, bar position, and MIDI note number
 
 ### Composite Evaluation
 
@@ -64,9 +64,9 @@
 | EVAL-02 | Phase 39 | Complete |
 | MIX-01 | Phase 39 | Complete |
 | MIX-02 | Phase 39 | Complete |
-| ARNG-01 | Phase 40 | Pending |
-| SND-01 | Phase 40 | Pending |
-| HARM-01 | Phase 40 | Pending |
+| ARNG-01 | Phase 40 | Complete |
+| SND-01 | Phase 40 | Complete |
+| HARM-01 | Phase 40 | Complete |
 | SESS-01 | Phase 41 | Pending |
 | SESS-02 | Phase 41 | Pending |
 
