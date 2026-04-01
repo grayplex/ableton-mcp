@@ -92,10 +92,11 @@ None — v1.9 complete.
 | 260401-pil | Prompt parser is English-only — document the limitation in lexicon.py and add a raw_descriptors fallback note | 2026-04-01 | 2fef4ef | [260401-pil-prompt-parser-is-english-only-document-t](./quick/260401-pil-prompt-parser-is-english-only-document-t/) |
 | 260401-pjl | Deduplicate phase-detection constants from checkpoint.py and next_actions.py into shared module | 2026-04-01 | f3e9dec | [260401-pjl-deduplicate-phase-detection-constants-fr](./quick/260401-pjl-deduplicate-phase-detection-constants-fr/) |
 | 260401-po3 | deduplicate get_ableton_connection calls in checkpoint and next_actions | 2026-04-01 | 23a4ea8 | [260401-po3-deduplicate-get-ableton-connection-calls](./quick/260401-po3-deduplicate-get-ableton-connection-calls/) |
+| 260401-pp9 | _step() drops the phase key from ExecutionStep output | 2026-04-01 | efe75a3 | [260401-pp9-step-drops-the-phase-key-from-executions](./quick/260401-pp9-step-drops-the-phase-key-from-executions/) |
 
 ## Session Continuity
 
 Last session: 2026-04-01
 Stopped at: "v1.9 complete — all 4 phases shipped, 31 tests passing"
-Last activity: 2026-04-01 - Completed quick task 260401-po3: deduplicate get_ableton_connection calls in checkpoint and next_actions
+Last activity: 2026-04-01 - Completed quick task 260401-pp9: _step() drops the phase key from ExecutionStep output
 Resume file: None
