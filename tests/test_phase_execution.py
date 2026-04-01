@@ -112,6 +112,24 @@ class TestPhaseExecutionPlan:
                         f"has hardcoded clip_index={args['clip_index']}"
                     )
 
+    def test_every_step_has_phase_key(self):
+        """Every step dict must contain a 'phase' key with a non-empty string."""
+        phase_types = [
+            "setup", "drums", "bass", "harmony", "melody",
+            "sound_design", "arrangement", "mix", "master",
+        ]
+        for pt in phase_types:
+            result = get_execution_plan(pt, "house")
+            if "error" in result:
+                continue
+            for step in result["steps"]:
+                assert "phase" in step, (
+                    f"{pt} step {step['step_number']} missing 'phase' key"
+                )
+                assert isinstance(step["phase"], str) and step["phase"], (
+                    f"{pt} step {step['step_number']} has empty/non-string 'phase'"
+                )
+
     def test_arrangement_clip_steps_have_no_clip_index(self):
         """Arrangement-clip steps should not contain clip_index."""
         for phase in ["drums", "bass", "harmony", "melody"]:
