@@ -94,7 +94,7 @@ class TestArrangementEvaluator:
 
     def test_returns_dimension_arrangement(self):
         """evaluate_arrangement returns dict with dimension == 'arrangement'."""
-        tracks = [{"name": "KICK_01", "has_devices": True}]
+        tracks = [{"index": 0, "name": "KICK_01", "has_devices": True}]
         clips_by_index = {0: [{"name": "clip1", "start_time": 0.0, "end_time": 4.0}]}
         conn = self._make_arrangement_conn(tracks, clips_by_index)
         result = evaluate_arrangement(conn)
@@ -103,8 +103,8 @@ class TestArrangementEvaluator:
     def test_all_tracks_clean_scores_ten(self):
         """Two tracks, both has_devices=True and have clips -> score == 10.0, no issues."""
         tracks = [
-            {"name": "KICK_01", "has_devices": True},
-            {"name": "BASS_01", "has_devices": True},
+            {"index": 0, "name": "KICK_01", "has_devices": True},
+            {"index": 1, "name": "BASS_01", "has_devices": True},
         ]
         clips_by_index = {
             0: [{"name": "kick_clip", "start_time": 0.0, "end_time": 4.0}],
@@ -118,8 +118,8 @@ class TestArrangementEvaluator:
     def test_all_tracks_empty_scores_zero(self):
         """Two tracks, both has_devices=False -> score == 0.0, 2 critical issues."""
         tracks = [
-            {"name": "KICK_01", "has_devices": False},
-            {"name": "BASS_01", "has_devices": False},
+            {"index": 0, "name": "KICK_01", "has_devices": False},
+            {"index": 1, "name": "BASS_01", "has_devices": False},
         ]
         conn = self._make_arrangement_conn(tracks, {})
         result = evaluate_arrangement(conn)
@@ -129,7 +129,7 @@ class TestArrangementEvaluator:
 
     def test_no_devices_is_critical(self):
         """Track with has_devices=False generates at least one issue with severity 'critical'."""
-        tracks = [{"name": "KICK_01", "has_devices": False}]
+        tracks = [{"index": 0, "name": "KICK_01", "has_devices": False}]
         conn = self._make_arrangement_conn(tracks, {})
         result = evaluate_arrangement(conn)
         critical = [i for i in result["issues"] if i["severity"] == "critical"]
@@ -137,7 +137,7 @@ class TestArrangementEvaluator:
 
     def test_has_devices_no_clips_is_warning(self):
         """Track with has_devices=True but empty clips list -> at least one warning issue."""
-        tracks = [{"name": "PAD_01", "has_devices": True}]
+        tracks = [{"index": 0, "name": "PAD_01", "has_devices": True}]
         clips_by_index = {0: []}  # empty clips
         conn = self._make_arrangement_conn(tracks, clips_by_index)
         result = evaluate_arrangement(conn)

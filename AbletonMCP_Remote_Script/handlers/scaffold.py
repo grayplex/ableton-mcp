@@ -54,7 +54,7 @@ class ScaffoldHandler:
 
         Returns:
             cue_points: List of {name, time} dicts from song cue points.
-            tracks: List of {"name": str, "has_devices": bool} dicts.
+            tracks: List of {"index": int, "name": str, "has_devices": bool} dicts.
             song_length: Total song length in beats.
             signature_numerator: Time signature numerator.
             signature_denominator: Time signature denominator.
@@ -64,8 +64,9 @@ class ScaffoldHandler:
             cue_points.append({"name": cp.name, "time": cp.time})
 
         tracks = []
-        for track in self._song.tracks:
+        for i, track in enumerate(self._song.tracks):
             tracks.append({
+                "index": i,
                 "name": track.name,
                 "has_devices": len(track.devices) > 0,
             })
