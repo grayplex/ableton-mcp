@@ -208,10 +208,17 @@ def get_next_actions_result(genre: str, phase_name: str = None, n: int = 10) -> 
     return result
 
 
-def get_transition_guidance(from_phase: str, genre: str = None, to_phase: str = None) -> dict:
+def get_transition_guidance(from_phase: str, genre: str = None, to_phase: str = None,
+                            *, tracks: list = None, clips_by_track: dict = None,
+                            master_devices: list = None) -> dict:
     """Validate whether from_phase is complete and ready to advance.
 
-    Reads live Ableton state. Returns go/no-go with blockers and fix hints.
+    Reads live Ableton state unless pre-fetched data is provided.
+    When all three optional params (tracks, clips_by_track, master_devices) are
+    supplied, no Ableton connection is made — useful when checkpoint data is
+    already available from a prior get_checkpoint call.
+
+    Returns go/no-go with blockers and fix hints.
     """
     # Resolve genre
     genre_id = None
@@ -227,26 +234,30 @@ def get_transition_guidance(from_phase: str, genre: str = None, to_phase: str = 
             idx = phase_order.index(from_phase)
             to_phase = phase_order[idx + 1] if idx + 1 < len(phase_order) else None
 
-    # Read Ableton state
-    try:
-        conn = get_ableton_connection()
-        arrangement_state = conn.send_command("get_arrangement_state")
-        mix_state = conn.send_command("get_mix_state")
-    except Exception as e:
-        return {"error": f"Could not connect to Ableton: {e}"}
-
-    tracks = arrangement_state.get("tracks", [])
-    master_devices = mix_state.get("master_track", {}).get("devices", [])
-
-    # Fetch clips for all tracks
-    clips_by_track = {}
-    for track in tracks:
+    # Read Ableton state (skip if pre-fetched data provided)
+    if tracks is not None and clips_by_track is not None and master_devices is not None:
+        # Use pre-fetched data — no Ableton connection needed
+        pass
+    else:
         try:
-            result = conn.send_command("get_arrangement_clips",
-                                       {"track_index": track.get("index", 0)})
-            clips_by_track[track["name"]] = result.get("clips", [])
-        except Exception:
-            clips_by_track[track["name"]] = []
+            conn = get_ableton_connection()
+            arrangement_state = conn.send_command("get_arrangement_state")
+            mix_state = conn.send_command("get_mix_state")
+        except Exception as e:
+            return {"error": f"Could not connect to Ableton: {e}"}
+
+        tracks = arrangement_state.get("tracks", [])
+        master_devices = mix_state.get("master_track", {}).get("devices", [])
+
+        # Fetch clips for all tracks
+        clips_by_track = {}
+        for track in tracks:
+            try:
+                result = conn.send_command("get_arrangement_clips",
+                                           {"track_index": track.get("index", 0)})
+                clips_by_track[track["name"]] = result.get("clips", [])
+            except Exception:
+                clips_by_track[track["name"]] = []
 
     is_complete, blockers = _phase_complete(from_phase, tracks, clips_by_track, master_devices)
 
