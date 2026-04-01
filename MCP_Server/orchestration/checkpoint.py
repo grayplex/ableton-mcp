@@ -144,15 +144,11 @@ def get_checkpoint(genre: str = None) -> dict:
     tracks = arrangement_state.get("tracks", [])
     master_devices = mix_state.get("master_track", {}).get("devices", [])
 
-    # Fetch clips for all tracks
+    # Build clips_by_track from arrangement_state (no extra round-trips)
     clips_by_track = {}
     for track in tracks:
-        try:
-            result = conn.send_command("get_arrangement_clips",
-                                       {"track_index": track.get("index", 0)})
-            clips_by_track[track["name"]] = result.get("clips", [])
-        except Exception:
-            clips_by_track[track["name"]] = []
+        # has_clips from get_arrangement_state; use sentinel list for truthy check
+        clips_by_track[track["name"]] = ["_"] if track.get("has_clips") else []
 
     # Empty session
     if not tracks:

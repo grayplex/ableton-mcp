@@ -44,14 +44,20 @@ EMPTY_ARRANGEMENT = {"tracks": [], "cue_points": [], "song_length": 0}
 EMPTY_MIX = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
 
 
-def _make_track(name, has_instrument=True, index=0, devices=None):
+def _make_track(name, has_instrument=True, index=0, devices=None, has_clips=False):
     return {"name": name, "has_instrument": has_instrument, "index": index,
-            "devices": devices or []}
+            "devices": devices or [], "has_clips": has_clips}
 
 
 def _make_conn(arrangement_state, mix_state, clips_by_track=None):
     """Build a mock connection that returns fixture data."""
     clips_by_track = clips_by_track or {}
+    # Inject has_clips into tracks based on clips_by_track for backward compat
+    for t in arrangement_state.get("tracks", []):
+        if t["name"] in clips_by_track and clips_by_track[t["name"]]:
+            t["has_clips"] = True
+        elif "has_clips" not in t:
+            t["has_clips"] = False
     mock_conn = MagicMock()
 
     def send_command(cmd, params=None):
@@ -59,13 +65,6 @@ def _make_conn(arrangement_state, mix_state, clips_by_track=None):
             return arrangement_state
         elif cmd == "get_mix_state":
             return mix_state
-        elif cmd == "get_arrangement_clips":
-            track_idx = (params or {}).get("track_index", 0)
-            track_name = next(
-                (t["name"] for t in arrangement_state["tracks"] if t.get("index") == track_idx),
-                ""
-            )
-            return {"clips": clips_by_track.get(track_name, [])}
         return {}
 
     mock_conn.send_command.side_effect = send_command
@@ -105,7 +104,7 @@ class TestCheckpoint:
 
     def test_drums_complete(self):
         arr = {
-            "tracks": [_make_track("Kick Drums", True, 0), _make_track("Bass", True, 1)],
+            "tracks": [_make_track("Kick Drums", True, 0, has_clips=True), _make_track("Bass", True, 1)],
             "cue_points": [{"name": "Intro", "time": 0.0}],
             "song_length": 32.0,
         }
@@ -131,7 +130,7 @@ class TestCheckpoint:
 
     def test_master_complete(self):
         arr = {
-            "tracks": [_make_track("Kick", True, 0), _make_track("Bass", True, 1)],
+            "tracks": [_make_track("Kick", True, 0, has_clips=True), _make_track("Bass", True, 1, has_clips=True)],
             "cue_points": [{"name": "Intro", "time": 0.0}],
             "song_length": 32.0,
         }
@@ -173,3 +172,22 @@ class TestCheckpoint:
             result = get_checkpoint("house")
         assert result["session_stats"]["track_count"] == 2
         assert result["session_stats"]["tracks_with_instruments"] == 1
+
+    def test_no_per_track_clip_queries(self):
+        """Checkpoint must not issue per-track get_arrangement_clips calls."""
+        arr = {
+            "tracks": [
+                _make_track("Drums", True, 0, has_clips=True),
+                _make_track("Bass", True, 1, has_clips=True),
+                _make_track("Chords", True, 2, has_clips=False),
+            ],
+            "cue_points": [], "song_length": 32.0,
+        }
+        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+        mock = _make_conn(arr, mix)
+        with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+                   return_value=mock):
+            get_checkpoint("house")
+        commands = [call.args[0] for call in mock.send_command.call_args_list]
+        assert "get_arrangement_clips" not in commands
+        assert commands == ["get_arrangement_state", "get_mix_state"]
