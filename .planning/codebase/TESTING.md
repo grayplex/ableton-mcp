@@ -1,317 +1,331 @@
 # Testing Patterns
 
-**Analysis Date:** 2026-03-10
+**Analysis Date:** 2026-04-01
 
 ## Test Framework
 
-**Status:** No testing framework detected
+**Runner:**
+- pytest 8.3+
+- Config: `pyproject.toml` `[tool.pytest.ini_options]`
 
-**Current State:**
-- No unit tests, integration tests, or test framework dependencies found
-- No `pytest`, `unittest`, `nose2`, or other test runner configurations
-- No test files (*.test.py, *.spec.py) in the codebase
-- No `pytest.ini`, `tox.ini`, `setup.cfg`, or test configuration files
-- Dependencies in `pyproject.toml` contain only: `mcp[cli]>=1.3.0`
-
-**Testing Gap:**
-This is a critical concern. The codebase lacks automated testing entirely.
-
-## Manual Testing Approach
-
-**Current Testing Method:**
-Based on code analysis, testing appears to be manual:
-
-1. **Socket Communication Testing:**
-   - Manual verification of socket connections to Ableton Remote Script
-   - Testing JSON message format and response parsing
-   - Verification of timeout behavior and error handling
-
-2. **Integration Testing:**
-   - Manual testing with Ableton Live running
-   - Verification of CLI invocation: `ableton-mcp`
-   - Testing through Claude Desktop or Cursor MCP integrations
-
-3. **Command Testing:**
-   - Each tool function requires manual invocation through Claude
-   - Example: `get_session_info()` requires connecting to Ableton and verifying response format
-   - Track creation, clip manipulation require live Ableton session
-
-## Code Coverage
-
-**Coverage Tool:** Not configured
-
-**Coverage Status:**
-- No coverage measurement framework detected
-- No `.coverage` config or coverage thresholds
-- Recommendation: Implement pytest-cov or similar
-
-## Test Structure (Recommended)
-
-**Location:**
-- Tests should reside in `tests/` directory at project root (co-located with source)
-- Structure: `tests/test_[module_name].py` pattern
-
-**Naming Convention:**
-- Test files: `test_server.py`, `test_ableton_connection.py`
-- Test functions: `test_send_command_success()`, `test_socket_timeout_retry()`
-- Test classes (if used): `TestAbletonConnection`, `TestMCPServer`
-
-**Recommended Directory Structure:**
-```
-ableton-mcp/
-├── tests/
-│   ├── __init__.py
-│   ├── test_server.py           # MCP server tests
-│   ├── test_ableton_connection.py # Socket connection tests
-│   ├── test_tools.py            # Tool endpoint tests
-│   ├── fixtures/
-│   │   ├── __init__.py
-│   │   └── mock_responses.py    # Mock Ableton responses
-│   └── integration/
-│       └── test_e2e.py          # End-to-end tests
-├── MCP_Server/
-├── AbletonMCP_Remote_Script/
-└── pyproject.toml
-```
-
-## Recommended Testing Framework
-
-**Recommendation:** pytest
-
-**Setup in pyproject.toml:**
+**Key pytest settings:**
 ```toml
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-cov>=4.0.0",
-    "pytest-mock>=3.10.0",
-]
+asyncio_mode = "auto"   # all async tests run automatically without @pytest.mark.asyncio
+testpaths = ["tests"]
+timeout = 10            # 10-second per-test timeout via pytest-timeout
 ```
+
+**Plugins required:**
+- `pytest-asyncio >= 0.25` — for `asyncio_mode = "auto"`
+- `pytest-timeout >= 2.0` — for per-test timeout
 
 **Run Commands:**
 ```bash
-pytest                    # Run all tests
-pytest -v                 # Verbose output
-pytest --cov=MCP_Server  # Coverage report
-pytest -k test_send      # Run specific tests
-pytest -x                # Stop on first failure
+pytest                          # Run all tests
+pytest tests/test_theory.py     # Run single file
+pytest -k "test_checkpoint"     # Run matching tests by name
+pytest -x                       # Stop on first failure
+pytest --tb=short               # Shorter tracebacks
 ```
 
-## Test Structure Pattern (Recommended)
+No coverage tooling is configured (no `pytest-cov` in dev dependencies).
 
-**Basic Unit Test Structure:**
+## Test File Organization
+
+**Location:** All tests in `tests/` flat directory — no subdirectories.
+
+**Naming:** `test_<domain>.py` matching the module under test:
+- `tests/test_theory.py` → `MCP_Server/tools/theory.py` + `MCP_Server/theory/`
+- `tests/test_checkpoint.py` → `MCP_Server/orchestration/checkpoint.py`
+- `tests/test_genres.py` → `MCP_Server/genres/`
+- `tests/test_tracks.py` → `MCP_Server/tools/tracks.py`
+
+**Special files:**
+- `tests/conftest.py` — shared fixtures (`mock_connection`, `mcp_server`, `root_dir`)
+- `tests/live_uat_07.py` — live integration UAT (not prefixed `test_`, not collected by pytest)
+
+## Test Categories
+
+### 1. Pure-Computation Tests (no mocking, no fixtures)
+
+Test library functions directly. No MCP, no connection, no `conftest.py` fixtures needed.
+These tests import from sub-packages, not from `MCP_Server/tools/`.
+
+**Files:**
+- `tests/test_production_agenda.py` — tests `MCP_Server/orchestration/agenda.py`
+- `tests/test_phase_execution.py` — tests `MCP_Server/orchestration/execution.py`
+- `tests/test_theory.py` — tests `MCP_Server/theory/` functions
+- `tests/test_genres.py` — tests `MCP_Server/genres/` catalog and schema
+- `tests/test_protocol.py` — tests socket framing protocol
+- `tests/test_convert.py`, `tests/test_sounds.py`, `tests/test_mixing.py` — library unit tests
+
+**Pattern:**
 ```python
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-from MCP_Server.server import AbletonConnection, get_ableton_connection
-
-
-class TestAbletonConnection:
-    """Test suite for AbletonConnection class"""
-
-    @pytest.fixture
-    def connection(self):
-        """Create a test connection instance"""
-        return AbletonConnection(host="localhost", port=9877)
-
-    def test_connect_success(self, connection):
-        """Test successful socket connection"""
-        with patch('socket.socket') as mock_socket:
-            connection.sock = mock_socket.return_value
-            result = connection.connect()
-            assert result is True
-
-    def test_connect_failure(self, connection):
-        """Test connection failure handling"""
-        with patch('socket.socket') as mock_socket:
-            mock_socket.return_value.connect.side_effect = ConnectionRefusedError()
-            result = connection.connect()
-            assert result is False
-            assert connection.sock is None
+class TestProductionAgendaCatalog:
+    def test_techno_phase_order(self):
+        result = get_agenda("techno")
+        assert "error" not in result
+        phase_ids = [p["phase_id"] for p in result["phases"]]
+        assert phase_ids[0] == "setup"
+        assert phase_ids[1] == "drums"
 ```
 
-**Async Test Structure:**
+### 2. Connection-Mocking Tests (patch `get_ableton_connection`)
+
+Test orchestration functions that call Ableton. Use `_make_conn` helper and `patch`.
+These tests import directly from the orchestration or library layer, not from `MCP_Server/tools/`.
+
+**Files:**
+- `tests/test_checkpoint.py` — tests `MCP_Server/orchestration/checkpoint.py`
+- `tests/test_next_actions.py` — tests `MCP_Server/orchestration/next_actions.py`
+
+**Pattern:**
 ```python
-@pytest.mark.asyncio
-async def test_server_lifespan():
-    """Test server startup and shutdown lifecycle"""
-    from MCP_Server.server import server_lifespan, mcp
-
-    async with server_lifespan(mcp) as state:
-        # Server is running
-        assert state is not None
-    # Server has shut down
+with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+           return_value=_make_conn(arr, mix, clips)):
+    result = get_checkpoint("house")
+assert result["completed_phases"] == []
 ```
 
-## Mocking
+### 3. MCP Integration Tests (use `mcp_server` + `mock_connection` fixtures)
 
-**Framework:** `unittest.mock` (built-in Python)
+Test the full tool-dispatch path via `mcp_server.call_tool(...)`. These tests call through
+`MCP_Server/tools/` → `get_ableton_connection()` → `send_command()`. The `mock_connection`
+fixture patches all `_GAC_PATCH_TARGETS` at once.
 
-**What to Mock:**
-- Socket operations: `socket.socket`, `socket.recv()`, `socket.sendall()`
-- External Ableton connection: Mock `AbletonConnection` entirely for unit tests
-- Time-dependent operations: Mock `time.sleep()` to avoid delays in tests
-- JSON parsing: Can test with actual JSON for integration tests
+**Files:**
+- `tests/test_tracks.py`, `tests/test_session.py`, `tests/test_clips.py`
+- `tests/test_transport.py`, `tests/test_mixer.py`, `tests/test_notes.py`
+- `tests/test_devices.py`, `tests/test_browser.py`, `tests/test_routing.py`
+- `tests/test_arrangement.py`, `tests/test_automation.py`, `tests/test_scenes.py`
+- `tests/test_grooves.py`, `tests/test_scaffold.py`, `tests/test_execution.py`
 
-**What NOT to Mock:**
-- Core business logic (command routing, response formatting)
-- Error handling paths (test actual exception behavior)
-- State management (test actual state transitions)
-
-**Mocking Pattern Example:**
+**Pattern:**
 ```python
-from unittest.mock import Mock, patch, MagicMock
-import json
-
-def test_send_command_success():
-    """Test successful command sending"""
-    with patch('socket.socket') as mock_socket_class:
-        mock_sock = MagicMock()
-        mock_socket_class.return_value = mock_sock
-
-        # Mock the response
-        response_data = json.dumps({
-            "status": "success",
-            "result": {"tempo": 120}
-        }).encode('utf-8')
-
-        mock_sock.recv.return_value = response_data
-
-        conn = AbletonConnection("localhost", 9877)
-        conn.connect()
-        result = conn.send_command("get_session_info")
-
-        assert result.get("tempo") == 120
-        mock_sock.sendall.assert_called_once()
+async def test_create_midi_track_calls_send_command(mcp_server, mock_connection):
+    mock_connection.send_command.return_value = {"name": "MIDI Track", "index": 0}
+    result = await mcp_server.call_tool("create_midi_track", {"index": -1})
+    text = result[0][0].text
+    data = json.loads(text)
+    assert data["name"] == "MIDI Track"
+    mock_connection.send_command.assert_called_once_with(
+        "create_midi_track", {"index": -1}
+    )
 ```
 
-## Fixtures and Test Data
+Response extraction: `result[0][0].text` — the FastMCP call_tool response is a nested
+list of content objects; `.text` gives the JSON string.
 
-**Test Data Location:**
-- Recommended: `tests/fixtures/mock_responses.py`
+## Shared Fixtures (`tests/conftest.py`)
 
-**Fixture Pattern (Recommended):**
-```python
-# tests/fixtures/mock_responses.py
+### `mcp_server`
 
-MOCK_SESSION_INFO = {
-    "status": "success",
-    "result": {
-        "tempo": 120.0,
-        "signature_numerator": 4,
-        "signature_denominator": 4,
-        "track_count": 1,
-        "return_track_count": 0,
-        "master_track": {
-            "name": "Master",
-            "volume": 0.0,
-            "panning": 0.0
-        }
-    }
-}
+Returns the live `FastMCP` instance from `MCP_Server.server`:
 
-MOCK_TRACK_INFO = {
-    "status": "success",
-    "result": {
-        "index": 0,
-        "name": "Track 1",
-        "is_audio_track": False,
-        "is_midi_track": True,
-        "mute": False,
-        "solo": False,
-        "arm": False,
-        "volume": 0.0,
-        "panning": 0.0,
-        "clip_slots": [],
-        "devices": []
-    }
-}
-```
-
-**pytest Fixture Usage:**
 ```python
 @pytest.fixture
-def session_info_response(monkeypatch):
-    """Provide mock session info response"""
-    return MOCK_SESSION_INFO
+def mcp_server():
+    from MCP_Server.server import mcp
+    return mcp
 ```
 
-## Test Types
+### `mock_connection`
 
-**Unit Tests (Recommended):**
-- Scope: Individual functions and classes in isolation
-- Approach: Mock all external dependencies (sockets, Ableton)
-- Examples to test:
-  - `AbletonConnection.connect()` with socket mocking
-  - `AbletonConnection.receive_full_response()` with chunked data
-  - `get_ableton_connection()` with connection caching logic
-  - Tool functions with mocked connection
-  - JSON parsing and response formatting
+Patches `get_ableton_connection` in every tool module that imports it.
+Returns a `MagicMock` with `send_command.return_value = {}` by default.
 
-**Integration Tests (Recommended):**
-- Scope: Multiple components working together
-- Approach: Mock Ableton socket but test full request/response cycle
-- Examples to test:
-  - Complete command flow: send_command -> receive_full_response -> parse
-  - Connection recovery and retry logic
-  - Tool endpoint calling AbletonConnection
-  - Response formatting for MCP protocol
-
-**E2E Tests (Recommended for CI/CD):**
-- Scope: Full system with real Ableton (if available)
-- Approach: Connect to actual Ableton Remote Script socket
-- Examples:
-  - Actual socket communication test (optional, requires Ableton running)
-  - Full CLI invocation through uvx
-  - Can be conditional on Ableton availability
-
-## Critical Areas Without Testing
-
-**High Priority (Security/Stability):**
-1. **Socket Error Handling:** `receive_full_response()` has complex error logic with timeouts and chunking
-2. **Connection Recovery:** `get_ableton_connection()` has retry logic (3 attempts) that needs testing
-3. **State Management:** Global `_ableton_connection` lifecycle needs validation
-4. **JSON Parsing:** Incomplete JSON handling in buffering logic
-
-**Medium Priority:**
-1. **Tool Parameter Validation:** Track/clip indices validation
-2. **Browser Tree Traversal:** Recursive tree formatting logic
-3. **Encoding/Decoding:** Python 2/3 compatibility handling
-4. **Thread Safety:** Client thread handling in remote script
-
-**Low Priority:**
-1. **UI Messages:** Ableton UI feedback (log messages, show_message)
-2. **Error Message Formatting:** User-facing error strings
-
-## Coverage Goals (Recommended)
-
-**Target Coverage:**
-- Line coverage: >= 80%
-- Critical paths: 100%
-- Exception paths: >= 90%
-
-**Exclude from Coverage:**
-- `if __name__ == "__main__"` blocks
-- Ableton framework imports (external dependency)
-
-## Run Commands Setup (Recommended)
-
-```bash
-# Add to Makefile or tox.ini
-test:
-    pytest
-
-test-cov:
-    pytest --cov=MCP_Server --cov-report=html
-
-test-watch:
-    pytest-watch
-
-test-ci:
-    pytest --cov=MCP_Server --cov-report=xml
+```python
+@pytest.fixture
+def mock_connection():
+    mock = MagicMock()
+    mock.send_command.return_value = {}
+    patches = [patch(target, return_value=mock) for target in _GAC_PATCH_TARGETS]
+    for p in patches: p.start()
+    try:
+        yield mock
+    finally:
+        for p in patches: p.stop()
 ```
+
+`_GAC_PATCH_TARGETS` is the authoritative list of 19 patch paths (e.g.,
+`"MCP_Server.tools.tracks.get_ableton_connection"`). Add new tool modules here
+when they import `get_ableton_connection`.
+
+### `root_dir`
+
+Returns the project root path string. Used in tests that read catalog JSON files.
+
+## Mock Patterns
+
+### `_make_conn` helper (orchestration tests)
+
+`test_checkpoint.py` and `test_next_actions.py` define a local `_make_conn` factory that
+builds a mock connection with `send_command.side_effect` dispatching to fixture data:
+
+```python
+def _make_conn(arrangement_state, mix_state, clips_by_track=None):
+    """Build a mock connection that returns fixture data."""
+    clips_by_track = clips_by_track or {}
+    mock_conn = MagicMock()
+
+    def send_command(cmd, params=None):
+        if cmd == "get_arrangement_state":
+            return arrangement_state
+        elif cmd == "get_mix_state":
+            return mix_state
+        elif cmd == "get_arrangement_clips":
+            track_idx = (params or {}).get("track_index", 0)
+            track_name = next(
+                (t["name"] for t in arrangement_state["tracks"] if t.get("index") == track_idx),
+                ""
+            )
+            return {"clips": clips_by_track.get(track_name, [])}
+        return {}
+
+    mock_conn.send_command.side_effect = send_command
+    return mock_conn
+```
+
+`_make_track` helper builds track fixture dicts:
+```python
+def _make_track(name, has_devices=True, index=0, devices=None):
+    return {"name": name, "has_devices": has_devices, "index": index,
+            "devices": devices or []}
+```
+
+Fixture constants for empty state:
+```python
+EMPTY_ARRANGEMENT = {"tracks": [], "cue_points": [], "song_length": 0}
+EMPTY_MIX = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+```
+
+### `send_command.side_effect` (MCP integration tests)
+
+For multi-command sequences, use `side_effect` with a list:
+```python
+mock_connection.send_command.side_effect = [
+    {"ableton_version": "12.1"},  # first call: ping
+    {"tempo": 120.0, "track_count": 4},  # second call: session info
+]
+```
+
+For dispatch-style mocking (multiple command types in one test), use a function:
+```python
+def side_effect(cmd, params=None):
+    if cmd == "get_arrangement_state":
+        return {...}
+    return {}
+mock_connection.send_command.side_effect = side_effect
+```
+
+### `_GAC_PATCH_TARGETS` (conftest mock_connection)
+
+Single-call patch of all 19 `get_ableton_connection` import sites. The mock is
+the return value of each patched function — i.e., `get_ableton_connection()` returns
+the mock directly (not a function returning the mock):
+
+```python
+patches = [patch(target, return_value=mock) for target in _GAC_PATCH_TARGETS]
+```
+
+## mcp Module Stub (pure-computation orchestration tests)
+
+Tests for `MCP_Server/orchestration/` modules that indirectly import from `MCP_Server/tools/`
+(which import `from MCP_Server.server import mcp`) must stub out the `mcp` package hierarchy
+at module load time. This boilerplate appears at the top of `test_production_agenda.py`,
+`test_phase_execution.py`, `test_checkpoint.py`, and `test_next_actions.py`:
+
+```python
+import sys, types
+from unittest.mock import MagicMock
+
+_mock_mcp = types.ModuleType("mcp")
+_mock_fastmcp = types.ModuleType("mcp.server.fastmcp")
+_mock_server_mod = types.ModuleType("mcp.server")
+_mock_fastmcp.Context = type("Context", (), {})
+_mock_mcp.server = _mock_server_mod
+_mock_server_mod.fastmcp = _mock_fastmcp
+sys.modules.setdefault("mcp", _mock_mcp)
+sys.modules.setdefault("mcp.server", _mock_server_mod)
+sys.modules.setdefault("mcp.server.fastmcp", _mock_fastmcp)
+
+if "MCP_Server.server" not in sys.modules:
+    _mock_app_server = types.ModuleType("MCP_Server.server")
+    _mcp_instance = MagicMock()
+    _mcp_instance.tool.return_value = lambda fn: fn
+    _mock_app_server.mcp = _mcp_instance
+    sys.modules["MCP_Server.server"] = _mock_app_server
+```
+
+The `setdefault` guard prevents double-registration when tests are run together.
+The `_mcp_instance.tool.return_value = lambda fn: fn` makes `@mcp.tool()` a no-op decorator.
+
+`import pytest` and the subject module imports follow after this block with `# noqa: E402`
+comments.
+
+## Test Structure Pattern
+
+**Class-based grouping:** Tests are grouped into `class Test<Subject>` with plain method names.
+No `self` usage beyond method signature — test classes are namespaces, not stateful objects.
+
+```python
+class TestCheckpoint:
+    def test_empty_session(self):
+        ...
+    def test_setup_complete_drums_active(self):
+        ...
+```
+
+**Standalone async functions:** MCP integration tests (using `mcp_server`/`mock_connection`
+fixtures) are written as module-level `async def test_...` functions, not classes:
+
+```python
+async def test_create_midi_track_calls_send_command(mcp_server, mock_connection):
+    ...
+```
+
+**No `@pytest.mark.asyncio`:** `asyncio_mode = "auto"` in `pyproject.toml` handles this globally.
+
+## What Is Tested
+
+| Domain | Test File | Test Type | Notes |
+|---|---|---|---|
+| Theory library | `test_theory.py` | Pure unit | 2278 lines, most comprehensive |
+| Orchestration agenda | `test_production_agenda.py` | Pure unit | 8 tests, all 12 genres |
+| Orchestration execution | `test_phase_execution.py` | Pure unit | 8 tests, 9 phase types |
+| Orchestration checkpoint | `test_checkpoint.py` | Connection mock | 7 tests, _make_conn pattern |
+| Next actions | `test_next_actions.py` | Mixed (pure + conn mock) | Two classes: TestGetNextActions, TestGetTransitionGuidance |
+| Genre blueprints | `test_genres.py` | Pure unit | Schema, catalog, alias |
+| Track tools | `test_tracks.py` | MCP integration | mcp_server + mock_connection |
+| Session tools | `test_session.py` | MCP integration | mcp_server + mock_connection |
+| Clip tools | `test_clips.py` | MCP integration | — |
+| Transport tools | `test_transport.py` | MCP integration | — |
+| Mixer tools | `test_mixer.py` | MCP integration | — |
+| Device tools | `test_devices.py` | MCP integration | 785 lines |
+| Protocol | `test_protocol.py` | Pure unit | Socket framing roundtrips |
+| Evaluation schema | `test_evaluation_schema.py` | Pure unit | TypedDict + grading |
+| Scaffold | `test_scaffold.py` | MCP integration | — |
+| Execution tools | `test_execution.py` | MCP integration | section_checklist, arrangement_progress |
+| Sounds | `test_sounds.py` | Pure unit | Instrument preset catalogs |
+| Mixing recipes | `test_mixing.py` | Pure unit | 546 lines |
+| Prompt tools | `test_prompt_tools.py` | MCP integration | — |
+| Prompt deriver | `test_prompt_deriver.py` | Pure unit | — |
+| Refinement | `test_refinement_application.py`, `test_refinement_language.py` | Pure unit | — |
+| Intelligence | `test_intelligence.py` | MCP integration | — |
+
+## Known Coverage Gaps
+
+**No tests for:**
+- `MCP_Server/tools/plans.py` — plan tool wrappers
+- `MCP_Server/tools/audio_clips.py` — audio clip manipulation
+- `MCP_Server/tools/automation.py` — covered partially in `test_automation.py`
+- `MCP_Server/tools/catalog.py` — device catalog tools
+- Individual `MCP_Server/genres/*.py` beyond house and techno (catalog-level tests exist; per-genre shape checked only for house/techno/hip_hop_trap)
+- `MCP_Server/orchestration/next_actions.py` `get_transition_guidance` coverage for `mix` and `master` phases
+
+**`live_uat_07.py`:** Manual UAT script (requires live Ableton). Not collected by pytest.
+File name is intentionally not prefixed with `test_` to exclude it from automated runs.
 
 ---
 
-*Testing analysis: 2026-03-10*
+*Testing analysis: 2026-04-01*

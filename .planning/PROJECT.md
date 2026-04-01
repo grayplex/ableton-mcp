@@ -63,7 +63,18 @@ An AI assistant can produce actual music in Ableton — instruments load, notes 
 
 ### Active
 
-None — v1.8 complete. Ready for v1.9.
+None — v1.9 complete. Ready for v2.0.
+
+### Recently Validated
+
+- ✓ AGND-01: `ProductionPhase` / `ProductionAgenda` TypedDicts — `MCP_Server/orchestration/schema.py` — v1.9 Phase 48
+- ✓ AGND-02: `get_production_agenda(genre, brief?)` MCP tool — 12-genre AGENDA_CATALOG, brief energy/genre overrides — v1.9 Phase 48
+- ✓ EXEC-01: `ExecutionStep` / `PhaseChecklist` TypedDicts — ordered, concrete, tool-named steps per phase — v1.9 Phase 49
+- ✓ EXEC-02: `get_phase_execution_plan(phase_name, genre, section_name?, context?)` MCP tool — genre drum patterns, section scoping, ≤2000 char output — v1.9 Phase 49
+- ✓ CHKP-01: `ProductionCheckpoint` TypedDict — compact session progress snapshot with `resume_hint` — v1.9 Phase 50
+- ✓ CHKP-02: `get_production_checkpoint(genre?)` MCP tool — heuristic phase completion from live RS state — v1.9 Phase 50
+- ✓ NEXT-01: `get_next_actions(genre, phase_name?, n?)` MCP tool — next N steps from checkpoint; explicit phase bypasses connection — v1.9 Phase 51
+- ✓ NEXT-02: `get_phase_transition_guidance(from_phase, genre?, to_phase?)` MCP tool — go/no-go with blockers + fix hints — v1.9 Phase 51
 
 
 ### Out of Scope
@@ -73,7 +84,13 @@ None — v1.8 complete. Ready for v1.9.
 - Real-time audio streaming — MCP is command/response, not audio pipeline
 - Non-Ableton DAWs — Ableton Remote Script API is the foundation
 
-## Current Milestone: None — v1.8 complete, v1.9 not yet started
+## Current Milestone: None — v1.9 complete, v2.0 not yet started
+
+## Completed Milestone: v1.9 Orchestration/Agent Loop (shipped 2026-04-01)
+
+**Delivered:** Production orchestration layer — `get_production_agenda` returns genre-ordered phase lists; `get_phase_execution_plan` generates concrete tool-call checklists with MIDI note patterns per genre; `get_production_checkpoint` reads live Ableton state to infer which phases are done and returns a `resume_hint`; `get_next_actions` turns checkpoint into next N immediately-executable steps; `get_phase_transition_guidance` validates phase completion before advancing.
+
+**New package:** `MCP_Server/orchestration/` — `schema.py`, `agenda.py`, `execution.py`, `checkpoint.py`, `next_actions.py`
 
 ## Completed Milestone: v1.8 Iterative Refinement Protocol (shipped 2026-03-31)
 
@@ -113,19 +130,20 @@ Curated genre reference documents giving Claude consistent knowledge of 12 elect
 
 ## Current State
 
-**Milestone v1.8 in progress** (opened 2026-03-31) — Iterative Refinement Protocol
+**Milestone v1.9 complete** (2026-04-01) — Orchestration/Agent Loop shipped
 
-**v1.7 complete** (2026-03-31) — Prompt Interpretation shipped
+**v1.8 complete** (2026-03-31) — Iterative Refinement Protocol shipped
 
 - **Prompt interpretation**: `MCP_Server/prompt/` package — schema.py, lexicon.py, parser.py, deriver.py; 100 tests
 - **Self-evaluation**: `MCP_Server/evaluation/` package with 4 evaluators + `evaluate_session()` MCP tool; 40 tests
 - **Sound selection**: sounds/ package with 6 instrument profiles + weighted-sum scoring engine + 3 MCP tools
 - **Mix/master intelligence**: 12-genre recipe system + apply tools + gain staging + adjustment suggestions
 - **~47,500 lines Python** total codebase (estimated)
-- **154 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2 + 10 v1.3 + 14 v1.4 + 11 v1.5 + 9 v1.6 + 10 v1.7 = 154)
+- **170 requirements** complete (53 v1.0 + 24 v1.1 + 23 v1.2 + 10 v1.3 + 14 v1.4 + 11 v1.5 + 9 v1.6 + 10 v1.7 + 8 v1.8 + 8 v1.9 = 170)
 - **12 genre mix recipes** with 9 roles each + master bus recipes (GlueCompressor + MultibandDynamics + Limiter)
 - **MCP tools**: `get_device_catalog`, `get_role_taxonomy`, `get_mix_recipe`, `apply_mix_recipe`, `apply_master_recipe`, `set_sidechain_source`, `get_mix_state`, `check_gain_staging`, `suggest_mix_adjustments`, `get_sound_recommendation`, `list_sound_descriptors`, `get_instrument_profile`, `evaluate_session`, `interpret_prompt`, `interpret_prompt_to_plan`
-- **v1.8 target tools** (pending): `get_section_state`, `interpret_section_refinement`, `refine_prompt`, `apply_section_note_refinement`, `apply_section_device_refinement`, `refine_section`
+- **v1.8 tools** (shipped): `get_section_state`, `interpret_section_refinement`, `refine_prompt`, `apply_section_note_refinement`, `apply_section_device_refinement`, `refine_section`
+- **v1.9 tools** (shipped): `get_production_agenda`, `get_phase_execution_plan`, `get_production_checkpoint`, `get_next_actions`, `get_phase_transition_guidance`
 
 ### Capabilities
 
@@ -206,4 +224,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-31 — v1.8 Iterative Refinement Protocol opened*
+*Last updated: 2026-04-01 — v1.9 Orchestration/Agent Loop complete*
