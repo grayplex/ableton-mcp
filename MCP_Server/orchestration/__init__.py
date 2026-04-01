@@ -5,8 +5,10 @@ Public API:
 - schema.ExecutionStep, schema.PhaseChecklist
 - schema.ProductionCheckpoint, schema.SessionStats
 - agenda.get_agenda, agenda.AGENDA_CATALOG
+- execution.get_execution_plan
 """
 
 from .agenda import AGENDA_CATALOG, get_agenda
+from .execution import get_execution_plan
 
-__all__ = ["AGENDA_CATALOG", "get_agenda"]
+__all__ = ["AGENDA_CATALOG", "get_agenda", "get_execution_plan"]
