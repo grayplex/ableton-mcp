@@ -95,10 +95,11 @@ None — v1.9 complete.
 | 260401-pp9 | _step() drops the phase key from ExecutionStep output | 2026-04-01 | efe75a3 | [260401-pp9-step-drops-the-phase-key-from-executions](./quick/260401-pp9-step-drops-the-phase-key-from-executions/) |
 | 260401-pqm | _build_arrangement_steps contains a non-callable placeholder step | 2026-04-01 | bd31b7e | [260401-pqm-build-arrangement-steps-contains-a-non-c](./quick/260401-pqm-build-arrangement-steps-contains-a-non-c/) |
 | 260401-prt | neo_soul_rnb drum pattern falls back to house in _GENRE_DRUM_GROUP | 2026-04-01 | 3813b35 | [260401-prt-neo-soul-rnb-drum-pattern-falls-back-to-](./quick/260401-prt-neo-soul-rnb-drum-pattern-falls-back-to-/) |
+| 260401-pxk | audit and fix _GAC_PATCH_TARGETS in conftest.py | 2026-04-01 | d489d35 | [260401-pxk-audit-and-fix-gac-patch-targets-in-conft](./quick/260401-pxk-audit-and-fix-gac-patch-targets-in-conft/) |
 
 ## Session Continuity
 
 Last session: 2026-04-01
 Stopped at: "v1.9 complete — all 4 phases shipped, 31 tests passing"
-Last activity: 2026-04-01 - Completed quick task 260401-prt: neo_soul_rnb drum pattern falls back to house in _GENRE_DRUM_GROUP
+Last activity: 2026-04-01 - Completed quick task 260401-pxk: audit and fix _GAC_PATCH_TARGETS in conftest.py
 Resume file: None
