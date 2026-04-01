@@ -99,10 +99,11 @@ None — v1.9 complete.
 | 260401-pws | _build_bass_steps uses identical static notes for all genres — add per-genre bass pattern variation | 2026-04-01 | 7ec420f | [260401-pws-build-bass-steps-uses-identical-static-n](./quick/260401-pws-build-bass-steps-uses-identical-static-n/) |
 | 260401-pye | Checkpoint makes N+2 sequential socket round-trips | 2026-04-01 | 049dd57 | [260401-pye-checkpoint-makes-n-2-sequential-socket-r](./quick/260401-pye-checkpoint-makes-n-2-sequential-socket-r/) |
 | 260401-q1g | fix get_transition_guidance duplicate checkpoint queries | 2026-04-01 | ec74dcb | [260401-q1g-fix-get-transition-guidance-duplicate-ch](./quick/260401-q1g-fix-get-transition-guidance-duplicate-ch/) |
+| 260401-q25 | fix get_next_actions checkpoint latency when called without phase_name | 2026-04-01 | d04f164 | [260401-q25-fix-get-next-actions-checkpoint-latency-](./quick/260401-q25-fix-get-next-actions-checkpoint-latency-/) |
 
 ## Session Continuity
 
 Last session: 2026-04-01
 Stopped at: "v1.9 complete — all 4 phases shipped, 31 tests passing"
-Last activity: 2026-04-01 - Completed quick task 260401-q1g: fix get_transition_guidance duplicate checkpoint queries
+Last activity: 2026-04-01 - Completed quick task 260401-q25: fix get_next_actions checkpoint latency when called without phase_name
 Resume file: None
