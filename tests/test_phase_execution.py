@@ -157,3 +157,38 @@ class TestPhaseExecutionPlan:
         # Must have snare (pitch 38) on beat 2 (start_time=1.0) — characteristic R&B feel
         has_snare_on_2 = any(n["pitch"] == 38 and n["start_time"] == 1.0 for n in all_notes)
         assert has_snare_on_2, "neo_soul_rnb should have snare on beat 2"
+
+    def test_bass_patterns_vary_by_genre(self):
+        """Different genre groups produce different bass note patterns."""
+        house = get_execution_plan("bass", "house")
+        dubstep = get_execution_plan("bass", "dubstep")
+        hiphop = get_execution_plan("bass", "hip_hop_trap")
+        assert "error" not in house
+        assert "error" not in dubstep
+        assert "error" not in hiphop
+
+        def extract_bass_notes(result):
+            for s in result["steps"]:
+                if s["tool_name"] == "add_notes_to_clip":
+                    return s["suggested_args"].get("notes", [])
+            return []
+
+        house_notes = extract_bass_notes(house)
+        dubstep_notes = extract_bass_notes(dubstep)
+        hiphop_notes = extract_bass_notes(hiphop)
+
+        # Each genre group must produce distinct patterns
+        assert house_notes != dubstep_notes, "house and dubstep bass should differ"
+        assert house_notes != hiphop_notes, "house and hip_hop_trap bass should differ"
+        assert dubstep_notes != hiphop_notes, "dubstep and hip_hop_trap bass should differ"
+
+    def test_bass_all_genres_no_error(self):
+        """All 12 genres produce valid bass checklists."""
+        genres = [
+            "house", "techno", "ambient", "hip_hop_trap", "drum_and_bass",
+            "dubstep", "trance", "synthwave", "future_bass", "lo_fi",
+            "neo_soul_rnb", "disco_funk",
+        ]
+        for g in genres:
+            result = get_execution_plan("bass", g)
+            assert "error" not in result, f"bass/{g} returned error: {result.get('error')}"
