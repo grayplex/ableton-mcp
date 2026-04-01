@@ -54,7 +54,7 @@ class ScaffoldHandler:
 
         Returns:
             cue_points: List of {name, time} dicts from song cue points.
-            tracks: List of {"index": int, "name": str, "has_instrument": bool} dicts.
+            tracks: List of {"index": int, "name": str, "has_instrument": bool, "has_clips": bool} dicts.
             song_length: Total song length in beats.
             signature_numerator: Time signature numerator.
             signature_denominator: Time signature denominator.
@@ -69,6 +69,7 @@ class ScaffoldHandler:
                 "index": i,
                 "name": track.name,
                 "has_instrument": getattr(track, "has_audio_output", False),
+                "has_clips": len(track.arrangement_clips) > 0,
             })
 
         return {
