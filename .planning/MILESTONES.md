@@ -1,5 +1,26 @@
 # Milestones
 
+## v1.9 Orchestration/Agent Loop (Shipped: 2026-04-01)
+
+**Phases completed:** 4 phases (48-51), 4 plans
+**Requirements:** 8/8 complete
+**Files changed:** ~12 files, +1,400 / -0 lines (new package)
+**Timeline:** 1 day (2026-04-01)
+**Tests:** 31 new tests
+
+**Delivered:** Production orchestration layer — `MCP_Server/orchestration/` package that breaks a full production into named phases and gives Claude a concrete execution path at every step. `get_production_agenda` returns genre-ordered phase lists for all 12 genres (techno leads with drums; ambient skips drums; neo-soul/R&B leads with harmony). `get_phase_execution_plan` returns concrete ordered tool calls with MIDI note patterns per genre and sentinel values for session-state args. `get_production_checkpoint` reads live Ableton state and infers which phases are done heuristically. `get_next_actions` combines checkpoint + execution plan into N immediately-executable steps. `get_phase_transition_guidance` validates phase completion before advancing with specific blockers and fix hints.
+
+**Key accomplishments:**
+
+- `schema.py`: 6 TypedDicts covering all of v1.9 — ProductionPhase, ProductionAgenda, ExecutionStep, PhaseChecklist, SessionStats, ProductionCheckpoint
+- `agenda.py`: AGENDA_CATALOG for 12 genres; brief.energy_level≥7 promotes drums; brief.primary_genre overrides genre arg
+- `execution.py`: Step catalogs for 9 phase types; genre-specific drum patterns (house 4-on-floor, hip-hop swing, dubstep half-time, techno driving); section_name switches to arrangement-view clips
+- `checkpoint.py`: RS-based phase inference; master short-circuit (GlueCompressor+Limiter2 → all complete); empty session returns clear resume_hint
+- `next_actions.py`: Explicit phase_name bypasses Ableton connection (pure computation); fallback to setup checklist on connection error; transition gate checks per-phase completion with specific fix hints
+- All 5 tools registered: `get_production_agenda`, `get_phase_execution_plan`, `get_production_checkpoint`, `get_next_actions`, `get_phase_transition_guidance`
+
+---
+
 ## v1.8 Iterative Refinement Protocol (Shipped: 2026-03-31)
 
 **Phases completed:** 3 phases (45-47), 3 plans
