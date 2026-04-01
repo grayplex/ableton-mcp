@@ -100,6 +100,35 @@ class TestGetTransitionGuidance:
         assert result["ready_to_advance"] is True
         assert result["blockers"] == []
 
+class TestArrangementStepFiltering:
+    def test_arrangement_steps_exclude_non_callable(self):
+        """Arrangement checklist steps returned by get_next_actions_result
+        never include non-callable placeholder tool names."""
+        result = get_next_actions_result("house", phase_name="arrangement")
+        assert "error" not in result
+        steps = result["steps"]
+        # All returned steps must have a real tool_name
+        for step in steps:
+            assert step["tool_name"] not in {"\u2014", "\u2014", "", None}, (
+                f"Step {step['step_number']} has non-callable tool_name: {step['tool_name']!r}"
+            )
+        # The placeholder description should appear in notes
+        assert len(result.get("notes", [])) >= 1
+        assert any("top_fixes" in n for n in result["notes"])
+
+    def test_arrangement_callable_steps_preserved(self):
+        """Arrangement checklist preserves the 4 callable steps."""
+        result = get_next_actions_result("house", phase_name="arrangement")
+        steps = result["steps"]
+        assert len(steps) == 4
+        tool_names = [s["tool_name"] for s in steps]
+        assert "get_arrangement_overview" in tool_names
+        assert "get_arrangement_progress" in tool_names
+        assert "evaluate_session" in tool_names
+        assert "get_section_checklist" in tool_names
+
+
+class TestGetTransitionGuidance:
     def test_to_phase_override(self):
         tracks = [_make_track("Kick", True, 0)]
         clips = {"Kick": [{"start_time": 0.0, "end_time": 4.0}]}
