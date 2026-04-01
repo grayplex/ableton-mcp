@@ -128,7 +128,7 @@ class TestArrangementStepFiltering:
         assert "get_section_checklist" in tool_names
 
 
-class TestGetTransitionGuidance:
+class TestGetTransitionGuidanceToPhase:
     def test_to_phase_override(self):
         tracks = [_make_track("Kick", True, 0)]
         clips = {"Kick": [{"start_time": 0.0, "end_time": 4.0}]}
@@ -137,3 +137,45 @@ class TestGetTransitionGuidance:
             result = get_transition_guidance("drums", "house", to_phase="mix")
         assert result["to_phase"] == "mix"
         assert result["next_phase"] == "mix"
+
+
+class TestTransitionGuidancePreFetched:
+    def test_prefetched_skips_ableton_connection(self):
+        """When all three state params provided, no Ableton connection is made."""
+        tracks = [_make_track("Kick Drums", True, 0)]
+        clips_by_track = {"Kick Drums": [{"start_time": 0.0, "end_time": 8.0}]}
+        master_devices = []
+        with patch("MCP_Server.orchestration.next_actions.get_ableton_connection") as mock_gac:
+            result = get_transition_guidance(
+                "drums", "house",
+                tracks=tracks, clips_by_track=clips_by_track,
+                master_devices=master_devices,
+            )
+        mock_gac.assert_not_called()
+        assert result["ready_to_advance"] is True
+
+    def test_prefetched_incomplete_phase(self):
+        """Pre-fetched data correctly reports incomplete phase."""
+        tracks = [_make_track("Kick Drums", True, 0)]
+        clips_by_track = {"Kick Drums": []}  # no clips
+        master_devices = []
+        with patch("MCP_Server.orchestration.next_actions.get_ableton_connection") as mock_gac:
+            result = get_transition_guidance(
+                "drums", "house",
+                tracks=tracks, clips_by_track=clips_by_track,
+                master_devices=master_devices,
+            )
+        mock_gac.assert_not_called()
+        assert result["ready_to_advance"] is False
+        assert len(result["blockers"]) > 0
+
+    def test_partial_prefetch_still_queries_ableton(self):
+        """If only some state params provided, falls back to Ableton query."""
+        tracks = [_make_track("Kick", True, 0)]
+        # Only tracks provided, not clips_by_track or master_devices
+        mock_conn = _make_conn(tracks, clips_by_track={"Kick": []})
+        with patch("MCP_Server.orchestration.next_actions.get_ableton_connection",
+                   return_value=mock_conn):
+            result = get_transition_guidance("drums", "house", tracks=tracks)
+        # Should have called get_ableton_connection since clips_by_track was None
+        assert "error" not in result
