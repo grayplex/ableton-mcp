@@ -1,6 +1,7 @@
 """Production checkpoint: infer phase progress from live Ableton session state."""
 
 import logging
+import time
 from MCP_Server.connection import get_ableton_connection
 from MCP_Server.genres.catalog import resolve_alias
 from MCP_Server.orchestration.agenda import AGENDA_CATALOG
@@ -8,6 +9,10 @@ from MCP_Server.orchestration.phase_detection import _DRUM_NAMES, _BASS_NAMES, _
 from MCP_Server.orchestration.schema import ProductionCheckpoint, SessionStats
 
 logger = logging.getLogger("AbletonMCPServer")
+
+# TTL cache for get_checkpoint — avoids repeated Ableton queries in agent loops
+_checkpoint_cache: dict = {}  # key: genre (str|None) -> {"result": dict, "ts": float}
+_CACHE_TTL = 30.0  # seconds
 
 # Device class names local to checkpoint only (not shared with next_actions)
 _DRUM_DEVICE = "DrumGroupDevice"
@@ -128,12 +133,21 @@ def _build_session_stats(tracks: list, clips_by_track: dict, master_devices: lis
 def get_checkpoint(genre: str = None) -> dict:
     """Read live Ableton state and return a ProductionCheckpoint.
 
+    Results are cached for 30 seconds per genre. Call invalidate_checkpoint_cache()
+    after mutating session state to force a fresh read.
+
     Args:
         genre: Optional genre id or alias. Required for phase inference.
 
     Returns:
         ProductionCheckpoint dict or {"error": "..."} on connection failure.
     """
+    now = time.monotonic()
+    cache_key = genre  # None is a valid key
+    cached = _checkpoint_cache.get(cache_key)
+    if cached and (now - cached["ts"]) < _CACHE_TTL:
+        return cached["result"]
+
     try:
         conn = get_ableton_connection()
         arrangement_state = conn.send_command("get_arrangement_state")
@@ -155,7 +169,7 @@ def get_checkpoint(genre: str = None) -> dict:
         stats = SessionStats(track_count=0, tracks_with_instruments=0,
                              tracks_with_clips=0, has_mix_applied=False,
                              has_master_applied=False)
-        return ProductionCheckpoint(
+        result = ProductionCheckpoint(
             genre=genre,
             completed_phases=[],
             active_phase="setup",
@@ -165,11 +179,13 @@ def get_checkpoint(genre: str = None) -> dict:
             next_phase="drums",
             resume_hint="Session is empty — start with setup: set tempo, set key, and scaffold tracks",
         )
+        _checkpoint_cache[cache_key] = {"result": result, "ts": now}
+        return result
 
     # No genre provided
     if not genre:
         stats = _build_session_stats(tracks, clips_by_track, master_devices)
-        return ProductionCheckpoint(
+        result = ProductionCheckpoint(
             genre=None,
             completed_phases=[],
             active_phase=None,
@@ -179,6 +195,8 @@ def get_checkpoint(genre: str = None) -> dict:
             next_phase=None,
             resume_hint=f"Provide a genre to get phase-specific guidance. Session has {len(tracks)} tracks.",
         )
+        _checkpoint_cache[cache_key] = {"result": result, "ts": now}
+        return result
 
     # Resolve genre
     resolved = resolve_alias(genre)
@@ -231,7 +249,7 @@ def get_checkpoint(genre: str = None) -> dict:
 
     resume_hint = _RESUME_HINTS.get(active_phase, _RESUME_HINTS[None])
 
-    return ProductionCheckpoint(
+    result = ProductionCheckpoint(
         genre=genre_id,
         completed_phases=completed,
         active_phase=active_phase,
@@ -241,3 +259,13 @@ def get_checkpoint(genre: str = None) -> dict:
         next_phase=next_phase,
         resume_hint=resume_hint,
     )
+    _checkpoint_cache[cache_key] = {"result": result, "ts": now}
+    return result
+
+
+def invalidate_checkpoint_cache(genre: str = None):
+    """Clear cached checkpoint for a genre, or all if genre is None."""
+    if genre is None:
+        _checkpoint_cache.clear()
+    else:
+        _checkpoint_cache.pop(genre, None)
