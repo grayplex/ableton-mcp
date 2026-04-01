@@ -3,6 +3,9 @@
 Each entry maps a normalized adjective (lowercase, underscores) to a RefinementVector
 dict. All delta fields use signed proportional values -- never absolute targets.
 None fields indicate the adjective does not affect that dimension.
+
+Language: English-only. All adjective keys are English. Non-English
+refinement terms will not match any entry.
 """
 
 from typing import Optional, TypedDict

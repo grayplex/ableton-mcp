@@ -136,6 +136,11 @@ def classify_prompt(text: str) -> SignalSet:
     using greedy longest-match tokenization against the signal lexicon.
     Unrecognized tokens (length > 2) are passed through as raw_descriptors.
 
+    Note: The lexicon is English-only. Non-English tokens (length > 2) are
+    collected in raw_descriptors rather than being silently discarded, so
+    downstream consumers can still surface them to the user or pass them
+    to an LLM for interpretation.
+
     Returns an empty SignalSet with confidence=0.0 for empty input.
     """
     if not text or not text.strip():
