@@ -164,7 +164,8 @@ def _build_setup_steps(genre_id, blueprint):
     ]
 
 
-_SENTINEL_NOTE = "<track_index>: resolve via get_all_tracks()"
+_SENTINEL_NOTE = "<track_index>: use get_all_tracks()"
+_SENTINEL_CLIP = "<clip_index>: first has_clip=false slot via get_track_info()"
 
 
 def _build_drums_steps(genre_id, pattern, section_name):
@@ -186,7 +187,7 @@ def _build_drums_steps(genre_id, pattern, section_name):
         clip_step = _step(4,
             f"Session clip for Drums (4 bars). {_SENTINEL_NOTE}",
             "create_clip",
-            {"track_index": "<track_index>", "clip_index": 0, "length": 4.0},
+            {"track_index": "<track_index>", "clip_index": "<clip_index>", "length": 4.0},
             pt, 3)
 
     steps = [
@@ -199,15 +200,15 @@ def _build_drums_steps(genre_id, pattern, section_name):
         clip_step,
         _step(5, f"Add {beat_desc} notes. {_SENTINEL_NOTE}",
               "add_notes_to_clip",
-              {"track_index": "<track_index>", "clip_index": 0, "notes": kick_clap_notes},
+              {"track_index": "<track_index>", "clip_index": "<clip_index>", "notes": kick_clap_notes},
               pt, 4),
         _step(6, f"Add hi-hat notes (p42). {_SENTINEL_NOTE}",
               "add_notes_to_clip",
-              {"track_index": "<track_index>", "clip_index": 0, "notes": hihat_notes},
+              {"track_index": "<track_index>", "clip_index": "<clip_index>", "notes": hihat_notes},
               pt, 5),
         _step(7, "Quantize Drums clip notes",
               "quantize_notes",
-              {"track_index": "<track_index>", "clip_index": 0},
+              {"track_index": "<track_index>", "clip_index": "<clip_index>"},
               pt, 6),
     ]
     return steps
@@ -231,7 +232,7 @@ def _build_bass_steps(genre_id, instruments, section_name):
         clip_step = _step(4,
             f"Session clip for Bass (4 bars). {_SENTINEL_NOTE}",
             "create_clip",
-            {"track_index": "<track_index>", "clip_index": 0, "length": 4.0},
+            {"track_index": "<track_index>", "clip_index": "<clip_index>", "length": 4.0},
             pt, 3)
 
     return [
@@ -244,7 +245,7 @@ def _build_bass_steps(genre_id, instruments, section_name):
         clip_step,
         _step(5, f"Add bass line notes. {_SENTINEL_NOTE}",
               "add_notes_to_clip",
-              {"track_index": "<track_index>", "clip_index": 0, "notes": bass_notes},
+              {"track_index": "<track_index>", "clip_index": "<clip_index>", "notes": bass_notes},
               pt, 4),
         _step(6, f"Set Bass volume to 0.85. {_SENTINEL_NOTE}",
               "set_track_volume",
@@ -271,7 +272,7 @@ def _build_harmony_steps(genre_id, instruments, section_name):
         clip_step = _step(4,
             f"Session clip for Chords (8 bars). {_SENTINEL_NOTE}",
             "create_clip",
-            {"track_index": "<track_index>", "clip_index": 0, "length": 8.0},
+            {"track_index": "<track_index>", "clip_index": "<clip_index>", "length": 8.0},
             pt, 3)
 
     return [
@@ -284,7 +285,7 @@ def _build_harmony_steps(genre_id, instruments, section_name):
         clip_step,
         _step(5, f"Add 2-chord loop notes. {_SENTINEL_NOTE}",
               "add_notes_to_clip",
-              {"track_index": "<track_index>", "clip_index": 0, "notes": chord_notes},
+              {"track_index": "<track_index>", "clip_index": "<clip_index>", "notes": chord_notes},
               pt, 4),
         _step(6, f"Set Chords volume to 0.75. {_SENTINEL_NOTE}",
               "set_track_volume",
@@ -312,7 +313,7 @@ def _build_melody_steps(genre_id, instruments, section_name):
         clip_step = _step(4,
             f"Session clip for Lead (8 bars). {_SENTINEL_NOTE}",
             "create_clip",
-            {"track_index": "<track_index>", "clip_index": 0, "length": 8.0},
+            {"track_index": "<track_index>", "clip_index": "<clip_index>", "length": 8.0},
             pt, 3)
 
     return [
@@ -325,7 +326,7 @@ def _build_melody_steps(genre_id, instruments, section_name):
         clip_step,
         _step(5, f"Add melodic phrase notes. {_SENTINEL_NOTE}",
               "add_notes_to_clip",
-              {"track_index": "<track_index>", "clip_index": 0, "notes": melody_notes},
+              {"track_index": "<track_index>", "clip_index": "<clip_index>", "notes": melody_notes},
               pt, 4),
     ]
 
