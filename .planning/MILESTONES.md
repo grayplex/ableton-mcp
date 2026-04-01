@@ -82,6 +82,27 @@
 
 ---
 
+## v1.5 Sound Selection Intelligence (Shipped: 2026-03-31)
+
+**Phases completed:** 4 phases (35-38), 6 plans
+**Requirements:** 11/11 complete
+**Files changed:** 42 files, +5,655 / -1,360 lines
+**Timeline:** 1 day (2026-03-31)
+**Tests:** 65 tests green
+
+**Delivered:** Instrument-selection intelligence — `MCP_Server/sounds/` package with pkgutil auto-discovery catalog (mirroring genres/ pattern); 6 native Ableton instrument profiles (Wavetable, Analog, Operator, Drift, Simpler, Drum Rack) each with sonic character, strengths/weaknesses, descriptor affinities, and browser paths; weighted-sum scoring engine tokenizing natural-language descriptors into ranked instrument matches; 3 MCP tools completing the workflow.
+
+**Key accomplishments:**
+
+- `MCP_Server/sounds/` package — zero-registration auto-discovery via pkgutil; alias normalization (case/whitespace/hyphen-tolerant); cloned from genres/ pattern
+- 6 instrument profiles: Wavetable (lush pads/wavetable morphing), Analog (warm bass/lead), Operator (FM keys/bass), Drift (analog oscillators), Simpler (sample playback — Classic/One-Shot/Slice modes), Drum Rack (all percussive roles kick/snare/hihat/perc)
+- Weighted-sum scoring engine: tokenize → sum role+character affinities → top match with reasoning; tie-break by (-score, id); zero-score → None
+- `list_sound_descriptors` MCP tool — grouped role/character vocabulary derived dynamically from all profile affinity keys
+- `get_sound_recommendation` MCP tool — top instrument with id/name/score/browser_path/category_hint/reasoning
+- `get_instrument_profile` MCP tool — full profile with alias normalization; enumerates available ids on not-found
+
+---
+
 ## v1.4 Mix/Master Intelligence (Shipped: 2026-03-30)
 
 **Phases completed:** 6 phases (29-34), 11 plans
