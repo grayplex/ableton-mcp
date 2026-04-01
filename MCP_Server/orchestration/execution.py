@@ -93,6 +93,59 @@ _DRUM_PATTERNS = {
     },
 }
 
+# ---------------------------------------------------------------------------
+# Bass pattern groups (mirrors drum pattern architecture)
+# ---------------------------------------------------------------------------
+
+_BASS_PATTERNS = {
+    # House / Disco / Lo-fi — Root-fifth pumping eighth-note pattern
+    "house": [
+        _note(36, 0.0, 0.5, 90), _note(36, 1.0, 0.25, 80),
+        _note(36, 2.0, 0.5, 90), _note(41, 3.0, 0.5, 85),
+    ],
+    # Techno / DnB — Driving monotone root with short staccato hits
+    "techno": [
+        _note(36, 0.0, 0.25, 100), _note(36, 1.0, 0.25, 100),
+        _note(36, 2.0, 0.25, 100), _note(36, 3.0, 0.25, 100),
+    ],
+    # Hip-hop / Trap — Syncopated 808 sub pattern, swing feel
+    "hiphop": [
+        _note(36, 0.0, 1.0, 100), _note(36, 1.5, 0.5, 85),
+        _note(34, 2.5, 1.0, 95), _note(36, 3.5, 0.5, 80),
+    ],
+    # Dubstep — Half-time sub-bass with wide intervals for wobble feel
+    "dubstep": [
+        _note(36, 0.0, 1.5, 110), _note(29, 2.0, 1.0, 105),
+        _note(36, 3.0, 0.5, 100), _note(31, 3.5, 0.5, 95),
+    ],
+    # Trance / Synthwave / Future Bass — Rolling arpeggiated bass
+    "trance": [
+        _note(36, 0.0, 0.5, 95), _note(48, 0.5, 0.5, 80),
+        _note(43, 2.0, 0.5, 90), _note(36, 3.0, 1.0, 95),
+    ],
+    # Neo-soul / R&B — Smooth walking bass with chromatic approach
+    "neo_soul_rnb": [
+        _note(36, 0.0, 1.0, 85), _note(40, 1.0, 1.0, 80),
+        _note(43, 2.0, 1.0, 85), _note(41, 3.0, 1.0, 80),
+    ],
+}
+
+# Map genre_id -> bass pattern group
+_GENRE_BASS_GROUP = {
+    "house":        "house",
+    "disco_funk":   "house",
+    "lo_fi":        "house",
+    "techno":       "techno",
+    "drum_and_bass": "techno",
+    "hip_hop_trap": "hiphop",
+    "dubstep":      "dubstep",
+    "trance":       "trance",
+    "synthwave":    "trance",
+    "future_bass":  "trance",
+    "ambient":      "trance",
+    "neo_soul_rnb": "neo_soul_rnb",
+}
+
 # Map genre_id -> drum pattern group (None = no drums)
 _GENRE_DRUM_GROUP = {
     "house":        "house",
@@ -235,10 +288,8 @@ def _build_drums_steps(genre_id, pattern, section_name):
 def _build_bass_steps(genre_id, instruments, section_name):
     pt = "bass"
     bass_instr = instruments.get("bass", "Analog")
-    bass_notes = [
-        _note(36, 0.0, 0.5, 90), _note(36, 1.0, 0.5, 85),
-        _note(41, 2.0, 0.5, 90), _note(36, 3.0, 0.5, 85),
-    ]
+    bass_group = _GENRE_BASS_GROUP.get(genre_id, "house")
+    bass_notes = _BASS_PATTERNS[bass_group]
 
     if section_name:
         clip_step = _step(4,
