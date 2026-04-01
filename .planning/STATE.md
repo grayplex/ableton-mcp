@@ -86,10 +86,11 @@ None — v1.9 complete.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260401-ox3 | get_arrangement_state omits track index — add index field to scaffold handler return value | 2026-04-01 | cd2cdfb | [260401-ox3-get-arrangement-state-omits-track-index-](./quick/260401-ox3-get-arrangement-state-omits-track-index-/) |
+| 260401-p4t | Checkpoint clips-by-track is capped at 8 tracks | 2026-04-01 | 2a4a93c | [260401-p4t-checkpoint-clips-by-track-is-capped-at-8](./quick/260401-p4t-checkpoint-clips-by-track-is-capped-at-8/) |
 
 ## Session Continuity
 
 Last session: 2026-04-01
 Stopped at: "v1.9 complete — all 4 phases shipped, 31 tests passing"
-Last activity: 2026-04-01 - Completed quick task 260401-ox3: get_arrangement_state omits track index — add index field to scaffold handler return value
+Last activity: 2026-04-01 - Completed quick task 260401-p4t: Checkpoint clips-by-track is capped at 8 tracks
 Resume file: None
