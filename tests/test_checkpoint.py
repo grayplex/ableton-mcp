@@ -76,6 +76,11 @@ def _make_conn(arrangement_state, mix_state, clips_by_track=None):
 # ---------------------------------------------------------------------------
 
 class TestCheckpoint:
+    def setup_method(self):
+        """Clear checkpoint cache before each test to avoid cross-test leakage."""
+        from MCP_Server.orchestration.checkpoint import _checkpoint_cache
+        _checkpoint_cache.clear()
+
     def test_empty_session(self):
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
                    return_value=_make_conn(EMPTY_ARRANGEMENT, EMPTY_MIX)):
@@ -191,3 +196,82 @@ class TestCheckpoint:
         commands = [call.args[0] for call in mock.send_command.call_args_list]
         assert "get_arrangement_clips" not in commands
         assert commands == ["get_arrangement_state", "get_mix_state"]
+
+
+class TestCheckpointCache:
+    def setup_method(self):
+        """Clear cache before each test."""
+        from MCP_Server.orchestration.checkpoint import _checkpoint_cache
+        _checkpoint_cache.clear()
+
+    def test_second_call_uses_cache(self):
+        """Second get_checkpoint call within TTL should not call send_command again."""
+        arr = {
+            "tracks": [
+                _make_track("Drums", True, 0, has_clips=True),
+                _make_track("Bass", True, 1),
+            ],
+            "cue_points": [], "song_length": 32.0,
+        }
+        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+        mock = _make_conn(arr, mix)
+        with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+                   return_value=mock):
+            result1 = get_checkpoint("house")
+            count_after_first = mock.send_command.call_count
+            result2 = get_checkpoint("house")
+            count_after_second = mock.send_command.call_count
+        # Second call should add zero send_command calls
+        assert count_after_second == count_after_first
+        assert result1 == result2
+
+    def test_different_genre_not_cached(self):
+        """Different genre keys should get independent cache entries."""
+        arr = {
+            "tracks": [
+                _make_track("Drums", True, 0, has_clips=True),
+                _make_track("Bass", True, 1),
+            ],
+            "cue_points": [], "song_length": 32.0,
+        }
+        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+        mock = _make_conn(arr, mix)
+        with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+                   return_value=mock):
+            get_checkpoint("house")
+            count_after_first = mock.send_command.call_count
+            get_checkpoint("techno")
+            count_after_second = mock.send_command.call_count
+        # Second call with different genre should make additional send_command calls
+        assert count_after_second > count_after_first
+
+    def test_invalidate_forces_refresh(self):
+        """invalidate_checkpoint_cache should force a fresh query."""
+        from MCP_Server.orchestration.checkpoint import invalidate_checkpoint_cache
+        arr = {
+            "tracks": [
+                _make_track("Drums", True, 0, has_clips=True),
+                _make_track("Bass", True, 1),
+            ],
+            "cue_points": [], "song_length": 32.0,
+        }
+        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+        mock = _make_conn(arr, mix)
+        with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+                   return_value=mock):
+            get_checkpoint("house")
+            count_after_first = mock.send_command.call_count
+            invalidate_checkpoint_cache("house")
+            get_checkpoint("house")
+            count_after_second = mock.send_command.call_count
+        # After invalidation, should make fresh calls
+        assert count_after_second > count_after_first
+
+    def test_error_not_cached(self):
+        """Connection errors should not be cached."""
+        from MCP_Server.orchestration.checkpoint import _checkpoint_cache
+        with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+                   side_effect=Exception("connection refused")):
+            result = get_checkpoint("house")
+        assert "error" in result
+        assert "house" not in _checkpoint_cache
