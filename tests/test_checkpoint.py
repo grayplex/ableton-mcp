@@ -44,8 +44,8 @@ EMPTY_ARRANGEMENT = {"tracks": [], "cue_points": [], "song_length": 0}
 EMPTY_MIX = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
 
 
-def _make_track(name, has_devices=True, index=0, devices=None):
-    return {"name": name, "has_devices": has_devices, "index": index,
+def _make_track(name, has_instrument=True, index=0, devices=None):
+    return {"name": name, "has_instrument": has_instrument, "index": index,
             "devices": devices or []}
 
 

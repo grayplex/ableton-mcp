@@ -66,25 +66,25 @@ def _infer_completed_phases(genre_id: str, tracks: list, clips_by_track: dict,
             done = len(tracks) >= 2
         elif phase_type == "drums":
             done = any(
-                _has_name_match(t["name"], _DRUM_NAMES) and t.get("has_devices")
+                _has_name_match(t["name"], _DRUM_NAMES) and t.get("has_instrument")
                 and _track_has_clips(t["name"], clips_by_track)
                 for t in tracks
             )
         elif phase_type == "bass":
             done = any(
-                _has_name_match(t["name"], _BASS_NAMES) and t.get("has_devices")
+                _has_name_match(t["name"], _BASS_NAMES) and t.get("has_instrument")
                 and _track_has_clips(t["name"], clips_by_track)
                 for t in tracks
             )
         elif phase_type == "harmony":
             done = any(
-                _has_name_match(t["name"], _HARMONY_NAMES) and t.get("has_devices")
+                _has_name_match(t["name"], _HARMONY_NAMES) and t.get("has_instrument")
                 and _track_has_clips(t["name"], clips_by_track)
                 for t in tracks
             )
         elif phase_type == "melody":
             done = any(
-                _has_name_match(t["name"], _MELODY_NAMES) and t.get("has_devices")
+                _has_name_match(t["name"], _MELODY_NAMES) and t.get("has_instrument")
                 and _track_has_clips(t["name"], clips_by_track)
                 for t in tracks
             )
@@ -94,7 +94,7 @@ def _infer_completed_phases(genre_id: str, tracks: list, clips_by_track: dict,
             done = bool(all_device_classes & effect_classes)
         elif phase_type == "arrangement":
             # All tracks have instruments and at least one clip
-            tracks_with_instruments = [t for t in tracks if t.get("has_devices")]
+            tracks_with_instruments = [t for t in tracks if t.get("has_instrument")]
             done = (len(tracks_with_instruments) >= 2
                     and all(_track_has_clips(t["name"], clips_by_track)
                             for t in tracks_with_instruments))
@@ -116,7 +116,7 @@ def _infer_completed_phases(genre_id: str, tracks: list, clips_by_track: dict,
 
 
 def _build_session_stats(tracks: list, clips_by_track: dict, master_devices: list) -> dict:
-    tracks_with_instruments = sum(1 for t in tracks if t.get("has_devices"))
+    tracks_with_instruments = sum(1 for t in tracks if t.get("has_instrument"))
     tracks_with_clips = sum(1 for t in tracks if _track_has_clips(t["name"], clips_by_track))
     all_device_classes = set()
     for t in tracks:
@@ -214,8 +214,8 @@ def get_checkpoint(genre: str = None) -> dict:
     # Progress estimate for active phase
     progress = 0.0
     if active_phase == "arrangement":
-        total = len([t for t in tracks if t.get("has_devices")])
-        with_clips = sum(1 for t in tracks if t.get("has_devices")
+        total = len([t for t in tracks if t.get("has_instrument")])
+        with_clips = sum(1 for t in tracks if t.get("has_instrument")
                          and _track_has_clips(t["name"], clips_by_track))
         progress = (with_clips / total) if total > 0 else 0.0
     elif active_phase and stats["tracks_with_instruments"] > 0:

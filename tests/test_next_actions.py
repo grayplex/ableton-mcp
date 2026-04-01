@@ -27,8 +27,8 @@ import pytest
 from MCP_Server.orchestration.next_actions import get_next_actions_result, get_transition_guidance
 
 
-def _make_track(name, has_devices=True, index=0):
-    return {"name": name, "has_devices": has_devices, "index": index, "devices": []}
+def _make_track(name, has_instrument=True, index=0):
+    return {"name": name, "has_instrument": has_instrument, "index": index, "devices": []}
 
 
 def _make_conn(tracks, master_devices=None, clips_by_track=None):

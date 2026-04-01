@@ -46,7 +46,7 @@ def _phase_complete(phase_type: str, tracks: list, clips_by_track: dict,
         if not drum_tracks:
             return False, ["No drum/kick track found — create a Drums track and load a Drum Rack"]
         t = drum_tracks[0]
-        if not t.get("has_devices"):
+        if not t.get("has_instrument"):
             return False, [f"Track '{t['name']}' has no instrument loaded — load a Drum Rack"]
         if not track_has_clips(t["name"]):
             return False, [f"Track '{t['name']}' has no clips — add drum notes with add_notes_to_clip"]
@@ -57,7 +57,7 @@ def _phase_complete(phase_type: str, tracks: list, clips_by_track: dict,
         if not bass_tracks:
             return False, ["No bass track found — create a Bass track and load a bass instrument"]
         t = bass_tracks[0]
-        if not t.get("has_devices"):
+        if not t.get("has_instrument"):
             return False, [f"Track '{t['name']}' has no instrument — load Analog or Wavetable"]
         if not track_has_clips(t["name"]):
             return False, [f"Track '{t['name']}' has no clips — write a bass line with add_notes_to_clip"]
@@ -87,7 +87,7 @@ def _phase_complete(phase_type: str, tracks: list, clips_by_track: dict,
         return False, ["No effect devices found on any track — add Auto Filter or Reverb via load_instrument_or_effect"]
 
     elif phase_type == "arrangement":
-        instrument_tracks = [t for t in tracks if t.get("has_devices")]
+        instrument_tracks = [t for t in tracks if t.get("has_instrument")]
         if len(instrument_tracks) < 2:
             return False, ["Fewer than 2 tracks have instruments — complete earlier phases first"]
         empty = [t["name"] for t in instrument_tracks if not track_has_clips(t["name"])]

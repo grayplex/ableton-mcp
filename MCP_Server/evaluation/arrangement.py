@@ -3,7 +3,7 @@
 evaluate_arrangement(conn) -> DimensionScore
 
 Checks that every regular track has:
-(a) an instrument loaded (has_devices) -- missing instrument is CRITICAL
+(a) an instrument loaded (has_instrument) -- missing instrument is CRITICAL
 (b) at least one arrangement clip placed -- no clips with instrument is WARNING
 
 Per D-01: Uses get_arrangement_state + get_arrangement_clips per track.
@@ -39,9 +39,9 @@ def evaluate_arrangement(conn) -> DimensionScore:
 
     for i, track in enumerate(tracks):
         track_name = track["name"]
-        has_devices = track.get("has_devices", False)
+        has_instrument = track.get("has_instrument", False)
 
-        if not has_devices:
+        if not has_instrument:
             issues.append(EvaluationIssue(
                 dimension="arrangement",
                 severity="critical",
