@@ -117,12 +117,13 @@ _GENRE_PARAMS = {
 # ---------------------------------------------------------------------------
 
 def _step(step_number, description, tool_name, suggested_args, phase, depends_on_step=None):
-    # Omit depends_on_step when None; omit phase (redundant with checklist.phase_name) to minimize tokens
+    # Omit depends_on_step when None to minimize tokens
     d = {
         "step_number": step_number,
         "tool_name": tool_name,
         "description": description,
         "suggested_args": suggested_args,
+        "phase": phase,
     }
     if depends_on_step is not None:
         d["depends_on_step"] = depends_on_step
@@ -164,8 +165,9 @@ def _build_setup_steps(genre_id, blueprint):
     ]
 
 
-_SENTINEL_NOTE = "<track_index>: use get_all_tracks()"
-_SENTINEL_CLIP = "<clip_index>: first has_clip=false slot via get_track_info()"
+
+# Sentinel hints removed — the "<track_index>" / "<clip_index>" values in
+# suggested_args already signal that Claude must resolve them at call time.
 
 
 def _build_drums_steps(genre_id, pattern, section_name):
@@ -179,13 +181,13 @@ def _build_drums_steps(genre_id, pattern, section_name):
 
     if section_name:
         clip_step = _step(4,
-            f"Arrangement clip for Drums in '{section_name}'. {_SENTINEL_NOTE}",
+            f"Arrangement clip for Drums in '{section_name}'",
             "create_arrangement_midi_clip",
             {"track_index": "<track_index>", "start_time": "<section_start_beat>", "length": "<section_length_beats>"},
             pt, 3)
     else:
         clip_step = _step(4,
-            f"Session clip for Drums (4 bars). {_SENTINEL_NOTE}",
+            f"Session clip for Drums (4 bars)",
             "create_clip",
             {"track_index": "<track_index>", "clip_index": "<clip_index>", "length": 4.0},
             pt, 3)
@@ -193,20 +195,20 @@ def _build_drums_steps(genre_id, pattern, section_name):
     steps = [
         _step(1, "Create Drums MIDI track",
               "create_midi_track", {"index": -1}, pt),
-        _step(2, f"Name track 'Drums'. {_SENTINEL_NOTE}",
+        _step(2, f"Name track 'Drums'",
               "set_track_name", {"track_index": "<track_index>", "name": "Drums"}, pt, 1),
-        _step(3, f"Load Drum Rack. {_SENTINEL_NOTE}",
+        _step(3, f"Load Drum Rack",
               "load_instrument_or_effect", {"track_index": "<track_index>", "instrument_name": "Drum Rack"}, pt, 2),
         clip_step,
-        _step(5, f"Add {beat_desc} notes. {_SENTINEL_NOTE}",
+        _step(5, f"Add {beat_desc} notes",
               "add_notes_to_clip",
               {"track_index": "<track_index>", "clip_index": "<clip_index>", "notes": kick_clap_notes},
               pt, 4),
-        _step(6, f"Add hi-hat notes (p42). {_SENTINEL_NOTE}",
+        _step(6, f"Add hi-hat notes (p42)",
               "add_notes_to_clip",
               {"track_index": "<track_index>", "clip_index": "<clip_index>", "notes": hihat_notes},
               pt, 5),
-        _step(7, "Quantize Drums clip notes",
+        _step(7, "Quantize Drums clip",
               "quantize_notes",
               {"track_index": "<track_index>", "clip_index": "<clip_index>"},
               pt, 6),
@@ -224,13 +226,13 @@ def _build_bass_steps(genre_id, instruments, section_name):
 
     if section_name:
         clip_step = _step(4,
-            f"Arrangement clip for Bass in '{section_name}'. {_SENTINEL_NOTE}",
+            f"Arrangement clip for Bass in '{section_name}'",
             "create_arrangement_midi_clip",
             {"track_index": "<track_index>", "start_time": "<section_start_beat>", "length": "<section_length_beats>"},
             pt, 3)
     else:
         clip_step = _step(4,
-            f"Session clip for Bass (4 bars). {_SENTINEL_NOTE}",
+            f"Session clip for Bass (4 bars)",
             "create_clip",
             {"track_index": "<track_index>", "clip_index": "<clip_index>", "length": 4.0},
             pt, 3)
@@ -238,16 +240,16 @@ def _build_bass_steps(genre_id, instruments, section_name):
     return [
         _step(1, "Create Bass MIDI track",
               "create_midi_track", {"index": -1}, pt),
-        _step(2, f"Name track 'Bass'. {_SENTINEL_NOTE}",
+        _step(2, f"Name track 'Bass'",
               "set_track_name", {"track_index": "<track_index>", "name": "Bass"}, pt, 1),
-        _step(3, f"Load {bass_instr} on Bass track. {_SENTINEL_NOTE}",
+        _step(3, f"Load {bass_instr} on Bass track",
               "load_instrument_or_effect", {"track_index": "<track_index>", "instrument_name": bass_instr}, pt, 2),
         clip_step,
-        _step(5, f"Add bass line notes. {_SENTINEL_NOTE}",
+        _step(5, f"Add bass line notes",
               "add_notes_to_clip",
               {"track_index": "<track_index>", "clip_index": "<clip_index>", "notes": bass_notes},
               pt, 4),
-        _step(6, f"Set Bass volume to 0.85. {_SENTINEL_NOTE}",
+        _step(6, f"Set Bass volume to 0.85",
               "set_track_volume",
               {"track_index": "<track_index>", "volume": 0.85},
               pt, 5),
@@ -264,13 +266,13 @@ def _build_harmony_steps(genre_id, instruments, section_name):
 
     if section_name:
         clip_step = _step(4,
-            f"Arrangement clip for Chords in '{section_name}'. {_SENTINEL_NOTE}",
+            f"Arrangement clip for Chords in '{section_name}'",
             "create_arrangement_midi_clip",
             {"track_index": "<track_index>", "start_time": "<section_start_beat>", "length": "<section_length_beats>"},
             pt, 3)
     else:
         clip_step = _step(4,
-            f"Session clip for Chords (8 bars). {_SENTINEL_NOTE}",
+            f"Session clip for Chords (8 bars)",
             "create_clip",
             {"track_index": "<track_index>", "clip_index": "<clip_index>", "length": 8.0},
             pt, 3)
@@ -278,16 +280,16 @@ def _build_harmony_steps(genre_id, instruments, section_name):
     return [
         _step(1, "Create Chords MIDI track",
               "create_midi_track", {"index": -1}, pt),
-        _step(2, f"Name track 'Chords'. {_SENTINEL_NOTE}",
+        _step(2, f"Name track 'Chords'",
               "set_track_name", {"track_index": "<track_index>", "name": "Chords"}, pt, 1),
-        _step(3, f"Load {harmony_instr} on Chords track. {_SENTINEL_NOTE}",
+        _step(3, f"Load {harmony_instr} on Chords track",
               "load_instrument_or_effect", {"track_index": "<track_index>", "instrument_name": harmony_instr}, pt, 2),
         clip_step,
-        _step(5, f"Add 2-chord loop notes. {_SENTINEL_NOTE}",
+        _step(5, f"Add 2-chord loop notes",
               "add_notes_to_clip",
               {"track_index": "<track_index>", "clip_index": "<clip_index>", "notes": chord_notes},
               pt, 4),
-        _step(6, f"Set Chords volume to 0.75. {_SENTINEL_NOTE}",
+        _step(6, f"Set Chords volume to 0.75",
               "set_track_volume",
               {"track_index": "<track_index>", "volume": 0.75},
               pt, 5),
@@ -305,13 +307,13 @@ def _build_melody_steps(genre_id, instruments, section_name):
 
     if section_name:
         clip_step = _step(4,
-            f"Arrangement clip for Lead in '{section_name}'. {_SENTINEL_NOTE}",
+            f"Arrangement clip for Lead in '{section_name}'",
             "create_arrangement_midi_clip",
             {"track_index": "<track_index>", "start_time": "<section_start_beat>", "length": "<section_length_beats>"},
             pt, 3)
     else:
         clip_step = _step(4,
-            f"Session clip for Lead (8 bars). {_SENTINEL_NOTE}",
+            f"Session clip for Lead (8 bars)",
             "create_clip",
             {"track_index": "<track_index>", "clip_index": "<clip_index>", "length": 8.0},
             pt, 3)
@@ -319,12 +321,12 @@ def _build_melody_steps(genre_id, instruments, section_name):
     return [
         _step(1, "Create Lead MIDI track",
               "create_midi_track", {"index": -1}, pt),
-        _step(2, f"Name track 'Lead'. {_SENTINEL_NOTE}",
+        _step(2, f"Name track 'Lead'",
               "set_track_name", {"track_index": "<track_index>", "name": "Lead"}, pt, 1),
-        _step(3, f"Load {melody_instr} on Lead track. {_SENTINEL_NOTE}",
+        _step(3, f"Load {melody_instr} on Lead track",
               "load_instrument_or_effect", {"track_index": "<track_index>", "instrument_name": melody_instr}, pt, 2),
         clip_step,
-        _step(5, f"Add melodic phrase notes. {_SENTINEL_NOTE}",
+        _step(5, f"Add melodic phrase notes",
               "add_notes_to_clip",
               {"track_index": "<track_index>", "clip_index": "<clip_index>", "notes": melody_notes},
               pt, 4),
