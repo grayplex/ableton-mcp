@@ -4,22 +4,14 @@ import logging
 from MCP_Server.connection import get_ableton_connection
 from MCP_Server.genres.catalog import resolve_alias
 from MCP_Server.orchestration.agenda import AGENDA_CATALOG
+from MCP_Server.orchestration.phase_detection import _DRUM_NAMES, _BASS_NAMES, _HARMONY_NAMES, _MELODY_NAMES, _COMPRESSOR, _GLUE_COMPRESSOR, _LIMITER
 from MCP_Server.orchestration.schema import ProductionCheckpoint, SessionStats
 
 logger = logging.getLogger("AbletonMCPServer")
 
-# Device class names from get_mix_state RS output
+# Device class names local to checkpoint only (not shared with next_actions)
 _DRUM_DEVICE = "DrumGroupDevice"
-_COMPRESSOR = "Compressor2"
-_GLUE_COMPRESSOR = "GlueCompressor"
-_LIMITER = "Limiter2"
 _EQ = "Eq8"
-
-# Track name substrings → phase association
-_DRUM_NAMES = {"drum", "kick", "snare", "percussion", "beat"}
-_BASS_NAMES = {"bass", "sub"}
-_HARMONY_NAMES = {"chord", "pad", "harm", "keys", "piano", "strings", "organ"}
-_MELODY_NAMES = {"lead", "melody", "mel", "synth", "arp"}
 
 # Resume hints per active phase
 _RESUME_HINTS = {

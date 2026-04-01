@@ -6,18 +6,11 @@ from MCP_Server.genres.catalog import resolve_alias
 from MCP_Server.orchestration.agenda import AGENDA_CATALOG
 from MCP_Server.orchestration.checkpoint import get_checkpoint, _infer_completed_phases, _build_session_stats
 from MCP_Server.orchestration.execution import get_execution_plan
+from MCP_Server.orchestration.phase_detection import _DRUM_NAMES, _BASS_NAMES, _HARMONY_NAMES, _MELODY_NAMES, _COMPRESSOR, _GLUE_COMPRESSOR, _LIMITER
 
 logger = logging.getLogger("AbletonMCPServer")
 
-# Phase completion heuristics (same as checkpoint.py, duplicated for clarity)
-_DRUM_NAMES = {"drum", "kick", "snare", "percussion", "beat"}
-_BASS_NAMES = {"bass", "sub"}
-_HARMONY_NAMES = {"chord", "pad", "harm", "keys", "piano", "strings", "organ"}
-_MELODY_NAMES = {"lead", "melody", "mel", "synth", "arp"}
 _EFFECT_CLASSES = {"AutoFilter", "Reverb", "Redux", "Saturator", "Chorus", "Flanger", "Phaser"}
-_COMPRESSOR = "Compressor2"
-_GLUE_COMPRESSOR = "GlueCompressor"
-_LIMITER = "Limiter2"
 
 
 def _phase_complete(phase_type: str, tracks: list, clips_by_track: dict,
