@@ -98,3 +98,26 @@ class TestPhaseExecutionPlan:
         assert "error" not in result
         nums = [s["step_number"] for s in result["steps"]]
         assert nums == list(range(1, len(nums) + 1))
+
+    def test_session_clip_steps_use_sentinel_clip_index(self):
+        """Session-clip steps must NOT hardcode clip_index=0."""
+        for phase in ["drums", "bass", "harmony", "melody"]:
+            result = get_execution_plan(phase, "house")  # no section_name
+            assert "error" not in result, f"{phase} returned error"
+            for step in result["steps"]:
+                args = step.get("suggested_args", {})
+                if "clip_index" in args:
+                    assert args["clip_index"] == "<clip_index>", (
+                        f"{phase} step {step['step_number']} ({step['tool_name']}) "
+                        f"has hardcoded clip_index={args['clip_index']}"
+                    )
+
+    def test_arrangement_clip_steps_have_no_clip_index(self):
+        """Arrangement-clip steps should not contain clip_index."""
+        for phase in ["drums", "bass", "harmony", "melody"]:
+            result = get_execution_plan(phase, "house", section_name="Drop")
+            assert "error" not in result
+            for step in result["steps"]:
+                args = step.get("suggested_args", {})
+                if step["tool_name"] == "create_arrangement_midi_clip":
+                    assert "clip_index" not in args
