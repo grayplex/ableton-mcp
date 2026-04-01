@@ -10,7 +10,21 @@ from MCP_Server.orchestration.phase_detection import _DRUM_NAMES, _BASS_NAMES, _
 
 logger = logging.getLogger("AbletonMCPServer")
 
+_NON_CALLABLE = frozenset({"\u2014", "\u2014", "", None})  # em-dash variants, empty, None
+
 _EFFECT_CLASSES = {"AutoFilter", "Reverb", "Redux", "Saturator", "Chorus", "Flanger", "Phaser"}
+
+
+def _filter_steps(steps):
+    """Separate callable steps from description-only placeholders."""
+    callable_steps = []
+    notes = []
+    for s in steps:
+        if s.get("tool_name") in _NON_CALLABLE:
+            notes.append(s.get("description", ""))
+        else:
+            callable_steps.append(s)
+    return callable_steps, notes
 
 
 def _phase_complete(phase_type: str, tracks: list, clips_by_track: dict,
@@ -119,13 +133,16 @@ def get_next_actions_result(genre: str, phase_name: str = None, n: int = 10) -> 
         checklist = get_execution_plan(phase_name, genre)
         if "error" in checklist:
             return checklist
-        steps = checklist["steps"][:n]
-        return {
+        steps, notes = _filter_steps(checklist["steps"][:n])
+        result = {
             "checkpoint_summary": f"Showing full {phase_name} checklist for {genre} (phase explicitly specified)",
             "active_phase": phase_name,
             "genre": genre,
             "steps": steps,
         }
+        if notes:
+            result["notes"] = notes
+        return result
 
     # No explicit phase — read checkpoint from live Ableton
     try:
@@ -133,23 +150,31 @@ def get_next_actions_result(genre: str, phase_name: str = None, n: int = 10) -> 
     except Exception as e:
         # Fallback: return setup checklist
         checklist = get_execution_plan("setup", genre)
-        steps = checklist.get("steps", [])[:n] if "error" not in checklist else []
-        return {
+        raw_steps = checklist.get("steps", [])[:n] if "error" not in checklist else []
+        steps, notes = _filter_steps(raw_steps)
+        result = {
             "checkpoint_summary": f"No live session — showing full setup checklist for {genre}",
             "active_phase": "setup",
             "genre": genre,
             "steps": steps,
         }
+        if notes:
+            result["notes"] = notes
+        return result
 
     if "error" in checkpoint:
         checklist = get_execution_plan("setup", genre)
-        steps = checklist.get("steps", [])[:n] if "error" not in checklist else []
-        return {
+        raw_steps = checklist.get("steps", [])[:n] if "error" not in checklist else []
+        steps, notes = _filter_steps(raw_steps)
+        result = {
             "checkpoint_summary": f"Could not read session ({checkpoint['error']}) — showing setup checklist",
             "active_phase": "setup",
             "genre": genre,
             "steps": steps,
         }
+        if notes:
+            result["notes"] = notes
+        return result
 
     active_phase = checkpoint.get("active_phase") or "setup"
     completed = checkpoint.get("completed_phases", [])
@@ -170,14 +195,17 @@ def get_next_actions_result(genre: str, phase_name: str = None, n: int = 10) -> 
                 "genre": genre_id, "steps": []}
 
     # Skip steps if phase already started (progress > 0.3) — return all for now (HIST-01 deferred)
-    steps = checklist["steps"][:n]
+    steps, notes = _filter_steps(checklist["steps"][:n])
 
-    return {
+    result = {
         "checkpoint_summary": summary,
         "active_phase": active_phase,
         "genre": genre_id,
         "steps": steps,
     }
+    if notes:
+        result["notes"] = notes
+    return result
 
 
 def get_transition_guidance(from_phase: str, genre: str = None, to_phase: str = None) -> dict:
