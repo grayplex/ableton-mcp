@@ -101,3 +101,54 @@ def get_production_checkpoint(ctx: Context, genre: str = None) -> str:
     from MCP_Server.orchestration.checkpoint import get_checkpoint
     result = get_checkpoint(genre)
     return json.dumps(result)
+
+
+@mcp.tool()
+def get_next_actions(ctx: Context, genre: str, phase_name: str = None, n: int = 10) -> str:
+    """Get the next N concrete tool calls to execute in the current production phase.
+
+    Reads the live Ableton checkpoint to determine where you are, then returns
+    specific ordered ExecutionStep entries with exact tool names and suggested args.
+    Use this when starting a new context window or after completing a batch of steps.
+
+    If phase_name is provided, bypasses the checkpoint and returns the full checklist
+    for that specific phase — useful for planning ahead or restarting a phase.
+
+    Args:
+        genre: Genre id or alias (e.g. "house", "techno").
+        phase_name: Optional phase to target (setup/drums/bass/harmony/melody/
+                    sound_design/arrangement/mix/master). Bypasses checkpoint.
+        n: Number of steps to return (default 10, max 25).
+
+    Returns:
+        JSON with checkpoint_summary, active_phase, genre, and steps list.
+    """
+    from MCP_Server.orchestration.next_actions import get_next_actions_result
+    result = get_next_actions_result(genre, phase_name, n)
+    return json.dumps(result)
+
+
+@mcp.tool()
+def get_phase_transition_guidance(ctx: Context, from_phase: str, genre: str = None,
+                                   to_phase: str = None) -> str:
+    """Check if a production phase is complete enough to advance to the next.
+
+    Reads live Ableton state and checks phase-specific completion criteria:
+    drums = drum track with clips exists; mix = Compressor2 on at least one track;
+    master = GlueCompressor + Limiter2 on master track; etc.
+
+    Returns a go/no-go verdict with specific blockers and fix hints so you know
+    exactly what's missing before moving on.
+
+    Args:
+        from_phase: Phase to validate (setup/drums/bass/harmony/melody/
+                    sound_design/arrangement/mix/master).
+        genre: Genre id or alias. Used to determine next phase in sequence.
+        to_phase: Optional override for the target next phase.
+
+    Returns:
+        JSON with ready_to_advance, completion_pct, blockers, fix_hints, next_phase.
+    """
+    from MCP_Server.orchestration.next_actions import get_transition_guidance
+    result = get_transition_guidance(from_phase, genre, to_phase)
+    return json.dumps(result)
