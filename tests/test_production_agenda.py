@@ -35,7 +35,7 @@ if "MCP_Server.server" not in sys.modules:
     sys.modules["MCP_Server.server"] = _mock_app_server
 
 import pytest  # noqa: E402
-from MCP_Server.orchestration.agenda import AGENDA_CATALOG, get_agenda  # noqa: E402
+from MCP_Server.orchestration.agenda import AGENDA_CATALOG, get_agenda, refine_agenda  # noqa: E402
 from MCP_Server.orchestration.schema import ProductionAgenda, ProductionPhase  # noqa: E402
 
 
@@ -102,3 +102,58 @@ class TestProductionAgendaCatalog:
         assert "kick" in roles
         assert "snare" in roles or "clap" in roles
         assert "hi-hats" in roles
+
+
+class TestRefineAgenda:
+    """Tests for refine_agenda(agenda, instruction) pure function."""
+
+    def _house_agenda(self):
+        return get_agenda("house")
+
+    def test_skip_mastering_removes_master_phase(self):
+        agenda = self._house_agenda()
+        original_steps = agenda["total_estimated_steps"]
+        result = refine_agenda(agenda, "skip mastering")
+        phase_types = [p["phase_type"] for p in result["phases"]]
+        assert "master" not in phase_types
+        assert result["total_estimated_steps"] == original_steps - 3
+
+    def test_skip_drums_removes_drums_phase(self):
+        agenda = self._house_agenda()
+        original_steps = agenda["total_estimated_steps"]
+        result = refine_agenda(agenda, "skip drums")
+        phase_types = [p["phase_type"] for p in result["phases"]]
+        assert "drums" not in phase_types
+        assert result["total_estimated_steps"] == original_steps - 12
+
+    def test_add_second_melody_inserts_melody_2_after_melody(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "add a second melody phase")
+        phase_ids = [p["phase_id"] for p in result["phases"]]
+        melody_idx = phase_ids.index("melody")
+        assert phase_ids[melody_idx + 1] == "melody_2"
+        melody_2 = result["phases"][melody_idx + 1]
+        assert melody_2["depends_on"] == ["melody"]
+
+    def test_unrecognised_instruction_returns_agenda_unchanged(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "do something weird XYZ-unknown")
+        assert result == agenda
+
+    def test_instruction_is_case_insensitive(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "Skip Mastering")
+        phase_types = [p["phase_type"] for p in result["phases"]]
+        assert "master" not in phase_types
+
+    def test_total_steps_recomputed_after_skip(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "skip mix")
+        expected = sum(p["estimated_steps"] for p in result["phases"])
+        assert result["total_estimated_steps"] == expected
+
+    def test_total_steps_recomputed_after_duplicate(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "add another melody")
+        expected = sum(p["estimated_steps"] for p in result["phases"])
+        assert result["total_estimated_steps"] == expected

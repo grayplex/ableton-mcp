@@ -4,8 +4,10 @@ AGENDA_CATALOG maps genre_id -> list of phase definition dicts.
 get_agenda(genre, brief) returns a ProductionAgenda TypedDict.
 """
 
+import copy
 import json
 import logging
+import re
 
 from MCP_Server.genres.catalog import get_blueprint, resolve_alias
 from MCP_Server.orchestration.schema import ProductionAgenda, ProductionPhase
@@ -202,3 +204,81 @@ def get_agenda(genre: str, brief: dict = None) -> dict:
         phases=phases,
         total_estimated_steps=total_steps,
     )
+
+
+# ---------------------------------------------------------------------------
+# refine_agenda — modify an existing ProductionAgenda with a natural-language
+# instruction, without regenerating from scratch.
+# ---------------------------------------------------------------------------
+
+# Known phase types, used for matching skip/add instructions.
+_ALL_PHASE_TYPES = list(_ESTIMATED_STEPS.keys())
+
+# Alias map for instruction words -> canonical phase_type
+_PHASE_TYPE_ALIASES = {
+    "mastering": "master",
+    "mixing": "mix",
+    "drumming": "drums",
+}
+
+# Pattern: "skip|remove|no <phase_type or alias>"
+_ALL_PHASE_WORDS = list(_ALL_PHASE_TYPES) + list(_PHASE_TYPE_ALIASES.keys())
+_SKIP_PATTERN = re.compile(
+    r"\b(?:skip|remove|no)\s+(" + "|".join(_ALL_PHASE_WORDS) + r")\b"
+)
+
+# Pattern: "add (a )?(second|another) <phase_type>" or "duplicate <phase_type>"
+_ADD_PATTERN = re.compile(
+    r"\b(?:add\s+(?:a\s+)?(?:second|another)\s+(" + "|".join(_ALL_PHASE_WORDS) + r")"
+    r"|duplicate\s+(" + "|".join(_ALL_PHASE_WORDS) + r"))\b"
+)
+
+
+def refine_agenda(agenda: dict, instruction: str) -> dict:
+    """Modify an existing ProductionAgenda with a natural-language instruction.
+
+    Supported instructions (case-insensitive):
+      - "skip <phase_type>" / "remove <phase_type>" / "no <phase_type>":
+        Removes all phases with the given phase_type.
+      - "add a second <phase_type>" / "add another <phase_type>" /
+        "duplicate <phase_type>":
+        Appends a copy of the first matching phase as "<phase_type>_2",
+        inserted immediately after the original in the phases list.
+
+    Unrecognised instructions return the original agenda unchanged (no mutation).
+    total_estimated_steps is always recomputed after any modification.
+
+    Returns:
+        A new ProductionAgenda dict (never mutates the input).
+    """
+    norm = instruction.lower().strip()
+
+    # --- skip / remove / no <phase_type> ---
+    skip_match = _SKIP_PATTERN.search(norm)
+    if skip_match:
+        target = _PHASE_TYPE_ALIASES.get(skip_match.group(1), skip_match.group(1))
+        new_phases = [p for p in agenda["phases"] if p["phase_type"] != target]
+        new_steps = sum(p["estimated_steps"] for p in new_phases)
+        return dict(agenda, phases=new_phases, total_estimated_steps=new_steps)
+
+    # --- add a second / duplicate <phase_type> ---
+    add_match = _ADD_PATTERN.search(norm)
+    if add_match:
+        raw_target = add_match.group(1) or add_match.group(2)
+        target = _PHASE_TYPE_ALIASES.get(raw_target, raw_target)
+        # Find the source phase
+        source_idx = next(
+            (i for i, p in enumerate(agenda["phases"]) if p["phase_type"] == target),
+            None,
+        )
+        if source_idx is not None:
+            new_phases = list(agenda["phases"])
+            new_phase = copy.deepcopy(new_phases[source_idx])
+            new_phase["phase_id"] = f"{target}_2"
+            new_phase["depends_on"] = [new_phases[source_idx]["phase_id"]]
+            new_phases.insert(source_idx + 1, new_phase)
+            new_steps = sum(p["estimated_steps"] for p in new_phases)
+            return dict(agenda, phases=new_phases, total_estimated_steps=new_steps)
+
+    # Unrecognised instruction — return unchanged
+    return agenda
