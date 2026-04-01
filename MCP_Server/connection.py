@@ -241,18 +241,25 @@ class AbletonConnection:
             finally:
                 self.sock = None
 
-    def send_command(self, command_type: str, params: dict[str, Any] = None) -> dict[str, Any]:
+    def send_command(self, command_type: str, params: dict[str, Any] = None, timeout: float | None = None) -> dict[str, Any]:
         """Send a command to Ableton and return the response.
 
         Uses length-prefix framing for reliable message boundaries.
         No artificial delays -- the framing protocol handles completeness.
+
+        Args:
+            command_type: The command to send.
+            params: Optional parameters for the command.
+            timeout: Optional per-call timeout override (seconds). When None,
+                     uses the default timeout for the command type.
         """
         if not self.sock and not self.connect():
             raise ConnectionError("Not connected to Ableton")
 
         command = {"type": command_type, "params": params or {}}
 
-        timeout = _timeout_for(command_type)
+        if timeout is None:
+            timeout = _timeout_for(command_type)
 
         try:
             logger.info(f"Sending command: {command_type} with params: {params}")
@@ -271,9 +278,12 @@ class AbletonConnection:
 
             return response.get("result", {})
         except TimeoutError as e:
-            logger.error("Socket timeout while waiting for response from Ableton")
+            logger.error(f"Socket timeout after {timeout:.0f}s waiting for '{command_type}'")
             self.sock = None
-            raise Exception("Timeout waiting for Ableton response") from e
+            raise Exception(
+                f"Timeout after {timeout:.0f}s waiting for Ableton to complete '{command_type}'. "
+                f"This may happen when Ableton is scanning plugins. Retry the command."
+            ) from e
         except (ConnectionError, BrokenPipeError, ConnectionResetError) as e:
             logger.error(f"Socket connection error: {str(e)}")
             self.sock = None

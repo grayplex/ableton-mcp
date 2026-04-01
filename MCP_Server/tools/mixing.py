@@ -1,5 +1,6 @@
 """Mix recipe MCP tools: lookup, apply, and sidechain routing."""
 
+import asyncio
 import json
 
 from mcp.server.fastmcp import Context
@@ -30,7 +31,7 @@ def get_mix_recipe(ctx: Context, role: str, genre: str) -> str:
 
 
 @mcp.tool()
-def apply_mix_recipe(ctx: Context, track_index: int, role: str, genre: str) -> str:
+async def apply_mix_recipe(ctx: Context, track_index: int, role: str, genre: str) -> str:
     """Apply a mix recipe to a track: loads required devices and sets all parameters.
 
     Looks up the role x genre recipe, converts natural-unit values to normalized,
@@ -51,17 +52,25 @@ def apply_mix_recipe(ctx: Context, track_index: int, role: str, genre: str) -> s
 
     devices_payload = convert_recipe_to_payload(recipe)
 
+    device_names = [d["class_name"] for d in devices_payload]
+    await ctx.info(
+        f"Applying {role}/{genre} recipe: loading {len(device_names)} device(s) "
+        f"[{', '.join(device_names)}]. This may take 10-30s if Ableton is scanning plugins."
+    )
+
+    timeout = max(30.0, len(devices_payload) * 15.0)
     conn = get_ableton_connection()
-    result = conn.send_command("apply_recipe", {
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, lambda: conn.send_command("apply_recipe", {
         "track_index": track_index,
         "track_type": "track",
         "devices": devices_payload,
-    })
+    }, timeout=timeout))
     return json.dumps(result, indent=2)
 
 
 @mcp.tool()
-def apply_master_recipe(ctx: Context, genre: str) -> str:
+async def apply_master_recipe(ctx: Context, genre: str) -> str:
     """Apply a master bus recipe to the master track: loads GlueCompressor,
     MultibandDynamics, and Limiter with genre-appropriate settings.
 
@@ -77,12 +86,20 @@ def apply_master_recipe(ctx: Context, genre: str) -> str:
 
     devices_payload = convert_recipe_to_payload(recipe)
 
+    device_names = [d["class_name"] for d in devices_payload]
+    await ctx.info(
+        f"Applying master/{genre} recipe: loading {len(device_names)} device(s) "
+        f"[{', '.join(device_names)}]. This may take 10-30s if Ableton is scanning plugins."
+    )
+
+    timeout = max(30.0, len(devices_payload) * 15.0)
     conn = get_ableton_connection()
-    result = conn.send_command("apply_recipe", {
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, lambda: conn.send_command("apply_recipe", {
         "track_index": 0,
         "track_type": "master",
         "devices": devices_payload,
-    })
+    }, timeout=timeout))
     return json.dumps(result, indent=2)
 
 
