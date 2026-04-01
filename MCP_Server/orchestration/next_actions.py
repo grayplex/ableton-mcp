@@ -212,11 +212,10 @@ def get_transition_guidance(from_phase: str, genre: str = None, to_phase: str = 
 
     # Fetch clips for all tracks
     clips_by_track = {}
-    conn2 = get_ableton_connection()
     for track in tracks:
         try:
-            result = conn2.send_command("get_arrangement_clips",
-                                        {"track_index": track.get("index", 0)})
+            result = conn.send_command("get_arrangement_clips",
+                                       {"track_index": track.get("index", 0)})
             clips_by_track[track["name"]] = result.get("clips", [])
         except Exception:
             clips_by_track[track["name"]] = []
