@@ -6,9 +6,11 @@ Public API:
 - schema.ProductionCheckpoint, schema.SessionStats
 - agenda.get_agenda, agenda.AGENDA_CATALOG
 - execution.get_execution_plan
+- checkpoint.get_checkpoint
 """
 
 from .agenda import AGENDA_CATALOG, get_agenda
+from .checkpoint import get_checkpoint
 from .execution import get_execution_plan
 
-__all__ = ["AGENDA_CATALOG", "get_agenda", "get_execution_plan"]
+__all__ = ["AGENDA_CATALOG", "get_agenda", "get_checkpoint", "get_execution_plan"]

@@ -79,3 +79,25 @@ def get_phase_execution_plan(ctx: Context, phase_name: str, genre: str,
 
     result = get_execution_plan(phase_name, genre, section_name, context_dict)
     return json.dumps(result)
+
+
+@mcp.tool()
+def get_production_checkpoint(ctx: Context, genre: str = None) -> str:
+    """Get a compact snapshot of production progress from live Ableton state.
+
+    Reads current Ableton session (tracks, devices, clips, locators) and infers
+    which production phases are complete, which is active, and what to do next.
+    Use this at the start of a new context window to re-orient, or any time you
+    need to know where you are in the production.
+
+    Args:
+        genre: Genre id or alias (e.g. "house", "techno"). Required for phase
+               inference. Without genre, returns session stats only.
+
+    Returns:
+        JSON ProductionCheckpoint with completed_phases, active_phase,
+        session_stats, and a resume_hint sentence.
+    """
+    from MCP_Server.orchestration.checkpoint import get_checkpoint
+    result = get_checkpoint(genre)
+    return json.dumps(result)
