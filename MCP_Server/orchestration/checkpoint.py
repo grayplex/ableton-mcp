@@ -152,10 +152,10 @@ def get_checkpoint(genre: str = None) -> dict:
     tracks = arrangement_state.get("tracks", [])
     master_devices = mix_state.get("master_track", {}).get("devices", [])
 
-    # Fetch clips for up to 8 tracks (D-02)
+    # Fetch clips for all tracks
     clips_by_track = {}
     conn2 = get_ableton_connection()
-    for track in tracks[:8]:
+    for track in tracks:
         try:
             result = conn2.send_command("get_arrangement_clips",
                                         {"track_index": track.get("index", 0)})
