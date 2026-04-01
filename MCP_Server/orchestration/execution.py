@@ -75,6 +75,22 @@ _DRUM_PATTERNS = {
         "hihat": [_note(42, 0.0, 0.25, 72), _note(42, 0.5, 0.25, 72)],
         "clap_pitch": 39,
     },
+    # Neo-soul / R&B — swing feel, kick anticipation, snare on 2+4
+    "neo_soul_rnb": {
+        "kick_clap": [
+            _note(36, 0.0, 0.25, 100),   # kick beat 1
+            _note(36, 1.5, 0.25, 85),    # kick anticipation (and-of-2)
+            _note(38, 1.0, 0.25, 100),   # snare beat 2
+            _note(38, 3.0, 0.25, 100),   # snare beat 4
+        ],
+        "hihat": [
+            _note(42, 0.0, 0.25, 65),    # hi-hat beat 1
+            _note(42, 1.0, 0.25, 60),    # hi-hat beat 2
+            _note(42, 2.0, 0.25, 65),    # hi-hat beat 3
+            _note(42, 3.0, 0.25, 60),    # hi-hat beat 4
+        ],
+        "clap_pitch": 38,
+    },
 }
 
 # Map genre_id -> drum pattern group (None = no drums)
@@ -90,7 +106,7 @@ _GENRE_DRUM_GROUP = {
     "synthwave":    "trance",
     "future_bass":  "trance",
     "ambient":      None,
-    "neo_soul_rnb": "house",  # default to house pattern
+    "neo_soul_rnb": "neo_soul_rnb",
 }
 
 # ---------------------------------------------------------------------------
