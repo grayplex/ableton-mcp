@@ -139,3 +139,21 @@ class TestPhaseExecutionPlan:
                 args = step.get("suggested_args", {})
                 if step["tool_name"] == "create_arrangement_midi_clip":
                     assert "clip_index" not in args
+
+    def test_drums_neo_soul_rnb_not_house_pattern(self):
+        """neo_soul_rnb drums should use a swing/R&B pattern, not four-on-the-floor house."""
+        result = get_execution_plan("drums", "neo_soul_rnb")
+        assert "error" not in result
+        notes_steps = [s for s in result["steps"] if s["tool_name"] == "add_notes_to_clip"]
+        all_notes = []
+        for step in notes_steps:
+            all_notes.extend(step.get("suggested_args", {}).get("notes", []))
+        # House pattern has kick (pitch 36) at start_time=2.0 — neo_soul_rnb must not
+        house_kick_on_3 = any(
+            n["pitch"] == 36 and n["start_time"] == 2.0 and n["velocity"] == 100
+            for n in all_notes
+        )
+        assert not house_kick_on_3, "neo_soul_rnb should not use the house drum pattern"
+        # Must have snare (pitch 38) on beat 2 (start_time=1.0) — characteristic R&B feel
+        has_snare_on_2 = any(n["pitch"] == 38 and n["start_time"] == 1.0 for n in all_notes)
+        assert has_snare_on_2, "neo_soul_rnb should have snare on beat 2"
