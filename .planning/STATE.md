@@ -87,10 +87,11 @@ None — v1.9 complete.
 |---|-------------|------|--------|-----------|
 | 260401-ox3 | get_arrangement_state omits track index — add index field to scaffold handler return value | 2026-04-01 | cd2cdfb | [260401-ox3-get-arrangement-state-omits-track-index-](./quick/260401-ox3-get-arrangement-state-omits-track-index-/) |
 | 260401-p4t | Checkpoint clips-by-track is capped at 8 tracks | 2026-04-01 | 2a4a93c | [260401-p4t-checkpoint-clips-by-track-is-capped-at-8](./quick/260401-p4t-checkpoint-clips-by-track-is-capped-at-8/) |
+| 260401-p9j | fix clip_index hardcoding in execution.py — query for first empty slot instead of assuming slot 0 | 2026-04-01 | 86eabb9 | [260401-p9j-fix-clip-index-hardcoding-in-execution-p](./quick/260401-p9j-fix-clip-index-hardcoding-in-execution-p/) |
 
 ## Session Continuity
 
 Last session: 2026-04-01
 Stopped at: "v1.9 complete — all 4 phases shipped, 31 tests passing"
-Last activity: 2026-04-01 - Completed quick task 260401-p4t: Checkpoint clips-by-track is capped at 8 tracks
+Last activity: 2026-04-01 - Completed quick task 260401-p9j: fix clip_index hardcoding in execution.py — query for first empty slot instead of assuming slot 0
 Resume file: None
