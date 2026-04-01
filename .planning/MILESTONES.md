@@ -1,5 +1,26 @@
 # Milestones
 
+## v1.8 Iterative Refinement Protocol (Shipped: 2026-03-31)
+
+**Phases completed:** 3 phases (45-47), 3 plans
+**Requirements:** 8/8 complete
+**Files changed:** ~15 files, +1,800 / -0 lines (new package)
+**Timeline:** 1 day (2026-03-31)
+**Tests:** ~30 new tests
+
+**Delivered:** Surgical section refinement system — `get_section_state` reads everything built in a named arrangement section (clips, notes, device params, recipe deltas); `interpret_section_refinement` maps 22 aesthetic adjectives through a RefinementLexicon to per-track note and device change plans; `apply_section_note_refinement` and `apply_section_device_refinement` apply changes to only the target section's clips and parameters; `refine_section` chains all steps in a single call. Two new RS commands (`transpose_arrangement_clip`, `modify_arrangement_clip_notes`) handle arrangement-view note editing.
+
+**Key accomplishments:**
+
+- `schema.py`: `SectionState`, `TrackStateEntry`, `ClipSummary`, `RefinementVector`, `SectionRefinementPlan` TypedDicts — JSON-serializable
+- `lexicon.py`: `REFINEMENT_LEXICON` with 22 aesthetic adjectives (darker, brighter, warmer, harder, heavier, sparser, denser...) each mapped to signed-proportional-delta `RefinementVector` across harmonic/timbral/dynamic domains
+- `get_section_state` MCP tool: reads locator range → collects clips per track → note summaries + mix_context with device params + recipe_delta
+- `interpret_section_refinement` MCP tool: read-only plan generation — tokenize instruction → merge vectors → resolve against current values → per-track change plan with reasoning
+- `refine_prompt` MCP tool: partial re-derivation of existing `ProductionBrief` — only affected fields change, unchanged fields preserved, diff returned
+- `apply_section_note_refinement` + `apply_section_device_refinement` + `refine_section` MCP tools for end-to-end application
+
+---
+
 ## v1.7 Prompt Interpretation (Shipped: 2026-03-31)
 
 **Phases completed:** 3 phases (42-44), 3 plans

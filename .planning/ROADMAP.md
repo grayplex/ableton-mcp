@@ -13,6 +13,7 @@
 | v1.6 Self-evaluation | 39-41 | 3 | 9 | Complete | 2026-03-31 |
 | v1.7 Prompt Interpretation | 42-44 | 3 | 10 | Complete | 2026-03-31 |
 | v1.8 Iterative Refinement Protocol | 45-47 | 3 | 8 | Complete | 2026-03-31 |
+| v1.9 Orchestration/Agent Loop | 48-51 | TBD | 8 | Active | — |
 
 ## Phases
 
@@ -129,10 +130,76 @@ See `.planning/milestones/v1.6-ROADMAP.md` for full phase details.
 
 ---
 
+### v1.9 Orchestration/Agent Loop
+
+**Milestone Goal:** Give Claude a methodical execution layer for full productions — an agenda of named phases, a concrete tool-call checklist per phase, a checkpoint that reads live Ableton state to determine exactly where the production is, and a next-actions recommender that returns specific ordered tool calls so Claude spends no context budget on "what should I do?" reasoning.
+
+---
+
+### Phase 48: Production Agenda Schema and Genre Phase Catalog
+
+**Goal**: The orchestration package exists — `ProductionAgenda` and `ProductionPhase` TypedDicts defined, a genre phase catalog covering all 12 genres with ordered phase lists, and `get_production_agenda` MCP tool returning a token-efficient agenda for any genre; no execution or checkpoint logic yet
+**Depends on**: Nothing (first phase of v1.9)
+**Requirements**: AGND-01, AGND-02
+**Success Criteria** (what must be TRUE):
+  1. `MCP_Server/orchestration/` package exists with `__init__.py`, `schema.py` (ProductionPhase, ProductionAgenda, ExecutionStep, PhaseChecklist, ProductionCheckpoint TypedDicts), and `agenda.py` (genre phase catalog + get_production_agenda logic)
+  2. `get_production_agenda("techno")` returns an agenda with phases in genre-appropriate order: setup → drums → bass → sound_design → arrangement → mix → master
+  3. All 12 genres have defined phase orderings; melodic genres (ambient, neo_soul_rnb) emphasize harmony/melody phases; rhythmic genres (techno, house, dnb) lead with drums/bass
+  4. `brief` parameter accepted; when brief has `energy_level >= 7`, drums phase listed first (before setup would otherwise defer it); when `primary_genre` in brief overrides the genre arg, brief's genre wins
+  5. Total JSON output ≤400 tokens; `total_estimated_steps` is the sum of each phase's `estimated_steps`
+**Plans**: TBD
+
+---
+
+### Phase 49: Phase Execution Plan Engine
+
+**Goal**: Claude can call `get_phase_execution_plan` for any phase and receive a concrete ordered list of `ExecutionStep` entries with tool names and genre-appropriate suggested args — eliminating the need for Claude to reason about "what tool call exactly?" for each production step
+**Depends on**: Phase 48
+**Requirements**: EXEC-01, EXEC-02
+**Success Criteria** (what must be TRUE):
+  1. `get_phase_execution_plan("drums", "house")` returns a `PhaseChecklist` with ≥6 ordered `ExecutionStep` entries: create MIDI track → load Drum Rack → add kick notes on beats 1/2/3/4 → add clap on beats 2/4 → add open hi-hat on off-beats → add closed hi-hat → quantize
+  2. `get_phase_execution_plan("mix", "techno")` returns steps: apply_mix_recipe per role → check_gain_staging → suggest_mix_adjustments → apply_master_recipe — each step has `tool_name` and `suggested_args` populated with real tool names that match the MCP server's tool listing
+  3. `section_name` parameter scopes note-writing steps: when `section_name="Drop"` is provided, steps that write notes include the section's bar range in `suggested_args`
+  4. Every `ExecutionStep` has a non-empty `description` (plain English), a `tool_name` matching a real registered MCP tool, and `suggested_args` with at minimum the required parameters for that tool call
+  5. Total checklist JSON ≤500 tokens; steps that reference session-state values (track index) use `"<track_index>"` sentinel with explanation in description
+**Plans**: TBD
+
+---
+
+### Phase 50: Production Checkpoint System
+
+**Goal**: Claude can call `get_production_checkpoint` at any moment during a production to get a compact, accurate summary of what phases are complete, what is active, and a single-sentence resume hint — so a context reset doesn't mean losing the thread
+**Depends on**: Phase 48
+**Requirements**: CHKP-01, CHKP-02
+**Success Criteria** (what must be TRUE):
+  1. `ProductionCheckpoint` TypedDict in `schema.py` with fields: `genre`, `completed_phases`, `active_phase`, `active_phase_progress` (0.0–1.0 float), `pending_steps`, `session_stats`, `next_phase`, `resume_hint`; serializes to ≤300 tokens of JSON
+  2. `get_production_checkpoint("house")` on a session with 4 tracks (Kick, Bass, Chords, Pad), all with instruments loaded and arrangement clips, correctly infers `completed_phases` includes "setup", "drums", "bass", "harmony"; `active_phase` is either "melody" or "arrangement"
+  3. Phase completion heuristics cover at minimum: setup (tracks exist), drums (Drum Rack present + clips), bass (bass-named track with clips), harmony (chord/pad track with ≥4-note clips), mix (EQ Eight + Compressor present on ≥1 track), master (GlueCompressor + Limiter on master track)
+  4. An empty session returns `{completed_phases: [], active_phase: "setup", active_phase_progress: 0.0, resume_hint: "Session is empty — start with setup: set tempo, set key, and scaffold tracks"}`
+  5. `resume_hint` is always a single human-readable sentence; it names the specific next action (not just "continue the production")
+**Plans**: TBD
+
+---
+
+### Phase 51: Next-Action Recommender and Phase Transition Gate
+
+**Goal**: Claude can call `get_next_actions` to receive the next N specific, immediately-executable tool calls for a production — and `get_phase_transition_guidance` to get a go/no-go verdict before advancing phases; together these two tools make the agent loop self-directing
+**Depends on**: Phase 49, Phase 50
+**Requirements**: NEXT-01, NEXT-02
+**Success Criteria** (what must be TRUE):
+  1. `get_next_actions("house")` reads the checkpoint internally and returns `{checkpoint_summary: str, steps: list[ExecutionStep]}` where steps are the next ≤10 actions from the active phase checklist; calling it on a session mid-way through drum programming skips steps already inferred-complete (kick present → skip add-kick step)
+  2. `get_next_actions("house", phase_name="mix")` bypasses checkpoint and returns the full mix phase checklist regardless of session state
+  3. `get_next_actions("techno", n=5)` returns exactly 5 steps
+  4. `get_phase_transition_guidance("drums", genre="house")` returns `{ready_to_advance: True, completion_pct: 1.0, blockers: [], next_phase: "bass"}` when a Drum Rack with arrangement clips is present; returns `{ready_to_advance: False, completion_pct: 0.4, blockers: ["No clips found in arrangement for Drums track"], fix_hints: ["Call get_phase_execution_plan('drums', 'house') and execute the note-writing steps"]}` when drum track exists but has no clips
+  5. Both tools are registered in `tools/__init__.py`, appear in the MCP tool listing, and are importable from `MCP_Server.orchestration`
+**Plans**: TBD
+
+---
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 42 -> 43 -> 44 -> 45 -> 46 -> 47
+Phases execute in numeric order: 42 -> 43 -> 44 -> 45 -> 46 -> 47 -> 48 -> 49 -> 50 -> 51
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -154,3 +221,7 @@ Phases execute in numeric order: 42 -> 43 -> 44 -> 45 -> 46 -> 47
 | 45. Section State Reader | v1.8 | 1/1 | Complete | 2026-03-31 |
 | 46. Refinement Language Engine | v1.8 | 1/1 | Complete | 2026-03-31 |
 | 47. Refinement Application Tools | v1.8 | 1/1 | Complete | 2026-03-31 |
+| 48. Production Agenda Schema and Genre Phase Catalog | v1.9 | 0/TBD | Pending | — |
+| 49. Phase Execution Plan Engine | v1.9 | 0/TBD | Pending | — |
+| 50. Production Checkpoint System | v1.9 | 0/TBD | Pending | — |
+| 51. Next-Action Recommender and Phase Transition Gate | v1.9 | 0/TBD | Pending | — |

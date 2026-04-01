@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.8
-milestone_name: Iterative Refinement Protocol
-status: Complete
-stopped_at: "Completed 47-refinement-application/47-01-PLAN.md"
-last_updated: "2026-03-31T19:00:00Z"
+milestone: v1.9
+milestone_name: Orchestration/Agent Loop
+status: Planning
+stopped_at: "Planning complete — ready for Phase 48"
+last_updated: "2026-03-31T19:30:00Z"
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 3
-  completed_plans: 3
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -18,25 +18,26 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-03-31)
 
-**Core value:** An AI assistant can produce actual music in Ableton — and refine any section of it by describing what it wants in plain English.
-**Current focus:** v1.8 COMPLETE — all phases shipped 2026-03-31
+**Core value:** An AI assistant can produce actual music in Ableton — and execute a full production methodically, phase by phase, without degrading under context pressure.
+**Current focus:** v1.9 — Orchestration/Agent Loop (Phases 48-51)
 
 ## Current Position
 
-Phase: 47 COMPLETE
-Milestone: v1.8 COMPLETE (shipped 2026-03-31)
+Phase: 48 PENDING (first phase of v1.9)
+Milestone: v1.9 ACTIVE (opened 2026-03-31)
 
 ## Performance Metrics
 
-**Velocity (v1.8):**
+**Velocity (v1.9):**
 
-- Total plans completed: 1
-- Running average from v1.7: ~25m/plan
+- Total plans completed: 0
+- Running average from v1.8: ~25m/plan
 
 **Historical By Milestone:**
 
 | Milestone | Phases | Plans | Avg/Plan |
 |-----------|--------|-------|----------|
+| v1.8 | 3 | 3 | ~25m |
 | v1.7 | 3 | 3 | ~25m |
 | v1.6 | 3 | 3 | ~25m |
 | v1.5 | 4 | 7 | ~20m |
@@ -48,12 +49,11 @@ Milestone: v1.8 COMPLETE (shipped 2026-03-31)
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- [v1.7]: Parser is deterministic rule-based — Claude provides NLP layer, parser provides structured output; no LLM-inside-parser
-- [v1.7]: interpret_prompt_to_plan builds plan inline — avoids server-side tool chaining
-- [v1.8]: `refine_section` is a pure MCP orchestration tool — no new Remote Script commands needed for Phase 47; uses existing transpose_notes, set_device_parameters, automation tools
-- [v1.8]: `get_section_state` reads note content per-clip via existing get_arrangement_clips + get_notes — multiple round trips are acceptable for a read-only snapshot tool
-- [v1.8]: `apply_section_device_refinement` with write_automation=False warns that device changes are track-global (not section-local); automation path (write_automation=True) is the surgical option
-- [v1.8]: RefinementVectors use signed proportional deltas (not absolute values) — application is always relative to current state so the same instruction yields sensible results regardless of starting point
+- [v1.9]: Orchestration is advisory, not autonomous — tools return checklists and next steps; Claude executes; no autonomous loop in server
+- [v1.9]: Checkpoint reads live Ableton state (not persisted) — phase completion is inferred heuristically from session topology (track names, instrument presence, clip presence)
+- [v1.9]: ExecutionStep uses sentinel values for session-state args (e.g., `"<kick_track_index>"`) — Claude must resolve at call time; keeps checklist generation stateless
+- [v1.9]: Phase ordering is genre-catalog-driven — agenda.py defines ordered phase lists per genre; brief overrides emphasis but doesn't reorder arbitrarily
+- [v1.9]: `get_phase_transition_guidance` reuses evaluate_session internals for mix/arrangement validation — avoids duplicating heuristics
 
 ### Roadmap Evolution
 
@@ -65,7 +65,8 @@ Recent decisions affecting current work:
 - v1.5: Phases 35-38 (shipped 2026-03-31)
 - v1.6: Phases 39-41 (shipped 2026-03-31)
 - v1.7: Phases 42-44 (shipped 2026-03-31)
-- v1.8: Phases 45-47 (in progress)
+- v1.8: Phases 45-47 (shipped 2026-03-31)
+- v1.9: Phases 48-51 (active)
 
 ### Pending Todos
 
@@ -73,12 +74,11 @@ None.
 
 ### Blockers/Concerns
 
-- ~~`get_arrangement_clips` return shape needs verification~~ — RESOLVED: confirmed in Phase 45 implementation, clips return start/end in beats
-- Device automation endpoint — confirm existing `write_automation_envelope` RS handler accepts a point list with exact bar positions before Phase 47 `apply_section_device_refinement`
-- PARS-02 `refine_prompt` promoted from future requirements — carries over from v1.7 deferred list; no blockers known
+- Phase 50 (checkpoint) depends on `get_arrangement_overview`, `get_arrangement_progress`, `get_mix_state` return shapes — all confirmed in previous milestones; no expected blockers
+- Phase 51 `get_phase_transition_guidance` for mix phase reuses evaluate_session mix-balance evaluator — need to confirm evaluator is importable as a library function (not just an MCP tool) before Phase 51 planning
 
 ## Session Continuity
 
-Last session: 2026-03-31T18:10:29Z
-Stopped at: "Completed 45-section-state-reader/45-01-PLAN.md"
+Last session: 2026-03-31
+Stopped at: "v1.9 milestone planning complete"
 Resume file: None
