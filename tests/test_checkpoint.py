@@ -1,0 +1,175 @@
+"""Tests for MCP_Server/orchestration/checkpoint.py.
+
+Covers all 7 CHKP-01/CHKP-02 success criteria:
+1. Empty session: completed_phases=[], active_phase="setup", resume_hint mentions "empty"
+2. Setup complete + drums active (2 tracks, no drum clips)
+3. Drums complete (drum track with clips)
+4. No genre: active_phase=None, session_stats populated
+5. Master complete (GlueCompressor + Limiter2 on master)
+6. Resume hint is a single sentence (no newlines, len > 10)
+7. Session stats correctly populated
+"""
+
+import json
+import sys
+import types
+from unittest.mock import MagicMock, patch
+
+# --- Mock mcp module hierarchy ---
+_mock_mcp = types.ModuleType("mcp")
+_mock_fastmcp = types.ModuleType("mcp.server.fastmcp")
+_mock_server_mod = types.ModuleType("mcp.server")
+_mock_fastmcp.Context = type("Context", (), {})
+_mock_mcp.server = _mock_server_mod
+_mock_server_mod.fastmcp = _mock_fastmcp
+sys.modules.setdefault("mcp", _mock_mcp)
+sys.modules.setdefault("mcp.server", _mock_server_mod)
+sys.modules.setdefault("mcp.server.fastmcp", _mock_fastmcp)
+
+if "MCP_Server.server" not in sys.modules:
+    _mock_app_server = types.ModuleType("MCP_Server.server")
+    _mcp_instance = MagicMock()
+    _mcp_instance.tool.return_value = lambda fn: fn
+    _mock_app_server.mcp = _mcp_instance
+    sys.modules["MCP_Server.server"] = _mock_app_server
+
+import pytest  # noqa: E402
+from MCP_Server.orchestration.checkpoint import get_checkpoint  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# Fixture data
+# ---------------------------------------------------------------------------
+
+EMPTY_ARRANGEMENT = {"tracks": [], "cue_points": [], "song_length": 0}
+EMPTY_MIX = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+
+
+def _make_track(name, has_devices=True, index=0, devices=None):
+    return {"name": name, "has_devices": has_devices, "index": index,
+            "devices": devices or []}
+
+
+def _make_conn(arrangement_state, mix_state, clips_by_track=None):
+    """Build a mock connection that returns fixture data."""
+    clips_by_track = clips_by_track or {}
+    mock_conn = MagicMock()
+
+    def send_command(cmd, params=None):
+        if cmd == "get_arrangement_state":
+            return arrangement_state
+        elif cmd == "get_mix_state":
+            return mix_state
+        elif cmd == "get_arrangement_clips":
+            track_idx = (params or {}).get("track_index", 0)
+            track_name = next(
+                (t["name"] for t in arrangement_state["tracks"] if t.get("index") == track_idx),
+                ""
+            )
+            return {"clips": clips_by_track.get(track_name, [])}
+        return {}
+
+    mock_conn.send_command.side_effect = send_command
+    return mock_conn
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+class TestCheckpoint:
+    def test_empty_session(self):
+        with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+                   return_value=_make_conn(EMPTY_ARRANGEMENT, EMPTY_MIX)):
+            result = get_checkpoint("house")
+        assert result["completed_phases"] == []
+        assert result["active_phase"] == "setup"
+        assert result["active_phase_progress"] == 0.0
+        assert "empty" in result["resume_hint"].lower()
+
+    def test_setup_complete_drums_active(self):
+        arr = {
+            "tracks": [
+                _make_track("Kick", True, 0),
+                _make_track("Bass", True, 1),
+            ],
+            "cue_points": [{"name": "Intro", "time": 0.0}],
+            "song_length": 32.0,
+        }
+        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+        # Kick has no clips → drums not complete
+        with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+                   return_value=_make_conn(arr, mix, clips_by_track={})):
+            result = get_checkpoint("house")
+        assert "setup" in result["completed_phases"]
+        assert result["active_phase"] == "drums"
+
+    def test_drums_complete(self):
+        arr = {
+            "tracks": [_make_track("Kick Drums", True, 0), _make_track("Bass", True, 1)],
+            "cue_points": [{"name": "Intro", "time": 0.0}],
+            "song_length": 32.0,
+        }
+        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+        clips = {"Kick Drums": [{"start_time": 0.0, "end_time": 8.0}]}
+        with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+                   return_value=_make_conn(arr, mix, clips)):
+            result = get_checkpoint("house")
+        assert "drums" in result["completed_phases"]
+
+    def test_no_genre_returns_none_active_phase(self):
+        arr = {
+            "tracks": [_make_track("Track1", True, 0)],
+            "cue_points": [],
+            "song_length": 16.0,
+        }
+        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+        with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+                   return_value=_make_conn(arr, mix)):
+            result = get_checkpoint(None)
+        assert result["active_phase"] is None
+        assert result["session_stats"]["track_count"] == 1
+
+    def test_master_complete(self):
+        arr = {
+            "tracks": [_make_track("Kick", True, 0), _make_track("Bass", True, 1)],
+            "cue_points": [{"name": "Intro", "time": 0.0}],
+            "song_length": 32.0,
+        }
+        master_devices = [
+            {"class_name": "GlueCompressor"},
+            {"class_name": "Limiter2"},
+        ]
+        mix = {"tracks": [], "return_tracks": [],
+               "master_track": {"devices": master_devices}}
+        clips = {
+            "Kick": [{"start_time": 0.0, "end_time": 8.0}],
+            "Bass": [{"start_time": 0.0, "end_time": 8.0}],
+        }
+        with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+                   return_value=_make_conn(arr, mix, clips)):
+            result = get_checkpoint("techno")
+        assert "master" in result["completed_phases"]
+
+    def test_resume_hint_is_single_sentence(self):
+        with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+                   return_value=_make_conn(EMPTY_ARRANGEMENT, EMPTY_MIX)):
+            result = get_checkpoint("house")
+        hint = result["resume_hint"]
+        assert "\n" not in hint
+        assert len(hint) > 10
+
+    def test_session_stats_populated(self):
+        arr = {
+            "tracks": [
+                _make_track("Drums", True, 0),
+                _make_track("Bass", False, 1),
+            ],
+            "cue_points": [],
+            "song_length": 16.0,
+        }
+        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+        with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+                   return_value=_make_conn(arr, mix)):
+            result = get_checkpoint("house")
+        assert result["session_stats"]["track_count"] == 2
+        assert result["session_stats"]["tracks_with_instruments"] == 1

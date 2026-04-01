@@ -1,5 +1,47 @@
 # Milestones
 
+## v1.9 Orchestration/Agent Loop (Shipped: 2026-04-01)
+
+**Phases completed:** 4 phases (48-51), 4 plans
+**Requirements:** 8/8 complete
+**Files changed:** ~12 files, +1,400 / -0 lines (new package)
+**Timeline:** 1 day (2026-04-01)
+**Tests:** 31 new tests
+
+**Delivered:** Production orchestration layer — `MCP_Server/orchestration/` package that breaks a full production into named phases and gives Claude a concrete execution path at every step. `get_production_agenda` returns genre-ordered phase lists for all 12 genres (techno leads with drums; ambient skips drums; neo-soul/R&B leads with harmony). `get_phase_execution_plan` returns concrete ordered tool calls with MIDI note patterns per genre and sentinel values for session-state args. `get_production_checkpoint` reads live Ableton state and infers which phases are done heuristically. `get_next_actions` combines checkpoint + execution plan into N immediately-executable steps. `get_phase_transition_guidance` validates phase completion before advancing with specific blockers and fix hints.
+
+**Key accomplishments:**
+
+- `schema.py`: 6 TypedDicts covering all of v1.9 — ProductionPhase, ProductionAgenda, ExecutionStep, PhaseChecklist, SessionStats, ProductionCheckpoint
+- `agenda.py`: AGENDA_CATALOG for 12 genres; brief.energy_level≥7 promotes drums; brief.primary_genre overrides genre arg
+- `execution.py`: Step catalogs for 9 phase types; genre-specific drum patterns (house 4-on-floor, hip-hop swing, dubstep half-time, techno driving); section_name switches to arrangement-view clips
+- `checkpoint.py`: RS-based phase inference; master short-circuit (GlueCompressor+Limiter2 → all complete); empty session returns clear resume_hint
+- `next_actions.py`: Explicit phase_name bypasses Ableton connection (pure computation); fallback to setup checklist on connection error; transition gate checks per-phase completion with specific fix hints
+- All 5 tools registered: `get_production_agenda`, `get_phase_execution_plan`, `get_production_checkpoint`, `get_next_actions`, `get_phase_transition_guidance`
+
+---
+
+## v1.8 Iterative Refinement Protocol (Shipped: 2026-03-31)
+
+**Phases completed:** 3 phases (45-47), 3 plans
+**Requirements:** 8/8 complete
+**Files changed:** ~15 files, +1,800 / -0 lines (new package)
+**Timeline:** 1 day (2026-03-31)
+**Tests:** ~30 new tests
+
+**Delivered:** Surgical section refinement system — `get_section_state` reads everything built in a named arrangement section (clips, notes, device params, recipe deltas); `interpret_section_refinement` maps 22 aesthetic adjectives through a RefinementLexicon to per-track note and device change plans; `apply_section_note_refinement` and `apply_section_device_refinement` apply changes to only the target section's clips and parameters; `refine_section` chains all steps in a single call. Two new RS commands (`transpose_arrangement_clip`, `modify_arrangement_clip_notes`) handle arrangement-view note editing.
+
+**Key accomplishments:**
+
+- `schema.py`: `SectionState`, `TrackStateEntry`, `ClipSummary`, `RefinementVector`, `SectionRefinementPlan` TypedDicts — JSON-serializable
+- `lexicon.py`: `REFINEMENT_LEXICON` with 22 aesthetic adjectives (darker, brighter, warmer, harder, heavier, sparser, denser...) each mapped to signed-proportional-delta `RefinementVector` across harmonic/timbral/dynamic domains
+- `get_section_state` MCP tool: reads locator range → collects clips per track → note summaries + mix_context with device params + recipe_delta
+- `interpret_section_refinement` MCP tool: read-only plan generation — tokenize instruction → merge vectors → resolve against current values → per-track change plan with reasoning
+- `refine_prompt` MCP tool: partial re-derivation of existing `ProductionBrief` — only affected fields change, unchanged fields preserved, diff returned
+- `apply_section_note_refinement` + `apply_section_device_refinement` + `refine_section` MCP tools for end-to-end application
+
+---
+
 ## v1.7 Prompt Interpretation (Shipped: 2026-03-31)
 
 **Phases completed:** 3 phases (42-44), 3 plans
@@ -37,6 +79,27 @@
 - Sound selection coverage evaluator pre-builds role→instrument map from sounds catalog, matches on device display name
 - Harmonic coherence evaluator computes in-key pitch classes via pure integer arithmetic (no music21); Session-view clip iteration; empty key → graceful skip with info issue
 - `evaluate_session()` MCP tool with `_run_evaluator` per-evaluator isolation, simple-average composite, critical-first issue sort, `top_fixes` with `tool_call = fix_hint`
+
+---
+
+## v1.5 Sound Selection Intelligence (Shipped: 2026-03-31)
+
+**Phases completed:** 4 phases (35-38), 6 plans
+**Requirements:** 11/11 complete
+**Files changed:** 42 files, +5,655 / -1,360 lines
+**Timeline:** 1 day (2026-03-31)
+**Tests:** 65 tests green
+
+**Delivered:** Instrument-selection intelligence — `MCP_Server/sounds/` package with pkgutil auto-discovery catalog (mirroring genres/ pattern); 6 native Ableton instrument profiles (Wavetable, Analog, Operator, Drift, Simpler, Drum Rack) each with sonic character, strengths/weaknesses, descriptor affinities, and browser paths; weighted-sum scoring engine tokenizing natural-language descriptors into ranked instrument matches; 3 MCP tools completing the workflow.
+
+**Key accomplishments:**
+
+- `MCP_Server/sounds/` package — zero-registration auto-discovery via pkgutil; alias normalization (case/whitespace/hyphen-tolerant); cloned from genres/ pattern
+- 6 instrument profiles: Wavetable (lush pads/wavetable morphing), Analog (warm bass/lead), Operator (FM keys/bass), Drift (analog oscillators), Simpler (sample playback — Classic/One-Shot/Slice modes), Drum Rack (all percussive roles kick/snare/hihat/perc)
+- Weighted-sum scoring engine: tokenize → sum role+character affinities → top match with reasoning; tie-break by (-score, id); zero-score → None
+- `list_sound_descriptors` MCP tool — grouped role/character vocabulary derived dynamically from all profile affinity keys
+- `get_sound_recommendation` MCP tool — top instrument with id/name/score/browser_path/category_hint/reasoning
+- `get_instrument_profile` MCP tool — full profile with alias normalization; enumerates available ids on not-found
 
 ---
 

@@ -1,218 +1,239 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-03-10
+**Analysis Date:** 2026-04-01
 
 ## Naming Patterns
 
 **Files:**
-- Private/internal module files use underscores: `_Framework`, `_get_session_info`
-- Standard Python convention: lowercase with underscores for module names
+- Snake_case modules: `agenda.py`, `next_actions.py`, `mix_balance.py`
+- Tool modules mirror domain nouns: `tracks.py`, `theory.py`, `orchestration.py`
+- Schema files always named `schema.py` within their package
 
 **Functions:**
-- Private/internal functions prefixed with single underscore: `_get_session_info()`, `_handle_client()`, `_process_command()`
-- Public tool functions (MCP decorators) are lowercase with underscores: `get_session_info()`, `set_track_name()`, `create_midi_track()`
-- Methods follow snake_case convention: `send_command()`, `receive_full_response()`, `get_ableton_connection()`
+- Public API: snake_case — `get_agenda`, `get_execution_plan`, `get_checkpoint`
+- Private helpers: leading underscore — `_make_conn`, `_has_name_match`, `_timeout_for`, `_check_bpm_range`
+- Tool registration functions match the MCP tool name exactly: `def get_track_info` registers as `"get_track_info"`
 
 **Variables:**
-- Instance variables use snake_case: `self.sock`, `self.host`, `self.port`, `self.running`
-- Local variables use snake_case: `buffer`, `response_queue`, `client_thread`
-- Constants use UPPER_SNAKE_CASE: `DEFAULT_PORT = 9877`, `HOST = "localhost"`
-- Private/internal variables prefixed with underscore: `_ableton_connection`, `_song`
+- snake_case throughout
+- Module-level constants: UPPER_SNAKE_CASE — `AGENDA_CATALOG`, `RHYTHM_CATALOG`, `_BROWSER_COMMANDS`
+- Private module constants: leading underscore + UPPER_SNAKE_CASE — `_WRITE_COMMANDS`, `_PHASE_GOALS`, `_DRUM_NAMES`
 
-**Classes:**
-- PascalCase for class names: `AbletonConnection`, `AbletonMCP`, `ControlSurface`
-- Dataclass uses `@dataclass` decorator: `AbletonConnection` is a dataclass
+**Types / Classes:**
+- TypedDict names: PascalCase — `ProductionAgenda`, `ProductionPhase`, `ExecutionStep`, `GenreBlueprint`
+- Dataclasses: PascalCase — `AbletonConnection`
+- Test classes: `Test` prefix + PascalCase subject — `TestProductionAgendaCatalog`, `TestCheckpoint`
 
-**Type Hints:**
-- Functions include return type hints: `def send_command(...) -> Dict[str, Any]:`
-- Parameter types are annotated: `def get_track_info(ctx: Context, track_index: int) -> str:`
-- Complex types use typing module: `Dict[str, Any]`, `List[Dict[str, Union[int, float, bool]]]`, `AsyncIterator[Dict[str, Any]]`
+## TypedDict Pattern
 
-## Code Style
+All structured data objects are `TypedDict` — not dataclasses, Pydantic models, or plain dicts.
+TypedDicts are JSON-serializable without `.asdict()` and are defined in a dedicated `schema.py`
+file within each sub-package. Inline comments annotate field semantics:
 
-**Formatting:**
-- Imports are organized with standard library first, then third-party
-- No explicit formatter detected (Prettier/Black/isort not configured)
-- Line length appears to exceed 100 characters (no configuration enforced)
-- Indentation: 4 spaces
+```python
+class ExecutionStep(TypedDict):
+    step_number: int
+    description: str         # plain English: what this step does
+    tool_name: str           # exact registered MCP tool name
+    suggested_args: dict     # {param: value}; session-state values use "<sentinel>" strings
+    depends_on_step: Optional[int]
+    phase: str               # phase_id this step belongs to
+```
 
-**Linting:**
-- No ESLint, Prettier, or similar tools detected
-- No `.flake8` or `pyproject.toml` linting configuration found
-- Code follows general PEP 8 conventions but not strictly enforced
+Schema files:
+- `MCP_Server/genres/schema.py`
+- `MCP_Server/evaluation/schema.py`
+- `MCP_Server/orchestration/schema.py`
+- `MCP_Server/refinement/schema.py`
+- `MCP_Server/prompt/schema.py`
 
-**Docstring Style:**
-- Triple-quoted docstrings for functions and classes
-- Docstrings include purpose and parameter descriptions
-- Format: standard Python docstring (not Google or NumPy style)
-- Example from `server.py`:
-  ```python
-  def get_track_info(ctx: Context, track_index: int) -> str:
-      """
-      Get detailed information about a specific track in Ableton.
+## Tool Registration Pattern (`@mcp.tool()`)
 
-      Parameters:
-      - track_index: The index of the track to get information about
-      """
-  ```
+Every MCP-exposed tool lives in `MCP_Server/tools/` and follows this exact structure:
+
+```python
+from MCP_Server.server import mcp
+
+@mcp.tool()
+def tool_name(ctx: Context, param: type, optional: type = default) -> str:
+    """One-sentence summary. Returns description.
+
+    Parameters:
+    - param: Description
+    - optional: Description (default X)
+    """
+    try:
+        result = _library_function(param, optional)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to do thing",
+            detail=str(e),
+            suggestion="What to check",
+        )
+```
+
+Key rules:
+- First parameter is always `ctx: Context` (imported from `mcp.server.fastmcp`)
+- Return type is always `str` (JSON string)
+- Every tool returns `json.dumps(result)` on success, `format_error(...)` on failure
+- `indent=2` used for reference data tools (theory, analysis); omitted for orchestration tools that prioritise token economy
+
+## Import Alias Pattern (`_build_chord = build_chord`)
+
+Library functions imported into tool modules use a leading-underscore alias to signal "this is the pure implementation; the decorated function is the public tool":
+
+```python
+from MCP_Server.theory import build_chord as _build_chord
+from MCP_Server.theory import get_scale_pitches as _get_scale_pitches
+from MCP_Server.theory import voice_lead_chords as _voice_lead_chords
+```
+
+Then tool functions call `_build_chord(...)` internally. This pattern appears throughout
+`MCP_Server/tools/theory.py` for all ~20 theory functions. The `_` prefix prevents shadowing
+the public tool function name at the module level.
+
+## RS Command Pattern (`send_command`)
+
+Ableton-connected tools follow a uniform three-line body before error handling:
+
+```python
+ableton = get_ableton_connection()
+result = ableton.send_command("command_name", {"param": value})
+return json.dumps(result, indent=2)
+```
+
+`send_command` always receives a string command type and a dict of params. The return value
+is the `result` key from the wire protocol (already a dict). See `MCP_Server/connection.py`
+for the full list of recognised read vs. write vs. browser commands.
+
+## `format_error` Return Pattern
+
+All error returns at the tool boundary use `MCP_Server.connection.format_error`, never raw
+strings or `json.dumps({"error": ...})`:
+
+```python
+return format_error(
+    "Failed to build chord",           # message: AI-readable summary
+    detail=str(e),                     # debug: exception string
+    suggestion="Check root and quality parameters",  # suggestion: what to fix
+)
+```
+
+Orchestration and library modules that don't reach the connection layer return plain dicts
+with an `"error"` key instead:
+
+```python
+return {"error": f"Unknown genre: {genre_id}"}
+```
+
+This two-tier convention is consistent:
+- `format_error` string — tool layer (`MCP_Server/tools/`)
+- `{"error": "..."}` dict — pure library layer (`MCP_Server/orchestration/`, `MCP_Server/theory/`, etc.)
+
+## Error Handling Strategy
+
+- **Tool layer** (`MCP_Server/tools/`): catch-all `except Exception as e` wrapping the entire tool body → `format_error`
+- **Library layer**: raise `ValueError` for invalid input; return `{"error": "..."}` dict for recoverable domain failures (unknown genre, invalid phase/section combination)
+- **Specific exception handling**: `ValueError` is caught separately before the catch-all where the distinction matters — e.g., `get_scale_pitches` distinguishes "unknown scale name" (ValueError) from other failures
+- No silent swallowing; every `except` block returns an error value or re-raises
 
 ## Import Organization
 
-**Order:**
-1. Standard library imports (logging, json, socket, threading, time, traceback)
-2. Dataclasses and contextlib utilities
-3. Typing module imports
-4. Third-party framework imports (mcp, _Framework)
+**Order (enforced by ruff/isort):**
+1. Standard library
+2. Third-party (`mcp`, `music21`, `pytest`)
+3. First-party (`MCP_Server.*`, `AbletonMCP_Remote_Script.*`)
 
-**Example from `server.py`:**
+**Path aliases:** None — all imports use full dotted paths from package root.
+
+**`__init__.py` re-exports:** Sub-packages expose their public API via `__init__.py`
+(e.g., `MCP_Server/theory/__init__.py` re-exports `midi_to_note`, `build_chord`, etc.).
+F401 (unused import) is suppressed in `__init__.py` files via ruff config.
+
+**Tool package bootstrap:** `MCP_Server/tools/__init__.py` imports all tool modules in a single
+line to trigger `@mcp.tool()` registration:
+
 ```python
-from mcp.server.fastmcp import FastMCP, Context
-import socket
-import json
-import logging
-from dataclasses import dataclass
-from contextlib import asynccontextmanager
-from typing import AsyncIterator, Dict, Any, List, Union
+from . import analysis, arrangement, audio_clips, ..., transport  # noqa: F401
 ```
 
-**Path Aliases:**
-- No path aliases detected
-- Imports use full module paths: `from mcp.server.fastmcp import FastMCP`
+`MCP_Server/server.py` then does `import MCP_Server.tools  # noqa: E402, F401` after
+the `mcp` instance is created.
 
-## Error Handling
+## Genre Data Pattern
 
-**Patterns:**
-- Broad try/except blocks catching generic `Exception`
-- Specific exception handling for known errors: `socket.timeout`, `json.JSONDecodeError`, `ConnectionError`, `BrokenPipeError`, `ConnectionResetError`
-- Re-raise pattern: catch, log, then raise with custom message
-- Inner try/except for recovery and retry logic (connection retry loops)
+Genre blueprints are pure Python dicts (not TypedDicts, not classes) stored in module-level
+`GENRE` constants. Subgenres live in the same file as their parent genre in a `SUBGENRES` list.
+Data-only: no helper functions in genre files.
 
-**Common Error Handling Structure:**
 ```python
-try:
-    # Main logic
-    ableton.send_command("command_type")
-except socket.timeout:
-    logger.error("Socket timeout...")
-    raise Exception("Timeout message")
-except (ConnectionError, BrokenPipeError) as e:
-    logger.error(f"Connection error: {str(e)}")
-    raise Exception(f"Custom error: {str(e)}")
-except json.JSONDecodeError as e:
-    logger.error(f"Invalid JSON: {str(e)}")
-    raise Exception(f"Parse error: {str(e)}")
-except Exception as e:
-    logger.error(f"Generic error: {str(e)}")
-    raise Exception(f"Communication error: {str(e)}")
+# MCP_Server/genres/house.py
+GENRE = {
+    "name": "House",
+    "id": "house",
+    "bpm_range": [120, 130],
+    "aliases": ["house music", "house_music"],
+    "instrumentation": {"roles": [...]},
+    ...
+}
+SUBGENRES = [...]
 ```
 
-**Cleanup Patterns:**
-- `finally` blocks used for resource cleanup (socket closing, thread cleanup)
-- Example: `finally: client.close()`
+Validation against `GenreBlueprint` schema runs at catalog import time via
+`validate_blueprint()` in `MCP_Server/genres/schema.py`. Callers catch `ValueError`
+per genre (fail-per-genre, not fail-per-server).
 
-## Logging
+## Docstring Style
 
-**Framework:** Python's built-in `logging` module
+**Modules:** Single-sentence summary + brief elaboration.
 
-**Logger Setup:**
 ```python
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("AbletonMCPServer")
+"""Production agenda catalog: genre-specific ordered phase lists.
+
+AGENDA_CATALOG maps genre_id -> list of phase definition dicts.
+get_agenda(genre, brief) returns a ProductionAgenda TypedDict.
+"""
 ```
 
-**Patterns:**
-- `logger.info()` for operational messages: connection established, command sent, response received
-- `logger.warning()` for non-critical issues: timeout, connection lost but recovered
-- `logger.error()` for failures and exceptions
-- All exceptions logged before returning error to caller
-- Informational logging includes data sizes and status: `logger.info(f"Received {len(response_data)} bytes")`
+**Tools:** Summary sentence. "Returns" description. "Args:" / "Parameters:" block
+with `- name: Description` bullets. Include example values inline.
 
-**Logging Philosophy:**
-- Diagnostic logging for socket operations (connect, send, receive)
-- Status updates for state changes (connection valid, task timeout)
-- Error logging with full context (raw data, exception details)
+```python
+"""Get an ordered production phase agenda for a genre.
 
-**Remote Script Logging:**
-- Uses Ableton's built-in logging: `self.log_message()` and `self.show_message()`
-- `log_message()` for internal logging
-- `show_message()` for user-facing messages in Ableton UI
-- Example: `self.log_message("AbletonMCP initialized")`
+Returns a ProductionAgenda with phases in genre-appropriate order ...
 
-## Comments
+Args:
+    genre: Genre id or alias (e.g., "house", "techno", "lo_fi")
+    brief: Optional JSON string of a ProductionBrief (from interpret_prompt).
 
-**When to Comment:**
-- Comments used for clarifying algorithm intent (e.g., "Check if we've received a complete JSON object")
-- Comments used for explaining platform-specific behavior (e.g., "Python 2 vs Python 3" branching)
-- Comments used for state-modifying operation classification (e.g., "Check if this is a state-modifying command")
-- No over-commenting; code is generally self-documenting
+Returns:
+    JSON string with ProductionAgenda or {"error": "..."} on unknown genre.
+"""
+```
 
-**Comment Style:**
-- Single-line comments use `#` followed by space
-- Inline comments for complex logic or non-obvious behavior
-- Example: `# For state-modifying commands, add a small delay to give Ableton time to process`
+**TypedDict fields:** Inline `# comment` on same line as annotation (not separate docstring).
 
-## Function Design
+**Short helpers:** One-sentence docstring only.
 
-**Size:**
-- Small to medium functions (20-60 lines typical)
-- Larger functions (100+ lines) used for complex socket operations with multiple try/except branches
-- Example: `send_command()` is 52 lines; `_process_command()` is 118 lines
+## Linting and Formatting
 
-**Parameters:**
-- Simple, minimal parameters preferred
-- Complex data passed as dictionaries: `params: Dict[str, Any]`
-- Type hints required for all parameters
-- Default values used for optional parameters: `index: int = -1`, `category_type: str = "all"`
+**Tool:** `ruff` (line-length 100, target Python 3.11)
+**Rules enforced:** E, F, W (pycodestyle/pyflakes), I (isort), B (bugbear), UP (pyupgrade)
+**Ignores:** E501 (line-too-long handled by line-length setting), B905 (zip without strict)
+**Config:** `pyproject.toml` `[tool.ruff]` and `[tool.ruff.lint]` sections
 
-**Return Values:**
-- Functions return structured data (dicts, strings) for API functions
-- Tool functions return JSON-serializable strings
-- Internal methods return typed dictionaries for composition
+Run linting: `ruff check .`
 
-**Async Patterns:**
-- Async context manager used for server lifecycle: `@asynccontextmanager`
-- FastMCP framework handles async execution
-- Tool implementations are sync (decorated with `@mcp.tool()`)
+## File Organization Rules
 
-## Module Design
-
-**Exports:**
-- Public API exposed in `__init__.py` files
-- Example from `MCP_Server/__init__.py`:
-  ```python
-  from .server import AbletonConnection, get_ableton_connection
-  ```
-
-**Barrel Files:**
-- Minimal barrel file pattern
-- `MCP_Server/__init__.py` exports key classes and functions
-- `AbletonMCP_Remote_Script/__init__.py` contains all implementation (no sub-modules)
-
-**Dataclass Usage:**
-- `AbletonConnection` implemented as dataclass with manual socket attribute
-- Contains both data fields (host, port) and methods (connect, disconnect, send_command)
-
-**Global State:**
-- Single global variable for persistent connection: `_ableton_connection`
-- Accessed through getter function: `get_ableton_connection()`
-- Connection lifecycle managed by server lifespan context manager
-
-## Platform Compatibility
-
-**Python 2/3 Compatibility:**
-- Code supports both Python 2 and Python 3
-- Conditional imports: `try: import Queue as queue` / `except: import queue`
-- Encoding/decoding branching: `try: data.decode('utf-8')` / `except AttributeError: data` (already string)
-- String handling with explicit encoding: `json.dumps(response).encode('utf-8')`
-- Example from `AbletonMCP_Remote_Script/__init__.py`:
-  ```python
-  try:
-      buffer += data.decode('utf-8')  # Python 3
-  except AttributeError:
-      buffer += data  # Python 2
-  ```
+- One domain per tool file: `MCP_Server/tools/theory.py` owns all theory tools, `tracks.py` owns all track tools
+- Pure logic lives in sub-packages (`MCP_Server/theory/`, `MCP_Server/orchestration/`); `MCP_Server/tools/` only contains thin `@mcp.tool()` wrappers
+- Schema TypedDicts always in `schema.py` within the same sub-package, never inlined in tool files
+- Catalog/registry data in `catalog.py` files (e.g., `MCP_Server/genres/catalog.py`, `MCP_Server/mixing/catalog.py`, `MCP_Server/devices/catalog.py`)
+- Module-level private dicts/frozensets for lookup tables (e.g., `_WRITE_COMMANDS`, `_PHASE_GOALS`) rather than inline conditionals
 
 ---
 
-*Convention analysis: 2026-03-10*
+*Convention analysis: 2026-04-01*

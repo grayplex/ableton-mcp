@@ -1,186 +1,234 @@
 # Architecture
 
-**Analysis Date:** 2026-03-10
+**Analysis Date:** 2026-04-01
 
 ## Pattern Overview
 
-**Overall:** Client-Server Bridge Pattern with MCP (Model Context Protocol) adapter
+**Overall:** Two-tier bridge architecture — MCP Server (Python process) ↔ Remote Script (Ableton Live plugin)
 
 **Key Characteristics:**
-- Two-tier architecture: MCP Server (Claude-facing) bridges to Ableton Remote Script (DAW-facing)
-- Socket-based JSON command-response protocol for inter-process communication
-- Lifespan-managed connection pooling with automatic reconnection
-- Thread-safe command queuing for Ableton's main thread requirements
-- Asynchronous tool execution via FastMCP framework
-
-## Layers
-
-**MCP Server Layer (Claude Interface):**
-- Purpose: Implements Model Context Protocol tools for Claude AI to invoke
-- Location: `MCP_Server/server.py`
-- Contains: Tool definitions, async handlers, connection management
-- Depends on: FastMCP framework, socket communication, JSON serialization
-- Used by: Claude AI, Cursor IDE
-
-**Connection Layer:**
-- Purpose: Manages persistent socket connection to Ableton Remote Script
-- Location: `MCP_Server/server.py` (AbletonConnection class)
-- Contains: Socket lifecycle management, command serialization, response deserialization
-- Depends on: Python socket module, JSON encoding/decoding
-- Used by: All tool handlers
-
-**Ableton Remote Script Layer (DAW Control):**
-- Purpose: Embedded MIDI Remote Script in Ableton Live that executes commands on DAW
-- Location: `AbletonMCP_Remote_Script/__init__.py`
-- Contains: Socket server, command handler, Ableton Live API interaction
-- Depends on: Ableton's _Framework, threading, queue management
-- Used by: Connection Layer (receives commands from)
-
-## Data Flow
-
-**Command Execution Flow:**
-
-1. Claude invokes MCP tool (e.g., `create_midi_track`)
-2. Tool handler calls `get_ableton_connection()` to get persistent socket connection
-3. Tool serializes parameters into JSON command with `type` and `params`
-4. AbletonConnection sends JSON command to Remote Script socket server on `localhost:9877`
-5. Remote Script receives JSON command in `_handle_client()`
-6. For query commands: direct processing and response
-7. For state-modifying commands: queued on Ableton main thread via `schedule_message()`
-8. Remote Script waits for main thread task completion (timeout: 10 seconds)
-9. Response (JSON with `status` and `result`) sent back to MCP server
-10. Tool handler parses response and returns formatted string to Claude
-
-**Error Recovery:**
-- Connection timeout triggers automatic reconnection (up to 3 attempts)
-- Failed commands reset socket to None, forcing reconnection on next tool call
-- Main thread task timeouts return error status with descriptive message
-
-## State Management
-
-**Global Connection State:**
-- `_ableton_connection` (module-level global) holds AbletonConnection instance
-- Lazily initialized on first tool invocation
-- Validated on each tool call (sends test byte to verify socket alive)
-- Gracefully disconnected on server shutdown via lifespan handler
-
-**Ableton Session State:**
-- Remote Script maintains reference to `song` object via `self._song = self.song()`
-- Track, clip, and device access via Ableton's Live API (indices-based)
-- Session tempo, time signature, track count cached per request
-
-## Key Abstractions
-
-**AbletonConnection:**
-- Purpose: Encapsulates socket communication protocol with Ableton
-- Examples: `AbletonMCP_Remote_Script/__init__.py`
-- Pattern: Dataclass with methods for connect(), disconnect(), send_command()
-- Responsibilities: Socket lifecycle, JSON serialization/deserialization, response assembly (handles multi-chunk responses)
-
-**Tool Handlers:**
-- Purpose: FastMCP tool decorators that translate Claude requests to Ableton commands
-- Examples: `get_session_info()`, `create_midi_track()`, `add_notes_to_clip()`
-- Pattern: Async functions wrapped with `@mcp.tool()` decorator
-- Responsibilities: Parameter validation, error handling, result formatting
-
-**Command Router:**
-- Purpose: Maps JSON command type to handler implementation in Remote Script
-- Examples: `_process_command()` in Remote Script checks `command_type`
-- Pattern: if/elif chain routing to `_<command>()` handler methods
-- Responsibilities: Command dispatch, response wrapping, error handling
-
-## Entry Points
-
-**MCP Server Entry:**
-- Location: `MCP_Server/server.py:main()`
-- Triggers: Invoked by `ableton-mcp` console script (configured in `pyproject.toml`)
-- Responsibilities: Instantiate FastMCP, start lifespan, run event loop
-
-**Ableton Remote Script Entry:**
-- Location: `AbletonMCP_Remote_Script/__init__.py:create_instance()`
-- Triggers: Ableton Live loads control surface from User Remote Scripts directory
-- Responsibilities: Instantiate AbletonMCP class, initialize socket server
-
-**Tool Registration:**
-- All tools decorated with `@mcp.tool()` on FastMCP instance
-- Tools auto-discovered by MCP framework for schema generation
-
-## Error Handling
-
-**Strategy:** Three-tier error handling with graceful degradation
-
-**Patterns:**
-
-1. **Socket Level (AbletonConnection):**
-   - `socket.timeout`: Logs timeout, returns new connection attempt
-   - `ConnectionError`, `BrokenPipeError`: Sets socket to None, forces reconnect
-   - `json.JSONDecodeError`: Logs raw response (first 200 bytes), raises exception
-
-2. **Command Level (Tool Handlers):**
-   - Try/except wrapping all tool invocations
-   - Returns error string prefixed with "Error" to Claude
-   - Never raises exceptions; always returns string response
-
-3. **Remote Script Level:**
-   - Main thread task wrapped in try/except
-   - Errors placed in response queue with `{"status": "error", "message": ...}`
-   - Timeout waiting for main thread task: returns error after 10 seconds
-   - Client handler catches all exceptions, sends JSON error response, attempts recovery
-
-## Cross-Cutting Concerns
-
-**Logging:**
-- Approach: Python logging module configured at INFO level
-- Located in: Module-level logger `logger = logging.getLogger("AbletonMCPServer")`
-- Captures: Connection state changes, command flow, errors with tracebacks
-
-**Validation:**
-- Parameter validation at tool level: type hints on function signatures
-- Index bounds checking: Track index, clip index validation in Remote Script handlers
-- Status checking: Verifies response status before extracting result
-
-**Thread Safety:**
-- Approach: Main thread task scheduling via Ableton's `schedule_message()` API
-- Queue-based synchronization: Response queue for main thread task completion
-- No direct thread access to Ableton Live API (only from main thread)
-
-**Connection Management:**
-- State-modifying commands: 15-second timeout for socket operations
-- Query commands: 10-second timeout for socket operations
-- Automatic reconnection with 3 retry attempts, 1-second delay between attempts
-- Connection validation via empty byte send on each tool invocation
-
-## Communication Protocol
-
-**JSON Command Format (MCP → Remote Script):**
-```json
-{
-  "type": "create_midi_track",
-  "params": {
-    "index": -1
-  }
-}
-```
-
-**JSON Response Format (Remote Script → MCP):**
-```json
-{
-  "status": "success",
-  "result": {
-    "index": 0,
-    "name": "MIDI Track 1"
-  }
-}
-```
-
-**Error Response Format:**
-```json
-{
-  "status": "error",
-  "message": "Track index out of range"
-}
-```
+- MCP Server runs as a standalone async Python process; Remote Script runs inside Ableton's Python runtime
+- All communication crosses a TCP socket boundary on `localhost:9877` using a length-prefix framing protocol
+- MCP Server owns all intelligence (music theory, genre blueprints, orchestration logic); Remote Script is a thin command executor
+- Write commands (state-mutating) are dispatched to Ableton's main thread via `schedule_message`; read commands run directly on the socket thread
+- Tools register themselves at import time via `@mcp.tool()` decorators; RS handlers register via `@command()` decorators
 
 ---
 
-*Architecture analysis: 2026-03-10*
+## Tiers
+
+### Tier 1 — MCP Server (`MCP_Server/`)
+
+**Purpose:** Exposes MCP tools to an AI client (Claude). Contains all business logic, pure-computation libraries, and socket-based communication with Ableton.
+
+**Entry point:** `MCP_Server/server.py` — creates a `FastMCP("AbletonMCP")` instance with a lifespan context manager that opens/closes the Ableton socket connection. On startup it imports `MCP_Server.tools` which triggers all `@mcp.tool()` registrations.
+
+**Layers inside MCP Server:**
+
+- **`MCP_Server/connection.py`** — Socket lifecycle, connection pooling, timeout dispatch, error formatting. Exposes `get_ableton_connection()` (thread-safe, with ping-based liveness test and 3-attempt reconnect). The global `_ableton_connection` is protected by `threading.Lock`.
+- **`MCP_Server/protocol.py`** — Length-prefix framing: `send_message` / `recv_message` over raw TCP. 4-byte big-endian length header + UTF-8 JSON payload. 10MB safety limit.
+- **`MCP_Server/tools/`** — All MCP tool functions. Each module uses `@mcp.tool()` decorators. Tools call `get_ableton_connection().send_command(...)` for live state; pure-computation tools call domain libraries directly.
+- **Domain libraries** (`theory/`, `genres/`, `sounds/`, `mixing/`, `evaluation/`, `prompt/`, `refinement/`, `orchestration/`, `devices/`) — Stateless pure-Python libraries. No socket calls except `orchestration/checkpoint.py` and `orchestration/next_actions.py`.
+
+### Tier 2 — Remote Script (`AbletonMCP_Remote_Script/`)
+
+**Purpose:** Ableton Live control surface plugin. Runs a TCP server inside Live's Python runtime. Receives JSON commands, executes them against Live Object Model (LOM), returns JSON responses.
+
+**Entry point:** `AbletonMCP_Remote_Script/__init__.py` → `create_instance(c_instance)` → `AbletonMCP(c_instance)`. `AbletonMCP` inherits from `ControlSurface` and all handler mixin classes.
+
+**Layers inside Remote Script:**
+
+- **`AbletonMCP_Remote_Script/__init__.py`** — Socket server lifecycle, client accept loop (daemon thread), client handler loop, command dispatch. Owns `_read_commands` and `_write_commands` dispatch dicts built at init time.
+- **`AbletonMCP_Remote_Script/registry.py`** — `CommandRegistry` class. `@command(name, write=False, self_scheduling=False)` decorator records `(cmd_name, method_name, is_write, is_self_scheduling)` tuples at import time. `build_tables(instance)` binds handlers to the live instance and returns dispatch dicts.
+- **`AbletonMCP_Remote_Script/handlers/`** — 14 mixin classes, one per domain. Each defines methods decorated with `@command(...)`. All become methods of `AbletonMCP` via multiple inheritance.
+
+---
+
+## Communication Protocol
+
+**Transport:** TCP socket, `localhost:9877`
+
+**Framing:** Length-prefix (implemented identically in both tiers):
+```
+[4-byte big-endian uint32: payload length][UTF-8 JSON payload]
+```
+
+**Request shape (MCP Server to RS):**
+```json
+{"type": "command_name", "params": {"key": "value"}}
+```
+
+**Response shape (RS to MCP Server):**
+```json
+{"status": "success", "result": {...}}
+{"status": "error", "message": "error description"}
+```
+
+**Timeouts** (defined in `MCP_Server/connection.py`):
+- Read commands: 10.0s (`TIMEOUT_READ`)
+- Write commands: 15.0s (`TIMEOUT_WRITE`)
+- Browser/load commands: 30.0s (`TIMEOUT_BROWSER`)
+- Ping: 5.0s (`TIMEOUT_PING`)
+
+---
+
+## Threading Model
+
+### MCP Server side
+- FastMCP runs async (asyncio event loop). Tool functions are called from async context.
+- `get_ableton_connection()` is synchronous and protected by `threading.Lock` — safe for concurrent tool calls.
+- Each `send_command()` call is synchronous: sends, then blocks on `recv_message()` until response arrives.
+
+### Remote Script side
+- Main Ableton thread: handles Live Object Model mutations. Must be used for all write operations.
+- Socket server thread (daemon): accepts connections in `_server_thread()`.
+- Per-client handler thread (daemon): `_handle_client()` — reads commands, dispatches them.
+- **Read commands** run directly on the client handler thread (LOM reads are thread-safe in Ableton's runtime).
+- **Write commands** use `queue.Queue` + `schedule_message(0, task)` to marshal execution onto Ableton's main thread. The handler thread blocks on `response_queue.get(timeout=10.0)`.
+- **Self-scheduling commands** (e.g., `load_browser_item`) manage their own `schedule_message` chains and run directly without the queue.
+
+---
+
+## Data Flow: Typical Tool Call
+
+1. AI client calls MCP tool (e.g., `create_midi_track`).
+2. `MCP_Server/tools/tracks.py` receives call, builds params dict.
+3. Calls `get_ableton_connection()` — acquires lock, returns (or creates) persistent socket connection.
+4. Calls `connection.send_command("create_midi_track", params)`.
+5. `MCP_Server/protocol.py` serializes `{"type": ..., "params": ...}` to length-prefixed bytes and sends.
+6. RS client handler thread receives, deserializes, looks up `"create_midi_track"` in `_write_commands`.
+7. Handler is a write command — `_dispatch_write_command` puts a task on `response_queue`, calls `schedule_message(0, main_thread_task)`.
+8. Ableton main thread executes `TrackHandlers._create_midi_track(params)`, mutates LOM, puts result on queue.
+9. Client handler thread unblocks from `response_queue.get()`, sends `{"status": "success", "result": {...}}`.
+10. MCP Server `recv_message()` deserializes response, returns `result` dict to tool function.
+11. Tool function formats result as JSON string and returns to AI client.
+
+---
+
+## Data Flow: Orchestration Tool Call
+
+### Pure-computation path (no Ableton connection required)
+
+`get_production_agenda` and `get_phase_execution_plan`:
+1. AI client calls tool in `MCP_Server/tools/orchestration.py`.
+2. Tool calls `MCP_Server/orchestration/agenda.py` or `execution.py`.
+3. Module reads from `MCP_Server/genres/catalog.py` (genre blueprint data), computes result.
+4. Returns JSON string directly — no RS involvement.
+
+### Live-state path (requires Ableton connection)
+
+`get_production_checkpoint` and `get_phase_transition_guidance`:
+1. Tool calls `MCP_Server/orchestration/checkpoint.py` or `next_actions.py`.
+2. These modules call `get_ableton_connection()` and issue multiple RS commands: `get_arrangement_state`, `get_mix_state`, `get_arrangement_clips` (up to 8 tracks).
+3. Infer phase completion from track names + device class names + clip presence heuristics.
+4. Return `ProductionCheckpoint` TypedDict serialized as JSON.
+
+`get_next_actions` checks whether `phase_name` was explicitly provided:
+- If yes: pure-computation (calls `get_execution_plan` only).
+- If no: reads checkpoint first, then builds step list from active phase.
+
+---
+
+## Orchestration Package (`MCP_Server/orchestration/`)
+
+Added in v1.9 (phases 48–51). Five modules forming the production guidance system:
+
+| Module | RS calls? | Purpose |
+|---|---|---|
+| `schema.py` | No | TypedDict definitions: `ProductionPhase`, `ProductionAgenda`, `ExecutionStep`, `PhaseChecklist`, `ProductionCheckpoint`, `SessionStats` |
+| `agenda.py` | No | `AGENDA_CATALOG` (12 genres to phase orderings) + `get_agenda()` |
+| `execution.py` | No | `get_execution_plan()` — concrete step lists with exact tool names, genre-appropriate MIDI patterns, sentinel args |
+| `checkpoint.py` | Yes | `get_checkpoint()` — reads live Ableton state, infers completed phases |
+| `next_actions.py` | Yes (optional) | `get_next_actions_result()` + `get_transition_guidance()` — reads checkpoint, returns next steps; falls back to setup checklist if no live connection |
+
+The 5 MCP tools wrapping these are in `MCP_Server/tools/orchestration.py`:
+- `get_production_agenda`
+- `get_phase_execution_plan`
+- `get_production_checkpoint`
+- `get_next_actions`
+- `get_phase_transition_guidance`
+
+---
+
+## Domain Library Organization
+
+All domain libraries live under `MCP_Server/` and are stateless pure computation (no socket calls, no side effects), except where noted:
+
+| Package | Purpose | Key dependency |
+|---|---|---|
+| `theory/` | Music theory: chords, scales, progressions, analysis, voice leading, rhythm | `music21` |
+| `genres/` | Genre blueprints: BPM ranges, scales, instrumentation roles, arrangement templates for 12 genres | None |
+| `sounds/` | Instrument profiles: sonic descriptors, browser paths, recommendation engine | None |
+| `mixing/` | Mix recipes: role x genre device parameter tables | `devices/` |
+| `devices/` | Device parameter catalog + normalization/denormalization between natural and 0.0–1.0 units | None |
+| `evaluation/` | Session quality evaluators: arrangement, harmonic, mix balance, sounds coverage | `genres/`, `theory/` |
+| `prompt/` | Prompt interpretation: `classify_prompt`, `derive` → `ProductionBrief` | `genres/`, `theory/` |
+| `refinement/` | Section state reader, iterative refinement plan builder | `prompt/`, `mixing/` |
+| `orchestration/` | Production agenda, execution plans, checkpoint inference, next-action recommendations | `genres/`; `checkpoint.py` and `next_actions.py` call RS |
+
+---
+
+## Handler Registration Patterns
+
+### Remote Script handler registration
+```python
+# AbletonMCP_Remote_Script/registry.py — decorator records at import time
+@command("create_midi_track", write=True)
+def _create_midi_track(self, params):
+    ...
+
+# At AbletonMCP.__init__ time:
+self._read_commands, self._write_commands, self._self_scheduling = (
+    CommandRegistry.build_tables(self)
+)
+```
+
+### MCP Server tool registration
+```python
+# MCP_Server/server.py — mcp created first, then tools imported
+mcp = FastMCP("AbletonMCP", lifespan=server_lifespan)
+import MCP_Server.tools  # triggers all @mcp.tool() registrations
+
+# In any tool module:
+from MCP_Server.server import mcp
+
+@mcp.tool()
+def create_midi_track(ctx: Context, index: int = -1) -> str:
+    ...
+```
+
+The `MCP_Server/tools/__init__.py` imports all 28 tool modules explicitly, ensuring all `@mcp.tool()` calls run before `main()` starts serving.
+
+---
+
+## Error Handling
+
+**MCP Server tools:**
+- Wrap `get_ableton_connection()` and `send_command()` in try/except.
+- Return `format_error(message, detail, suggestion)` as a plain string on failure.
+- `format_error` (in `connection.py`) produces AI-friendly output: `"Error: ...\nSuggestion: ...\nDebug: ..."`.
+
+**Connection layer:**
+- Socket errors (`ConnectionError`, `BrokenPipeError`, `TimeoutError`) set `self.sock = None`, causing the next call to reconnect.
+- `get_ableton_connection()` retries 3 times with 1s delay, validates with `get_session_info` after connect.
+
+**Remote Script:**
+- `_handle_client` catches all exceptions per-command and sends `{"status": "error", "message": str(e)}` to preserve the connection.
+- Write commands: if `schedule_message` raises `AssertionError` (not on main thread), falls back to direct call.
+- `_dispatch_write_command` uses 30s timeout for self-scheduling commands, 10s for standard write commands.
+
+---
+
+## Cross-Cutting Concerns
+
+**Logging:** `logging.getLogger("AbletonMCPServer")` used throughout MCP Server. RS uses `self.log_message(...)` (Ableton's built-in logger to Live's log file).
+
+**Validation:** Tool layer validates inputs — range checks, genre resolution via `resolve_alias()` (in `genres/catalog.py`). RS handlers validate LOM object existence (track index bounds, clip slot existence).
+
+**Authentication:** None. Single-tenant local socket — accepted only from `localhost`.
+
+**State:** No server-side state beyond the single persistent TCP socket. All Ableton session state lives in the LOM and is queried per-request.
+
+---
+
+*Architecture analysis: 2026-04-01*
