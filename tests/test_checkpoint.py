@@ -260,6 +260,30 @@ class TestCheckpoint:
             result = get_checkpoint("techno")
         assert "arrangement" in result["completed_phases"]
 
+    def test_scaffold_with_master_bus_not_complete(self):
+        """A session with 2 bare scaffold tracks (one with Compressor2) and master bus
+        with GlueCompressor + Limiter2 should NOT report all phases complete.
+        The short-circuit block would falsely return all phases; the sequential walk
+        correctly stops at drums (no drum-named track with instrument + clips)."""
+        arr = {
+            "tracks": [
+                _make_track("Track 1", False, 0, device_classes=["Compressor2"]),
+                _make_track("Track 2", False, 1),
+            ],
+            "cue_points": [{"name": "Intro", "time": 0.0}],
+            "song_length": 32.0,
+        }
+        dc = {"tracks": [{"index": 0, "name": "Track 1", "device_classes": ["Compressor2"]},
+                         {"index": 1, "name": "Track 2", "device_classes": []}],
+              "return_tracks": [],
+              "master_track": {"name": "Master", "device_classes": ["GlueCompressor", "Limiter2"]}}
+        with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+                   return_value=_make_conn(arr, dc, clips_by_track={})):
+            result = get_checkpoint("house")
+        # Only setup passes (2 tracks); drums fails (no drum-named track with instrument + clips)
+        assert result["completed_phases"] == ["setup"]
+        assert result["active_phase"] == "drums"
+
     def test_no_per_track_clip_queries(self):
         """Checkpoint must not issue per-track get_arrangement_clips calls."""
         arr = {
