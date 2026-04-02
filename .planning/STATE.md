@@ -57,7 +57,7 @@ Milestone: v1.9 COMPLETE (shipped 2026-04-01)
 - [v1.9]: Checkpoint reads live Ableton state (not persisted) — phase completion inferred heuristically from session topology
 - [v1.9]: ExecutionStep uses sentinel values for session-state args — Claude resolves at call time; keeps checklist generation stateless
 - [v1.9]: Token budget enforced by compact note arrays (≤8 notes per step) and short descriptions; all checklists <2000 chars
-- [v1.9]: master phase short-circuits phase-walk — GlueCompressor+Limiter2 on master → all phases complete (avoids requiring sound_design devices)
+- [v1.9]: master phase short-circuit removed — sequential walk handles master detection at phase_type=="master" check; no premature all-complete bypass
 - [v1.9]: get_next_actions with explicit phase_name bypasses checkpoint (pure computation, no connection needed)
 
 ### Roadmap Evolution

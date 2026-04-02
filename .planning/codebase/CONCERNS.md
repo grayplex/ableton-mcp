@@ -28,7 +28,7 @@
 
 **`_LIMITER` constant may not match Ableton's real class name:**
 - `_LIMITER = "Limiter2"` in `MCP_Server/orchestration/phase_detection.py:12`. `DEVICE_PATHS` (`AbletonMCP_Remote_Script/handlers/devices.py:25`) keys on `"Limiter"`, and `MCP_Server/devices/catalog.py:1525` has key `"Limiter"`. The actual class name returned by `device.class_name` in Ableton's Python API is the ground truth.
-- Impact: If Ableton reports the class as `"Limiter"` (not `"Limiter2"`), master phase detection never passes. The master short-circuit (`checkpoint.py:57`) also checks for `_LIMITER`, so it too would fail. Tests use mocked `class_name: "Limiter2"` so they pass regardless.
+- Impact: If Ableton reports the class as `"Limiter"` (not `"Limiter2"`), master phase detection in the sequential walk (`checkpoint.py:100-102`) never passes. Tests use mocked `class_name: "Limiter2"` so they pass regardless.
 - Risk: High — only discoverable by running against real Ableton.
 - Fix approach: Load a session with a Limiter on the master track and inspect `device.class_name` via a debug command or Ableton's console.
 
@@ -54,10 +54,6 @@
 ---
 
 ## Fragile Areas
-
-**Master short-circuit can produce false "production complete":**
-- If GlueCompressor and Limiter2 (or the real class name) are on the master track with `len(tracks) >= 2`, all phases are immediately returned as complete (`MCP_Server/orchestration/checkpoint.py:55-59`). A session with only a pre-loaded master bus and 2 scaffold tracks reports 100% completion.
-- Safe modification: Test changes to this block with multi-track session fixtures.
 
 **Sentinel value resolution depends on Claude understanding description hints:**
 - `ExecutionStep.suggested_args` contains literal strings like `"<track_index>"` and `"<clip_index>"` (`MCP_Server/orchestration/execution.py:238-241`). There is no machine-enforceable contract ensuring Claude resolves these before calling the tool. A literal sentinel string passed as an integer argument fails at the MCP boundary.
