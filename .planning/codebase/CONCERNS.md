@@ -22,9 +22,6 @@
 - The length-prefix framing functions `_recv_exact`, `send_message`, `recv_message` are implemented verbatim in both `MCP_Server/protocol.py:1-39` and `AbletonMCP_Remote_Script/__init__.py:38-68`.
 - Impact: Any framing bug or protocol change (e.g., max message size) must be fixed in two places across two separate Python runtimes.
 
-**`conftest.py` `_GAC_PATCH_TARGETS` requires manual updates:**
-- Every new tool module that imports `get_ableton_connection` via `from ... import` must be added to `_GAC_PATCH_TARGETS` in `tests/conftest.py`. New modules not listed will attempt a real socket connection during tests. Quick task 260401-pxk audited and fixed the current list, but future additions are at risk.
-
 **`_build_arrangement_steps` contains a non-callable em-dash placeholder step:**
 - Step 5 in `_build_arrangement_steps` (`MCP_Server/orchestration/execution.py:444`) has `tool_name: "\u2014"` (em-dash) and empty `suggested_args`. It is filtered by `_filter_steps` in `next_actions.py:23` before returning to Claude, but it still appears in raw `get_phase_execution_plan` output as a `total_steps` entry. `_NON_CALLABLE` in `next_actions.py:13` contains two em-dash variants (`"\u2014", "\u2014"`) — both are the same codepoint, the duplicate is benign but misleading.
 
