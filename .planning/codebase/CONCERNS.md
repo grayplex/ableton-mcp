@@ -136,4 +136,13 @@
 
 ---
 
+## Resolved
+
+**[RESOLVED 2026-04-02] Duplicate framing protocol implementation:**
+- Previously, `_recv_exact`, `send_message`, and `recv_message` were defined identically in both `AbletonMCP_Remote_Script/__init__.py` and `MCP_Server/protocol.py`. Any framing change (e.g., max message size, header format) required edits in two places.
+- Fix: Extracted RS copy to `AbletonMCP_Remote_Script/framing.py` as the canonical RS-runtime source. `__init__.py` now imports from `.framing`. Cross-reference comment added to `MCP_Server/protocol.py`.
+- Guardrail: `tests/test_protocol.py::TestProtocolSync` enforces that protocol constants (max message size, header format) stay in sync across both files.
+
+---
+
 *Concerns audit: 2026-04-02*
