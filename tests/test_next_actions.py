@@ -27,13 +27,13 @@ import pytest
 from MCP_Server.orchestration.next_actions import get_next_actions_result, get_transition_guidance
 
 
-def _make_track(name, has_instrument=True, index=0):
-    return {"name": name, "has_instrument": has_instrument, "index": index, "devices": [], "clips": [], "clip_count": 0, "has_clips": False}
+def _make_track(name, has_instrument=True, index=0, device_classes=None):
+    return {"name": name, "has_instrument": has_instrument, "index": index, "device_classes": device_classes or [], "clips": [], "clip_count": 0, "has_clips": False}
 
 
-def _make_conn(tracks, master_devices=None, clips_by_track=None):
+def _make_conn(tracks, master_device_classes=None, clips_by_track=None):
     clips_by_track = clips_by_track or {}
-    master_devices = master_devices or []
+    master_device_classes = master_device_classes or []
     # Inject real clips into each track dict so get_arrangement_state carries them
     enriched_tracks = []
     for t in tracks:
@@ -43,13 +43,19 @@ def _make_conn(tracks, master_devices=None, clips_by_track=None):
         tc["has_clips"] = len(tc["clips"]) > 0
         enriched_tracks.append(tc)
     arr_state = {"tracks": enriched_tracks, "cue_points": [], "song_length": 32.0}
-    mix_state = {"tracks": [], "return_tracks": [], "master_track": {"devices": master_devices}}
+    device_classes_state = {
+        "tracks": [{"index": i, "name": tc["name"],
+                    "device_classes": tc.get("device_classes", [])}
+                   for i, tc in enumerate(enriched_tracks)],
+        "return_tracks": [],
+        "master_track": {"name": "Master", "device_classes": master_device_classes}
+    }
     mock_conn = MagicMock()
     def send_command(cmd, params=None):
         if cmd == "get_arrangement_state":
             return arr_state
-        elif cmd == "get_mix_state":
-            return mix_state
+        elif cmd == "get_device_classes":
+            return device_classes_state
         elif cmd == "get_arrangement_clips":
             idx = (params or {}).get("track_index", 0)
             name = next((t["name"] for t in enriched_tracks if t.get("index") == idx), "")

@@ -44,16 +44,13 @@
 
 **`get_ableton_connection()` pings on every call while holding the global lock:** RESOLVED (260402-lky) -- Added `_healthy` flag; ping skipped when connection is healthy.
 
-**`get_mix_state` serializes full parameter lists — expensive for large sessions:**
-- `get_checkpoint` calls `get_mix_state` which returns all parameters for every device on every track (`AbletonMCP_Remote_Script/handlers/devices.py:2768-2772`). Checkpoint only needs device class names, not parameter values.
-- Impact: An 8-track session with 4 devices per track at ~30 parameters each generates ~960 parameter values over the socket per checkpoint.
-- Fix approach: Add a lightweight `get_device_classes` RS command returning only `{track_name: [class_name, ...]}`.
+**`get_mix_state` serializes full parameter lists — expensive for large sessions:** RESOLVED (260402-lys) -- Checkpoint and next_actions now use lightweight `get_device_classes` RS command (class names only, no parameters).
 
 **`apply_mix_recipe` and `apply_master_recipe` call `get_ableton_connection()` from an async executor thread:**
 - Both tools call `conn.send_command(...)` inside `asyncio.get_event_loop().run_in_executor(None, ...)` (`MCP_Server/tools/mixing.py:62-68, 95-100`). `get_ableton_connection()` acquires `_connection_lock` from the thread pool thread, contending with any concurrent tool calls on the main thread.
 
 **Sequential socket round-trips in checkpoint (partially fixed):**
-- Quick task 260401-pye fixed the N+2 per-track clips loop by using `has_clips` from `get_arrangement_state` rather than issuing separate `get_arrangement_clips` per track. Checkpoint now makes exactly 2 socket calls (`get_arrangement_state` + `get_mix_state`). This concern is resolved for typical sessions.
+- Quick task 260401-pye fixed the N+2 per-track clips loop by using `has_clips` from `get_arrangement_state` rather than issuing separate `get_arrangement_clips` per track. Checkpoint now makes exactly 2 socket calls (`get_arrangement_state` + `get_device_classes`). This concern is resolved for typical sessions.
 
 ---
 

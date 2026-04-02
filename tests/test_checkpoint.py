@@ -41,15 +41,15 @@ from MCP_Server.orchestration.checkpoint import get_checkpoint  # noqa: E402
 # ---------------------------------------------------------------------------
 
 EMPTY_ARRANGEMENT = {"tracks": [], "cue_points": [], "song_length": 0}
-EMPTY_MIX = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+EMPTY_DEVICE_CLASSES = {"tracks": [], "return_tracks": [], "master_track": {"name": "Master", "device_classes": []}}
 
 
-def _make_track(name, has_instrument=True, index=0, devices=None, has_clips=False):
+def _make_track(name, has_instrument=True, index=0, device_classes=None, has_clips=False):
     return {"name": name, "has_instrument": has_instrument, "index": index,
-            "devices": devices or [], "has_clips": has_clips}
+            "device_classes": device_classes or [], "has_clips": has_clips}
 
 
-def _make_conn(arrangement_state, mix_state, clips_by_track=None):
+def _make_conn(arrangement_state, device_classes_state, clips_by_track=None):
     """Build a mock connection that returns fixture data."""
     clips_by_track = clips_by_track or {}
     # Inject real clip lists into each track (simulates get_arrangement_state RS output)
@@ -63,8 +63,8 @@ def _make_conn(arrangement_state, mix_state, clips_by_track=None):
     def send_command(cmd, params=None):
         if cmd == "get_arrangement_state":
             return arrangement_state
-        elif cmd == "get_mix_state":
-            return mix_state
+        elif cmd == "get_device_classes":
+            return device_classes_state
         return {}
 
     mock_conn.send_command.side_effect = send_command
@@ -83,7 +83,7 @@ class TestCheckpoint:
 
     def test_empty_session(self):
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
-                   return_value=_make_conn(EMPTY_ARRANGEMENT, EMPTY_MIX)):
+                   return_value=_make_conn(EMPTY_ARRANGEMENT, EMPTY_DEVICE_CLASSES)):
             result = get_checkpoint("house")
         assert result["completed_phases"] == []
         assert result["active_phase"] == "setup"
@@ -99,10 +99,12 @@ class TestCheckpoint:
             "cue_points": [{"name": "Intro", "time": 0.0}],
             "song_length": 32.0,
         }
-        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+        dc = {"tracks": [{"index": 0, "name": "Kick", "device_classes": []},
+                         {"index": 1, "name": "Bass", "device_classes": []}],
+              "return_tracks": [], "master_track": {"name": "Master", "device_classes": []}}
         # Kick has no clips → drums not complete
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
-                   return_value=_make_conn(arr, mix, clips_by_track={})):
+                   return_value=_make_conn(arr, dc, clips_by_track={})):
             result = get_checkpoint("house")
         assert "setup" in result["completed_phases"]
         assert result["active_phase"] == "drums"
@@ -113,10 +115,12 @@ class TestCheckpoint:
             "cue_points": [{"name": "Intro", "time": 0.0}],
             "song_length": 32.0,
         }
-        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+        dc = {"tracks": [{"index": 0, "name": "Kick Drums", "device_classes": []},
+                         {"index": 1, "name": "Bass", "device_classes": []}],
+              "return_tracks": [], "master_track": {"name": "Master", "device_classes": []}}
         clips = {"Kick Drums": [{"start_time": 0.0, "end_time": 8.0}]}
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
-                   return_value=_make_conn(arr, mix, clips)):
+                   return_value=_make_conn(arr, dc, clips)):
             result = get_checkpoint("house")
         assert "drums" in result["completed_phases"]
 
@@ -126,9 +130,10 @@ class TestCheckpoint:
             "cue_points": [],
             "song_length": 16.0,
         }
-        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+        dc = {"tracks": [{"index": 0, "name": "Track1", "device_classes": []}],
+              "return_tracks": [], "master_track": {"name": "Master", "device_classes": []}}
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
-                   return_value=_make_conn(arr, mix)):
+                   return_value=_make_conn(arr, dc)):
             result = get_checkpoint(None)
         assert result["active_phase"] is None
         assert result["session_stats"]["track_count"] == 1
@@ -136,24 +141,22 @@ class TestCheckpoint:
     def test_master_complete(self):
         arr = {
             "tracks": [
-                _make_track("Kick", True, 0, devices=[{"class_name": "Compressor2"}], has_clips=True),
+                _make_track("Kick", True, 0, device_classes=["Compressor2"], has_clips=True),
                 _make_track("Bass", True, 1, has_clips=True),
             ],
             "cue_points": [{"name": "Intro", "time": 0.0}],
             "song_length": 32.0,
         }
-        master_devices = [
-            {"class_name": "GlueCompressor"},
-            {"class_name": "Limiter2"},
-        ]
-        mix = {"tracks": [], "return_tracks": [],
-               "master_track": {"devices": master_devices}}
+        dc = {"tracks": [{"index": 0, "name": "Kick", "device_classes": ["Compressor2"]},
+                         {"index": 1, "name": "Bass", "device_classes": []}],
+              "return_tracks": [],
+              "master_track": {"name": "Master", "device_classes": ["GlueCompressor", "Limiter2"]}}
         clips = {
             "Kick": [{"start_time": 0.0, "end_time": 8.0}],
             "Bass": [{"start_time": 0.0, "end_time": 8.0}],
         }
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
-                   return_value=_make_conn(arr, mix, clips)):
+                   return_value=_make_conn(arr, dc, clips)):
             result = get_checkpoint("techno")
         assert "master" in result["completed_phases"]
 
@@ -165,14 +168,11 @@ class TestCheckpoint:
             "cue_points": [],
             "song_length": 0,
         }
-        master_devices = [
-            {"class_name": "GlueCompressor"},
-            {"class_name": "Limiter2"},
-        ]
-        mix = {"tracks": [], "return_tracks": [],
-               "master_track": {"devices": master_devices}}
+        dc = {"tracks": [{"index": 0, "name": "Master Template", "device_classes": []}],
+              "return_tracks": [],
+              "master_track": {"name": "Master", "device_classes": ["GlueCompressor", "Limiter2"]}}
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
-                   return_value=_make_conn(arr, mix)):
+                   return_value=_make_conn(arr, dc)):
             result = get_checkpoint("house")
         # Should NOT report all phases complete
         from MCP_Server.orchestration.agenda import AGENDA_CATALOG
@@ -183,7 +183,7 @@ class TestCheckpoint:
 
     def test_resume_hint_is_single_sentence(self):
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
-                   return_value=_make_conn(EMPTY_ARRANGEMENT, EMPTY_MIX)):
+                   return_value=_make_conn(EMPTY_ARRANGEMENT, EMPTY_DEVICE_CLASSES)):
             result = get_checkpoint("house")
         hint = result["resume_hint"]
         assert "\n" not in hint
@@ -198,9 +198,11 @@ class TestCheckpoint:
             "cue_points": [],
             "song_length": 16.0,
         }
-        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+        dc = {"tracks": [{"index": 0, "name": "Drums", "device_classes": []},
+                         {"index": 1, "name": "Bass", "device_classes": []}],
+              "return_tracks": [], "master_track": {"name": "Master", "device_classes": []}}
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
-                   return_value=_make_conn(arr, mix)):
+                   return_value=_make_conn(arr, dc)):
             result = get_checkpoint("house")
         assert result["session_stats"]["track_count"] == 2
         assert result["session_stats"]["tracks_with_instruments"] == 1
@@ -212,45 +214,49 @@ class TestCheckpoint:
         satisfy the arrangement phase — clips must span all defined sections.
         """
         # techno: setup→drums→bass→sound_design→arrangement→mix→master
-        devices_sd = [{"class_name": "AutoFilter"}]
         arr = {
             "tracks": [
                 _make_track("Kick Drums", True, 0),
                 _make_track("Bass", True, 1),
-                _make_track("Synth", True, 2, devices=devices_sd),
+                _make_track("Synth", True, 2, device_classes=["AutoFilter"]),
             ],
             "cue_points": [{"name": "Intro", "time": 0.0}, {"name": "Drop", "time": 32.0}],
             "song_length": 64.0,
         }
-        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+        dc = {"tracks": [{"index": 0, "name": "Kick Drums", "device_classes": []},
+                         {"index": 1, "name": "Bass", "device_classes": []},
+                         {"index": 2, "name": "Synth", "device_classes": ["AutoFilter"]}],
+              "return_tracks": [], "master_track": {"name": "Master", "device_classes": []}}
         # One clip per track — fewer than the 2 defined sections
         single_clips = {t: [{"start_time": 0.0, "length": 8.0}]
                         for t in ("Kick Drums", "Bass", "Synth")}
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
-                   return_value=_make_conn(arr, mix, single_clips)):
+                   return_value=_make_conn(arr, dc, single_clips)):
             result = get_checkpoint("techno")
         assert "arrangement" not in result["completed_phases"]
 
     def test_arrangement_multi_section_clips_complete(self):
         """Arrangement phase IS complete when each track has one clip per section."""
-        devices_sd = [{"class_name": "AutoFilter"}]
         arr = {
             "tracks": [
                 _make_track("Kick Drums", True, 0),
                 _make_track("Bass", True, 1),
-                _make_track("Synth", True, 2, devices=devices_sd),
+                _make_track("Synth", True, 2, device_classes=["AutoFilter"]),
             ],
             "cue_points": [{"name": "Intro", "time": 0.0}, {"name": "Drop", "time": 32.0}],
             "song_length": 64.0,
         }
-        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+        dc = {"tracks": [{"index": 0, "name": "Kick Drums", "device_classes": []},
+                         {"index": 1, "name": "Bass", "device_classes": []},
+                         {"index": 2, "name": "Synth", "device_classes": ["AutoFilter"]}],
+              "return_tracks": [], "master_track": {"name": "Master", "device_classes": []}}
         # Two clips per track — one per defined section
         multi_clips = {
             t: [{"start_time": 0.0, "length": 8.0}, {"start_time": 32.0, "length": 8.0}]
             for t in ("Kick Drums", "Bass", "Synth")
         }
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
-                   return_value=_make_conn(arr, mix, multi_clips)):
+                   return_value=_make_conn(arr, dc, multi_clips)):
             result = get_checkpoint("techno")
         assert "arrangement" in result["completed_phases"]
 
@@ -264,14 +270,17 @@ class TestCheckpoint:
             ],
             "cue_points": [], "song_length": 32.0,
         }
-        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
-        mock = _make_conn(arr, mix)
+        dc = {"tracks": [{"index": 0, "name": "Drums", "device_classes": []},
+                         {"index": 1, "name": "Bass", "device_classes": []},
+                         {"index": 2, "name": "Chords", "device_classes": []}],
+              "return_tracks": [], "master_track": {"name": "Master", "device_classes": []}}
+        mock = _make_conn(arr, dc)
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
                    return_value=mock):
             get_checkpoint("house")
         commands = [call.args[0] for call in mock.send_command.call_args_list]
         assert "get_arrangement_clips" not in commands
-        assert commands == ["get_arrangement_state", "get_mix_state"]
+        assert commands == ["get_arrangement_state", "get_device_classes"]
 
 
 class TestCheckpointCache:
@@ -289,8 +298,10 @@ class TestCheckpointCache:
             ],
             "cue_points": [], "song_length": 32.0,
         }
-        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
-        mock = _make_conn(arr, mix)
+        dc = {"tracks": [{"index": 0, "name": "Drums", "device_classes": []},
+                         {"index": 1, "name": "Bass", "device_classes": []}],
+              "return_tracks": [], "master_track": {"name": "Master", "device_classes": []}}
+        mock = _make_conn(arr, dc)
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
                    return_value=mock):
             result1 = get_checkpoint("house")
@@ -310,8 +321,10 @@ class TestCheckpointCache:
             ],
             "cue_points": [], "song_length": 32.0,
         }
-        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
-        mock = _make_conn(arr, mix)
+        dc = {"tracks": [{"index": 0, "name": "Drums", "device_classes": []},
+                         {"index": 1, "name": "Bass", "device_classes": []}],
+              "return_tracks": [], "master_track": {"name": "Master", "device_classes": []}}
+        mock = _make_conn(arr, dc)
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
                    return_value=mock):
             get_checkpoint("house")
@@ -331,8 +344,10 @@ class TestCheckpointCache:
             ],
             "cue_points": [], "song_length": 32.0,
         }
-        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
-        mock = _make_conn(arr, mix)
+        dc = {"tracks": [{"index": 0, "name": "Drums", "device_classes": []},
+                         {"index": 1, "name": "Bass", "device_classes": []}],
+              "return_tracks": [], "master_track": {"name": "Master", "device_classes": []}}
+        mock = _make_conn(arr, dc)
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
                    return_value=mock):
             get_checkpoint("house")
