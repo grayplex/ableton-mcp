@@ -106,10 +106,11 @@ None — v1.9 complete.
 | 260401-qhm | make send_command thread-safe by holding a per-connection lock during the socket write+read cycle | 2026-04-02 | 4d86ff9 | [260401-qhm-make-send-command-thread-safe-by-holding](./quick/260401-qhm-make-send-command-thread-safe-by-holding/) |
 | 260401-qjf | fix get_arrangement_state track index sentinel resolution | 2026-04-02 | a05dc6e | [260401-qjf-fix-get-arrangement-state-track-index-se](./quick/260401-qjf-fix-get-arrangement-state-track-index-se/) |
 | 260402-l9f | Fix checkpoint cache not invalidated after write operations | 2026-04-02 | ba09f84 | [260402-l9f-fix-checkpoint-cache-not-invalidated-aft](./quick/260402-l9f-fix-checkpoint-cache-not-invalidated-aft/) |
+| 260402-lky | Skip ping in get_ableton_connection when connection is healthy | 2026-04-02 | 4867792 | [260402-lky-skip-ping-in-get-ableton-connection-when](./quick/260402-lky-skip-ping-in-get-ableton-connection-when/) |
 
 ## Session Continuity
 
 Last session: 2026-04-01
 Stopped at: "v1.9 complete — all 4 phases shipped, 31 tests passing"
-Last activity: 2026-04-02 - Completed quick task 260402-l9f: Fix checkpoint cache not invalidated after write operations
+Last activity: 2026-04-02 - Completed quick task 260402-lky: Skip ping in get_ableton_connection when healthy
 Resume file: None
