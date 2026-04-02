@@ -117,7 +117,7 @@ None — v1.9 complete.
 | 260402-ohp | Fix apply_recipe RS-side per-device timeout alignment with MCP-side timeout | 2026-04-02 | d3203f5 | [260402-ohp-fix-apply-recipe-rs-side-per-device-time](./quick/260402-ohp-fix-apply-recipe-rs-side-per-device-time/) |
 | 260402-op1 | Fix connection singleton concurrent safety - document and simplify locking design | 2026-04-02 | 7dc18b1 | [260402-op1-fix-connection-singleton-concurrent-safe](./quick/260402-op1-fix-connection-singleton-concurrent-safe/) |
 | 260402-p7k | Fix missing dev dependencies (mcp, pytest-asyncio, tiktoken) | 2026-04-02 | ce57889 | [260402-p7k-fix-missing-dev-dependencies-mcp-pytest-](./quick/260402-p7k-fix-missing-dev-dependencies-mcp-pytest-/) |
-| 260402-q4q | Fix get_arrangement_state track index sentinel staleness concern in CONCERNS.md | 2026-04-02 | — | [260402-q4q-fix-get-arrangement-state-track-index-se](./quick/260402-q4q-fix-get-arrangement-state-track-index-se/) |
+| 260402-q4q | Fix get_arrangement_state track index sentinel staleness concern in CONCERNS.md | 2026-04-02 | d4f516e | [260402-q4q-fix-get-arrangement-state-track-index-se](./quick/260402-q4q-fix-get-arrangement-state-track-index-se/) |
 
 ## Session Continuity
 
