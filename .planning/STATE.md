@@ -110,10 +110,11 @@ None — v1.9 complete.
 | 260402-lys | Add get_device_classes RS command to avoid full parameter serialization in checkpoint | 2026-04-02 | 6be4b56 | [260402-lys-add-get-device-classes-rs-command-to-avo](./quick/260402-lys-add-get-device-classes-rs-command-to-avo/) |
 | 260402-ofy | Fix apply_mix_recipe and apply_master_recipe run_in_executor connection contention | 2026-04-02 | 01acab4 | [260402-ofy-fix-apply-mix-recipe-and-apply-master-re](./quick/260402-ofy-fix-apply-mix-recipe-and-apply-master-re/) |
 | 260402-p28 | Expand phase detection name sets to cover common custom track names | 2026-04-02 | 4f99e0e | [260402-p28-expand-phase-detection-name-sets-to-cove](./quick/260402-p28-expand-phase-detection-name-sets-to-cove/) |
+| 260402-r2p | Fix master short-circuit false production-complete | 2026-04-02 | 7fbd8ff | [260402-r2p-fix-master-short-circuit-false-productio](./quick/260402-r2p-fix-master-short-circuit-false-productio/) |
 
 ## Session Continuity
 
 Last session: 2026-04-01
 Stopped at: "v1.9 complete — all 4 phases shipped, 31 tests passing"
-Last activity: 2026-04-02 - Completed quick task 260402-p28: Expand phase detection name sets to cover common custom track names
+Last activity: 2026-04-02 - Completed quick task 260402-r2p: Fix master short-circuit false production-complete
 Resume file: None
