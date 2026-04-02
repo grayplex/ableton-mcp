@@ -57,9 +57,7 @@
 
 **Sentinel value resolution depends on Claude understanding description hints:** RESOLVED (260402-rb4) -- All sentinel steps now have `depends_on_step` pointing to a query step (`get_arrangement_overview`). `_build_sound_design_steps` and `_build_mix_steps` prepend a query step; instrument-phase builders (drums, bass, harmony, melody) chain from `create_midi_track`. Test `test_sentinel_steps_have_depends_on_step` enforces the invariant.
 
-**Browser item loading depends on 1-tick schedule_message timing:**
-- `_verify_load` fires after `schedule_message(1, ...)` — 1 Ableton scheduler tick (`AbletonMCP_Remote_Script/handlers/browser.py:462-471`). Under load (plugin scanning, large session), one tick may not be enough for device count to increase. The automatic retry (`browser.py:535-565`) adds one more tick. With retries exhausted, the load returns `{"loaded": False}`.
-- Safe modification: Do not decrease the schedule delay. The 30-second `response_queue.get(timeout=30.0)` (`browser.py:484`) provides the outer bound.
+**Browser item loading depends on 1-tick schedule_message timing:** RESOLVED (260402-t7c) -- Increased schedule_message delay from 1 to 4 ticks at both verification sites (do_load and retry_load) and increased default retries from 1 to 2. The 30-second outer timeout provides ample headroom.
 
 **`apply_recipe` device loading has no cap on retries:**
 - `AbletonMCP_Remote_Script/handlers/devices.py:2583` uses `response_queue.get(timeout=30.0)` for each device in the recipe. For `apply_master_recipe` with 3 devices, the worst-case timeout is `3 × 30s = 90s` before all failures surface. The MCP-side timeout `max(30.0, len(devices_payload) * 15.0)` (`MCP_Server/tools/mixing.py:61`) is calculated from MCP side, but the RS-side per-device queue wait is independent and can exceed it.
