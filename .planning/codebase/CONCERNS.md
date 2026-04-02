@@ -36,22 +36,12 @@
 
 ## Architectural Risks
 
-**RESOLVED: Connection singleton is not fully safe under concurrent tool calls:**
-- `_ableton_connection` in `MCP_Server/connection.py:306` is protected by `_connection_lock` during creation and liveness validation. The per-connection `_send_lock` (added in quick task 260401-qhm, `connection.py:218, 267`) now serializes socket write+read cycles on the same connection. This prevents interleaved messages on a single socket. However, `get_ableton_connection()` holds `_connection_lock` while doing a ping, then returns the connection. A second caller acquires `_connection_lock` and also pings. Both then hold separate references and can call `send_command` concurrently — but `_send_lock` on the shared `AbletonConnection` instance serializes those. The design is correct as of 260401-qhm but is intricate and depends on callers using the same instance.
-- Resolution (260402-op1): The two-level locking model (`_connection_lock` for singleton lifecycle, `_send_lock` for I/O serialization) is correct and now thoroughly documented in `connection.py`. The `_healthy` fast-path minimizes lock contention for the common case.
-
 **No formal session-state persistence:**
 - All production progress (completed phases, applied refinements, production brief) exists only in Ableton's live session and the in-memory MCP connection. A Claude context reset loses all orchestration state. HIST-01 (execution log) and REFN-03 (refinement log) are unimplemented, leaving resume-after-reset incomplete for any production beyond the setup phase.
 
 **Ableton `_Framework.ControlSurface` is an undocumented private API:**
 - `from _Framework.ControlSurface import ControlSurface` (`AbletonMCP_Remote_Script/__init__.py:14`). The underscore prefix signals Ableton's private internal framework. Major Ableton version upgrades (e.g., Live 11 → 12) have historically changed or removed `_Framework` classes with no public notice.
 - Fix approach: Monitor Ableton Live release notes. Add a startup check that catches `ImportError` on `_Framework` and logs a clear message.
-
-**Three key packages absent from current dev environment:**
-- `mcp` (FastMCP) is not installed; `ModuleNotFoundError: No module named 'mcp'` occurs on import of any `MCP_Server.tools.*` module. This causes ~411 test failures.
-- `pytest-asyncio` is absent; `asyncio_mode = "auto"` in `pyproject.toml` has no effect; all `async def test_*` functions fail.
-- `tiktoken` is absent; `tests/test_genre_quality.py` fails at import.
-- Fix: `pip install mcp[cli] pytest-asyncio tiktoken` or `pip install -e ".[dev]"`.
 
 **`get_arrangement_state` track index sentinel resolution requires extra round-trips:**
 - `ExecutionStep.suggested_args` uses `"<track_index>"` sentinels. The description instructs Claude to resolve via `get_all_tracks()` or `get_arrangement_overview`. Every phase execution needs at least one extra socket call per new track for index resolution. If the user adds tracks in Ableton between plan generation and execution, the resolved index may be stale.
