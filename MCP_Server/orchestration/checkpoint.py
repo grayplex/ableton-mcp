@@ -49,11 +49,11 @@ def _infer_completed_phases(genre_id: str, tracks: list, clips_by_track: dict,
     phase_order = AGENDA_CATALOG.get(genre_id, [])
     all_device_classes = set()
     for t in tracks:
-        for d in t.get("devices", []):
-            all_device_classes.add(d.get("class_name", ""))
+        for cn in t.get("device_classes", []):
+            all_device_classes.add(cn)
 
     # If master chain is complete (GlueCompressor + Limiter2 present), all phases done.
-    master_class_names = {d.get("class_name", "") for d in master_devices}
+    master_class_names = set(master_devices)
     if (_GLUE_COMPRESSOR in master_class_names and _LIMITER in master_class_names
             and len(tracks) >= 2 and _COMPRESSOR in all_device_classes):
         return list(phase_order)
@@ -103,7 +103,7 @@ def _infer_completed_phases(genre_id: str, tracks: list, clips_by_track: dict,
             # At least one non-master track has Compressor2
             done = _COMPRESSOR in all_device_classes
         elif phase_type == "master":
-            master_class_names = {d.get("class_name", "") for d in master_devices}
+            master_class_names = set(master_devices)
             done = _GLUE_COMPRESSOR in master_class_names and _LIMITER in master_class_names
         else:
             done = False
@@ -121,9 +121,9 @@ def _build_session_stats(tracks: list, clips_by_track: dict, master_devices: lis
     tracks_with_clips = sum(1 for t in tracks if _track_has_clips(t["name"], clips_by_track))
     all_device_classes = set()
     for t in tracks:
-        for d in t.get("devices", []):
-            all_device_classes.add(d.get("class_name", ""))
-    master_class_names = {d.get("class_name", "") for d in master_devices}
+        for cn in t.get("device_classes", []):
+            all_device_classes.add(cn)
+    master_class_names = set(master_devices)
     return SessionStats(
         track_count=len(tracks),
         tracks_with_instruments=tracks_with_instruments,
@@ -155,13 +155,20 @@ def get_checkpoint(genre: str = None) -> dict:
     try:
         conn = get_ableton_connection()
         arrangement_state = conn.send_command("get_arrangement_state")
-        mix_state = conn.send_command("get_mix_state")
+        device_classes = conn.send_command("get_device_classes")
     except Exception as e:
         return {"error": f"Could not connect to Ableton: {e}"}
 
     tracks = arrangement_state.get("tracks", [])
     cue_points = arrangement_state.get("cue_points", [])
-    master_devices = mix_state.get("master_track", {}).get("devices", [])
+    master_devices = device_classes.get("master_track", {}).get("device_classes", [])
+
+    # Merge device class names into arrangement tracks for phase detection
+    dc_by_name = {}
+    for dc_track in device_classes.get("tracks", []):
+        dc_by_name[dc_track["name"]] = dc_track.get("device_classes", [])
+    for t in tracks:
+        t["device_classes"] = dc_by_name.get(t["name"], [])
 
     # Build clips_by_track from real clip data returned by get_arrangement_state
     clips_by_track = {track["name"]: track.get("clips", []) for track in tracks}
