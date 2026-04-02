@@ -9,6 +9,10 @@
 **Prompt parser is English-only:**
 - The signal lexicon (`MCP_Server/prompt/lexicon.py:1-13`) covers English keywords only. Non-English prompts pass tokens through as `raw_descriptors` with no signal extraction. This is documented in the file header but there is no translation layer or multilingual fallback.
 
+**Track index sentinel resolution is stateless (staleness possible):**
+- `ExecutionStep.suggested_args` uses `"<track_index>"` sentinels resolved at execution time via a query step. If the user adds or removes tracks in Ableton between plan generation and execution, the resolved index may target the wrong track. This is inherent to the stateless plan-then-execute architecture.
+- Mitigations: All sentinel steps have explicit `depends_on_step` pointing to a query step (260402-rb4), so resolution always uses fresh track data. The window of staleness is limited to changes made between the query step and the dependent action step within a single phase execution.
+
 ---
 
 ## Technical Debt
@@ -42,10 +46,6 @@
 **Ableton `_Framework.ControlSurface` is an undocumented private API:**
 - `from _Framework.ControlSurface import ControlSurface` (`AbletonMCP_Remote_Script/__init__.py:14`). The underscore prefix signals Ableton's private internal framework. Major Ableton version upgrades (e.g., Live 11 → 12) have historically changed or removed `_Framework` classes with no public notice.
 - Fix approach: Monitor Ableton Live release notes. Add a startup check that catches `ImportError` on `_Framework` and logs a clear message.
-
-**`get_arrangement_state` track index sentinel resolution requires extra round-trips:**
-- `ExecutionStep.suggested_args` uses `"<track_index>"` sentinels. The description instructs Claude to resolve via `get_all_tracks()` or `get_arrangement_overview`. Every phase execution needs at least one extra socket call per new track for index resolution. If the user adds tracks in Ableton between plan generation and execution, the resolved index may be stale.
-- Note (260402-rb4): The dependency chain is now explicit -- all sentinel steps have `depends_on_step` pointing to a query step. The extra round-trip is intentional and minimal (1 call per phase).
 
 ---
 
