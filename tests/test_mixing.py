@@ -448,6 +448,9 @@ class TestApplyMixRecipe:
         assert payload["track_index"] == 0
         assert isinstance(payload["devices"], list)
         assert len(payload["devices"]) > 0
+        # Timeout passthrough: payload timeout must match send_command kwarg
+        assert "timeout" in payload
+        assert payload["timeout"] == call_args[1]["timeout"]
 
     def test_invalid_role_returns_error(self):
         ctx = _mock_ctx()
@@ -496,6 +499,9 @@ class TestApplyMasterRecipe:
         assert call_args[0][0] == "apply_recipe"
         payload = call_args[0][1]
         assert payload["track_type"] == "master"
+        # Timeout passthrough: payload timeout must match send_command kwarg
+        assert "timeout" in payload
+        assert payload["timeout"] == call_args[1]["timeout"]
 
     def test_master_recipe_contains_expected_devices(self):
         mock_conn = MagicMock()
