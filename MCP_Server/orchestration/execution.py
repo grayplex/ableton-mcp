@@ -439,9 +439,6 @@ def _build_arrangement_steps(genre_id, section_name):
               "get_section_checklist",
               {"plan": {"genre": genre_id, "sections": []}, "section_name": sn},
               pt, 3),
-        # Non-callable placeholder — filtered by next_actions before returning to Claude
-        _step(5, "Review evaluate_session output and apply each item in top_fixes",
-              "\u2014", {}, pt, 4),
     ]
 
 
@@ -555,8 +552,7 @@ def get_execution_plan(phase_name: str, genre: str,
         step["step_number"] = i + 1
 
     total = len(steps)
-    # estimated_tool_calls excludes description-only steps (tool_name == "—")
-    tool_calls = sum(1 for s in steps if s["tool_name"] != "—")
+    tool_calls = total
 
     return PhaseChecklist(
         phase_name=phase_name_lower,
