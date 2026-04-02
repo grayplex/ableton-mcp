@@ -135,7 +135,10 @@ class TestCheckpoint:
 
     def test_master_complete(self):
         arr = {
-            "tracks": [_make_track("Kick", True, 0, has_clips=True), _make_track("Bass", True, 1, has_clips=True)],
+            "tracks": [
+                _make_track("Kick", True, 0, devices=[{"class_name": "Compressor2"}], has_clips=True),
+                _make_track("Bass", True, 1, has_clips=True),
+            ],
             "cue_points": [{"name": "Intro", "time": 0.0}],
             "song_length": 32.0,
         }
@@ -153,6 +156,30 @@ class TestCheckpoint:
                    return_value=_make_conn(arr, mix, clips)):
             result = get_checkpoint("techno")
         assert "master" in result["completed_phases"]
+
+    def test_master_shortcircuit_requires_production_work(self):
+        """Master bus template (GlueCompressor + Limiter2) with no real tracks
+        should NOT short-circuit to all-phases-complete."""
+        arr = {
+            "tracks": [_make_track("Master Template", False, 0)],
+            "cue_points": [],
+            "song_length": 0,
+        }
+        master_devices = [
+            {"class_name": "GlueCompressor"},
+            {"class_name": "Limiter2"},
+        ]
+        mix = {"tracks": [], "return_tracks": [],
+               "master_track": {"devices": master_devices}}
+        with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+                   return_value=_make_conn(arr, mix)):
+            result = get_checkpoint("house")
+        # Should NOT report all phases complete
+        from MCP_Server.orchestration.agenda import AGENDA_CATALOG
+        all_phases = list(AGENDA_CATALOG.get("house", []))
+        assert result["completed_phases"] != all_phases
+        # With only 1 track, setup is incomplete so active_phase should be "setup"
+        assert result["active_phase"] == "setup"
 
     def test_resume_hint_is_single_sentence(self):
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
