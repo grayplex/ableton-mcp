@@ -55,9 +55,7 @@
 
 ## Fragile Areas
 
-**Sentinel value resolution depends on Claude understanding description hints:**
-- `ExecutionStep.suggested_args` contains literal strings like `"<track_index>"` and `"<clip_index>"` (`MCP_Server/orchestration/execution.py:238-241`). There is no machine-enforceable contract ensuring Claude resolves these before calling the tool. A literal sentinel string passed as an integer argument fails at the MCP boundary.
-- Safe modification: All sentinel steps should have `depends_on_step` pointing to a query step (`get_arrangement_overview`, `get_all_tracks`) that provides the needed value.
+**Sentinel value resolution depends on Claude understanding description hints:** RESOLVED (260402-rb4) -- All sentinel steps now have `depends_on_step` pointing to a query step (`get_arrangement_overview`). `_build_sound_design_steps` and `_build_mix_steps` prepend a query step; instrument-phase builders (drums, bass, harmony, melody) chain from `create_midi_track`. Test `test_sentinel_steps_have_depends_on_step` enforces the invariant.
 
 **Browser item loading depends on 1-tick schedule_message timing:**
 - `_verify_load` fires after `schedule_message(1, ...)` — 1 Ableton scheduler tick (`AbletonMCP_Remote_Script/handlers/browser.py:462-471`). Under load (plugin scanning, large session), one tick may not be enough for device count to increase. The automatic retry (`browser.py:535-565`) adds one more tick. With retries exhausted, the load returns `{"loaded": False}`.
@@ -88,6 +86,7 @@
 
 **`get_arrangement_state` track index sentinel resolution requires extra round-trips:**
 - `ExecutionStep.suggested_args` uses `"<track_index>"` sentinels. The description instructs Claude to resolve via `get_all_tracks()` or `get_arrangement_overview`. Every phase execution needs at least one extra socket call per new track for index resolution. If the user adds tracks in Ableton between plan generation and execution, the resolved index may be stale.
+- Note (260402-rb4): The dependency chain is now explicit -- all sentinel steps have `depends_on_step` pointing to a query step. The extra round-trip is intentional and minimal (1 call per phase).
 
 ---
 
@@ -128,8 +127,9 @@
 
 **Sentinel resolution by Claude not tested end-to-end:**
 - No test verifies that Claude correctly resolves `"<track_index>"` string sentinels to integers before calling tools. Passing a literal sentinel string as an integer argument causes a type error at the MCP boundary.
+- Note (260402-rb4): Structural invariant test `test_sentinel_steps_have_depends_on_step` now ensures all sentinel steps have `depends_on_step` set, guaranteeing Claude has an explicit dependency chain. True E2E with Claude remains untested.
 - Files: `MCP_Server/orchestration/execution.py:256-286`
-- Priority: Medium
+- Priority: Medium (lowered -- structural invariant now enforced)
 
 **`apply_recipe` timeout scaling under plugin scan not tested:**
 - `max(30.0, len(devices_payload) * 15.0)` MCP-side timeout may be exceeded by the RS-side per-device `response_queue.get(timeout=30.0)` in a slow plugin scan scenario.
