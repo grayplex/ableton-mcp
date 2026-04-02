@@ -32,32 +32,9 @@
 - Risk: High — only discoverable by running against real Ableton.
 - Fix approach: Load a session with a Limiter on the master track and inspect `device.class_name` via a debug command or Ableton's console.
 
-**`_step()` drops the `phase` key from ExecutionStep output:**
-- The `_step` factory in `MCP_Server/orchestration/execution.py:188-200` now includes `phase` in the output dict (fixed in quick task 260401-pp9). Confirmed: line 195 sets `"phase": phase`. No remaining bug here.
-
-**`neo_soul_rnb` drum pattern used to fall back to `house`:**
-- Fixed in quick task 260401-prt. `_GENRE_DRUM_GROUP` at `MCP_Server/orchestration/execution.py:150-163` now maps `neo_soul_rnb` to `"neo_soul_rnb"` with a dedicated pattern.
-
----
-
-## Performance Concerns
-
-**`get_ableton_connection()` pings on every call while holding the global lock:** RESOLVED (260402-lky) -- Added `_healthy` flag; ping skipped when connection is healthy.
-
-**`get_mix_state` serializes full parameter lists — expensive for large sessions:** RESOLVED (260402-lys) -- Checkpoint and next_actions now use lightweight `get_device_classes` RS command (class names only, no parameters).
-
-**`apply_mix_recipe` and `apply_master_recipe` executor thread contention:** RESOLVED (260402-ofy) -- Converted both tools from async to sync def. FastMCP runs sync tools in its own thread pool, eliminating the manual run_in_executor and associated lock contention.
-
-**Sequential socket round-trips in checkpoint (partially fixed):**
-- Quick task 260401-pye fixed the N+2 per-track clips loop by using `has_clips` from `get_arrangement_state` rather than issuing separate `get_arrangement_clips` per track. Checkpoint now makes exactly 2 socket calls (`get_arrangement_state` + `get_device_classes`). This concern is resolved for typical sessions.
-
 ---
 
 ## Fragile Areas
-
-**Sentinel value resolution depends on Claude understanding description hints:** RESOLVED (260402-rb4) -- All sentinel steps now have `depends_on_step` pointing to a query step (`get_arrangement_overview`). `_build_sound_design_steps` and `_build_mix_steps` prepend a query step; instrument-phase builders (drums, bass, harmony, melody) chain from `create_midi_track`. Test `test_sentinel_steps_have_depends_on_step` enforces the invariant.
-
-**Browser item loading depends on 1-tick schedule_message timing:** RESOLVED (260402-t7c) -- Increased schedule_message delay from 1 to 4 ticks at both verification sites (do_load and retry_load) and increased default retries from 1 to 2. The 30-second outer timeout provides ample headroom.
 
 **`apply_recipe` device loading has no cap on retries:**
 - `AbletonMCP_Remote_Script/handlers/devices.py:2583` uses `response_queue.get(timeout=30.0)` for each device in the recipe. For `apply_master_recipe` with 3 devices, the worst-case timeout is `3 × 30s = 90s` before all failures surface. The MCP-side timeout `max(30.0, len(devices_payload) * 15.0)` (`MCP_Server/tools/mixing.py:61`) is calculated from MCP side, but the RS-side per-device queue wait is independent and can exceed it.
@@ -133,15 +110,6 @@
 - `max(30.0, len(devices_payload) * 15.0)` MCP-side timeout may be exceeded by the RS-side per-device `response_queue.get(timeout=30.0)` in a slow plugin scan scenario.
 - Files: `MCP_Server/tools/mixing.py:61`, `AbletonMCP_Remote_Script/handlers/devices.py:2583`
 - Priority: Low
-
----
-
-## Resolved
-
-**[RESOLVED 2026-04-02] Duplicate framing protocol implementation:**
-- Previously, `_recv_exact`, `send_message`, and `recv_message` were defined identically in both `AbletonMCP_Remote_Script/__init__.py` and `MCP_Server/protocol.py`. Any framing change (e.g., max message size, header format) required edits in two places.
-- Fix: Extracted RS copy to `AbletonMCP_Remote_Script/framing.py` as the canonical RS-runtime source. `__init__.py` now imports from `.framing`. Cross-reference comment added to `MCP_Server/protocol.py`.
-- Guardrail: `tests/test_protocol.py::TestProtocolSync` enforces that protocol constants (max message size, header format) stay in sync across both files.
 
 ---
 
