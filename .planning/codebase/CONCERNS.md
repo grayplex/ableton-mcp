@@ -34,13 +34,6 @@
 
 ---
 
-## Fragile Areas
-
-**`apply_recipe` device loading has no cap on retries:**
-- `AbletonMCP_Remote_Script/handlers/devices.py:2583` uses `response_queue.get(timeout=30.0)` for each device in the recipe. For `apply_master_recipe` with 3 devices, the worst-case timeout is `3 × 30s = 90s` before all failures surface. The MCP-side timeout `max(30.0, len(devices_payload) * 15.0)` (`MCP_Server/tools/mixing.py:61`) is calculated from MCP side, but the RS-side per-device queue wait is independent and can exceed it.
-
----
-
 ## Architectural Risks
 
 **Connection singleton is not fully safe under concurrent tool calls:**

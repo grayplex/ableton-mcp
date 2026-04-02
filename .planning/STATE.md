@@ -114,10 +114,11 @@ None — v1.9 complete.
 | 260402-rb4 | Ensure all sentinel-arg execution steps have depends_on_step | 2026-04-02 | eda5a73 | [260402-rb4-ensure-all-sentinel-arg-execution-steps-](./quick/260402-rb4-ensure-all-sentinel-arg-execution-steps-/) |
 | 260402-t7c | Increase browser load verification tick delay for reliability under load | 2026-04-02 | 9a408bc | [260402-t7c-increase-browser-load-verification-tick-](./quick/260402-t7c-increase-browser-load-verification-tick-/) |
 | 260402-o86 | Fix duplicate framing protocol implementation in MCP_Server and AbletonMCP_Remote_Script | 2026-04-02 | db37347 | [260402-o86-fix-duplicate-framing-protocol-implement](./quick/260402-o86-fix-duplicate-framing-protocol-implement/) |
+| 260402-ohp | Fix apply_recipe RS-side per-device timeout alignment with MCP-side timeout | 2026-04-02 | d3203f5 | [260402-ohp-fix-apply-recipe-rs-side-per-device-time](./quick/260402-ohp-fix-apply-recipe-rs-side-per-device-time/) |
 
 ## Session Continuity
 
 Last session: 2026-04-02
 Stopped at: "Completed quick task 260402-rb4: Ensure all sentinel-arg execution steps have depends_on_step"
-Last activity: 2026-04-02 - Completed quick task 260402-o86: Fix duplicate framing protocol implementation in MCP_Server and AbletonMCP_Remote_Script
+Last activity: 2026-04-02 - Completed quick task 260402-ohp: Fix apply_recipe RS-side per-device timeout alignment with MCP-side timeout
 Resume file: None
