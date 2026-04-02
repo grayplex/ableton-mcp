@@ -103,10 +103,11 @@ None — v1.9 complete.
 | 260401-q5l | apply_recipe has 30-second timeout with no progress feedback | 2026-04-01 | b832a42 | [260401-q5l-apply-recipe-has-30-second-timeout-with-](./quick/260401-q5l-apply-recipe-has-30-second-timeout-with-/) |
 | 260401-q7f | ADPT-01 - add refine_agenda tool for adaptive agenda refinement | 2026-04-01 | 19b9051 | [260401-q7f-adpt-01-add-refine-agenda-tool-for-adapt](./quick/260401-q7f-adpt-01-add-refine-agenda-tool-for-adapt/) |
 | 260401-qc5 | Guard master short-circuit against empty-session false-positive | 2026-04-01 | bc8eafa | [260401-qc5-master-phase-short-circuits-phase-walk-w](./quick/260401-qc5-master-phase-short-circuits-phase-walk-w/) |
+| 260401-qhm | make send_command thread-safe by holding a per-connection lock during the socket write+read cycle | 2026-04-02 | 4d86ff9 | [260401-qhm-make-send-command-thread-safe-by-holding](./quick/260401-qhm-make-send-command-thread-safe-by-holding/) |
 
 ## Session Continuity
 
 Last session: 2026-04-01
 Stopped at: "v1.9 complete — all 4 phases shipped, 31 tests passing"
-Last activity: 2026-04-01 - Completed quick task 260401-qc5: Guard master short-circuit against empty-session false-positive
+Last activity: 2026-04-02 - Completed quick task 260401-qhm: make send_command thread-safe by holding a per-connection lock during the socket write+read cycle
 Resume file: None
