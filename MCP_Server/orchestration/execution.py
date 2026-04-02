@@ -406,22 +406,24 @@ def _build_sound_design_steps(genre_id):
     pt = "sound_design"
     sn = "resolve <synth_track_index> via get_arrangement_overview or get_all_tracks"
     return [
-        _step(1, f"Load Auto Filter on synth track. {sn}",
+        _step(1, "Query tracks to resolve synth track index",
+              "get_arrangement_overview", {}, pt),
+        _step(2, f"Load Auto Filter on synth track. {sn}",
               "load_instrument_or_effect",
               {"track_index": "<synth_track_index>", "path": "audio_effects/Auto Filter"},
-              pt),
-        _step(2, f"Set Auto Filter Frequency to 0.6. {sn}",
+              pt, 1),
+        _step(3, f"Set Auto Filter Frequency to 0.6. {sn}",
               "set_device_parameter",
               {"track_index": "<synth_track_index>", "device_index": 0, "parameter_name": "Frequency", "value": 0.6},
-              pt, 1),
-        _step(3, f"Load Reverb on synth track. {sn}",
+              pt, 2),
+        _step(4, f"Load Reverb on synth track. {sn}",
               "load_instrument_or_effect",
               {"track_index": "<synth_track_index>", "path": "audio_effects/Reverb"},
-              pt, 2),
-        _step(4, f"Set Reverb Dry/Wet to 0.3. {sn}",
+              pt, 3),
+        _step(5, f"Set Reverb Dry/Wet to 0.3. {sn}",
               "set_device_parameter",
               {"track_index": "<synth_track_index>", "device_index": 1, "parameter_name": "Dry/Wet", "value": 0.3},
-              pt, 3),
+              pt, 4),
     ]
 
 
@@ -448,15 +450,18 @@ def _build_mix_steps(genre_id, blueprint):
     if not roles:
         roles = ["kick", "bass", "pad"]
 
-    steps = []
+    steps = [
+        _step(1, "Query tracks to resolve role track indices",
+              "get_arrangement_overview", {}, pt),
+    ]
     for i, role in enumerate(roles):
         steps.append(_step(
-            i + 1,
+            i + 2,
             f"Apply mix recipe for {role}. resolve <{role}_track_index> via get_arrangement_overview or get_all_tracks.",
             "apply_mix_recipe",
             {"track_index": f"<{role}_track_index>", "role": role, "genre": genre_id},
             pt,
-            i if i > 0 else None,
+            i + 1 if i > 0 else 1,
         ))
 
     n = len(steps)
