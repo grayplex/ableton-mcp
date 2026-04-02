@@ -1,4 +1,35 @@
-"""Ableton connection management: socket lifecycle, timeouts, error formatting."""
+"""Ableton connection management: socket lifecycle, timeouts, error formatting.
+
+Locking Model
+=============
+This module uses a **two-level locking** design to make the singleton
+connection safe under concurrent MCP tool calls:
+
+1. ``_connection_lock`` (module-level ``threading.Lock``):
+   Guards creation and liveness validation of the singleton
+   ``_ableton_connection``.  Held only inside ``get_ableton_connection()``.
+   Ensures exactly one ``AbletonConnection`` instance exists at any time.
+
+2. ``_send_lock`` (per-instance ``threading.Lock`` on ``AbletonConnection``):
+   Serializes socket write+read cycles on the shared connection.  Held
+   during ``send_command()``.  Prevents interleaved messages from concurrent
+   callers that all hold a reference to the same instance.
+
+Key invariant
+-------------
+``get_ableton_connection()`` always returns the **same** ``AbletonConnection``
+instance (singleton).  Multiple callers holding references to it are safe
+because ``_send_lock`` on that shared instance serializes all socket I/O.
+The design would break if callers could somehow obtain different instances
+pointing at the same underlying socket.
+
+Performance note
+----------------
+The ``_healthy`` flag on ``AbletonConnection`` provides a fast path inside
+``get_ableton_connection()``: when the connection is healthy, the function
+returns immediately without issuing a ping round-trip, minimizing time spent
+holding ``_connection_lock``.
+"""
 
 import json
 import logging
@@ -93,9 +124,13 @@ class AbletonConnection:
     host: str
     port: int
     sock: socket.socket = None
+    # Serializes socket write+read cycles so concurrent callers sharing this
+    # instance never interleave messages on the wire.
     _send_lock: threading.Lock = field(
         default_factory=threading.Lock, init=False, repr=False, compare=False
     )
+    # Fast-path flag: when True, get_ableton_connection() skips the ping
+    # round-trip and returns immediately, reducing _connection_lock hold time.
     _healthy: bool = field(default=False, init=False, repr=False, compare=False)
 
     def connect(self) -> bool:
@@ -189,6 +224,8 @@ class AbletonConnection:
 
 # Global connection for resources -- protected by _connection_lock
 _ableton_connection = None
+# Guards singleton lifecycle: creation, liveness validation, and teardown.
+# Never held during normal send_command() calls -- only in get_ableton_connection().
 _connection_lock = threading.Lock()
 
 
@@ -204,8 +241,11 @@ def shutdown_connection():
 def get_ableton_connection():
     """Get or create a persistent Ableton connection.
 
-    Thread-safe: all access to _ableton_connection is serialized
-    by _connection_lock. Uses a real ping command for liveness testing
+    Returns the singleton connection.  Callers may call ``send_command``
+    concurrently -- ``_send_lock`` on the shared instance serializes I/O.
+
+    Thread-safe: all access to ``_ableton_connection`` is serialized by
+    ``_connection_lock``.  Uses a real ping command for liveness testing
     instead of sending empty bytes.
     """
     global _ableton_connection
