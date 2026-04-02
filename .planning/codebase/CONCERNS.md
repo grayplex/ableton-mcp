@@ -1,6 +1,6 @@
 # Codebase Concerns
 
-**Analysis Date:** 2026-04-01
+**Analysis Date:** 2026-04-02
 
 ---
 
@@ -9,127 +9,192 @@
 **`get_arrangement_clip_notes` is arrangement-only:**
 - The RS command `get_arrangement_clip_notes` (`AbletonMCP_Remote_Script/handlers/arrangement.py:116`) retrieves MIDI notes from arrangement clips only, identified by `clip_start_time` float position. There is no equivalent command for reading notes from session-view clip slots. Any tool that needs note content from session clips must use `get_clip_info` and is limited to clip metadata, not note data.
 
-**`get_arrangement_state` omits track index:**
-- The RS handler `_get_arrangement_state` (`AbletonMCP_Remote_Script/handlers/scaffold.py:51`) returns tracks as `{name, has_devices}` only — no `index` field. All checkpoint and next-action logic that inspects tracks works by name matching, not index. Any session with duplicate track names (e.g., two tracks both named "Pad") will silently cause incorrect phase inference.
+**`get_arrangement_state` returns `has_audio_output` as `has_instrument` proxy:**
+- The RS handler `_get_arrangement_state` (`AbletonMCP_Remote_Script/handlers/scaffold.py:71`) emits `"has_instrument": getattr(track, "has_audio_output", False)`. Audio tracks always have `has_audio_output = True`, so empty audio tracks appear to have instruments. MIDI tracks with only FX devices also test True because FX devices produce audio output. Phase detection in checkpoint.py and next_actions.py consumes this field.
+- Fix approach: Use a device type check (`any(d for d in track.devices if is_instrument_device(d))`) rather than the `has_audio_output` proxy.
 
-**Checkpoint clips-by-track is capped at 8 tracks:**
-- `get_checkpoint` and `get_transition_guidance` both iterate `tracks[:8]` when fetching `get_arrangement_clips` per track (`MCP_Server/orchestration/checkpoint.py:158`, `MCP_Server/orchestration/next_actions.py:223`). Sessions with more than 8 tracks will have clips for tracks 9+ treated as empty, causing incorrect "phase not complete" reporting.
-
-**`has_devices` means any device, not just instruments:**
-- The `has_devices` flag in `get_arrangement_state` is `len(track.devices) > 0`, which is `True` even if the track has only FX devices and no instrument. Checkpoint logic uses `has_devices` as a proxy for "track has an instrument loaded", which produces false positives for FX-only tracks.
-
-**Execution step `clip_index: 0` assumption:**
-- All session-clip phase steps in `MCP_Server/orchestration/execution.py` hardcode `"clip_index": 0`. This assumes every newly created track will have its first clip in slot 0. A session where slot 0 is already occupied (e.g., after multiple rounds of work) will fail silently at the note-writing step.
+**Checkpoint `clips_by_track` uses a sentinel `["_"]` instead of real clip data:**
+- `get_checkpoint` (`MCP_Server/orchestration/checkpoint.py:162-166`) uses `["_"] if track.get("has_clips") else []` to build `clips_by_track`. Only clip presence (boolean) is tracked, not count, length, or which sections have clips. The arrangement phase completion check sees any clip as sufficient.
+- Impact: Cannot distinguish "one 4-bar intro clip" from "clips across all sections".
 
 **Prompt parser is English-only:**
-- The signal lexicon (`MCP_Server/prompt/lexicon.py`) covers English keywords only. Non-English prompts pass tokens through as `raw_descriptors` with no signal extraction. This is documented as out-of-scope for v1.7 but is a hard boundary with no fallback.
+- The signal lexicon (`MCP_Server/prompt/lexicon.py:1-13`) covers English keywords only. Non-English prompts pass tokens through as `raw_descriptors` with no signal extraction. This is documented in the file header but there is no translation layer or multilingual fallback.
 
 ---
 
 ## Technical Debt
 
+**HIST-01 — Phase step-skipping is deferred:**
+- When `active_phase_progress > 0.3`, `get_next_actions` should skip already-done steps. This is explicitly commented out: `# Skip steps if phase already started (progress > 0.3) — return all for now (HIST-01 deferred)` (`MCP_Server/orchestration/next_actions.py:197`).
+- Impact: Claude receives redundant early steps (e.g., "create track") after a context refresh mid-phase. Wastes tool calls.
+- Fix approach: Use `active_phase_progress` to offset the step slice, or check sentinel track names against live `get_all_tracks` output.
+
+**Stale `instrument_name` param in execution step `suggested_args`:**
+- `_build_drums_steps`, `_build_bass_steps`, `_build_harmony_steps`, `_build_melody_steps` all emit `{"instrument_name": "..."}` as a suggested arg to `load_instrument_or_effect` (`MCP_Server/orchestration/execution.py:272, 315, 355, 396, 410, 418`). The actual MCP tool signature (`MCP_Server/tools/devices.py:12`) accepts `uri` or `path`, not `instrument_name`.
+- Impact: If Claude uses suggested_args verbatim, the Remote Script raises `"Provide item_uri or path"` (browser.py:405).
+- Fix approach: Replace `instrument_name` with `"path": "instruments/..."` which matches the tool's actual parameter.
+
+**Duplicate framing protocol implementation:**
+- The length-prefix framing functions `_recv_exact`, `send_message`, `recv_message` are implemented verbatim in both `MCP_Server/protocol.py:1-39` and `AbletonMCP_Remote_Script/__init__.py:38-68`.
+- Impact: Any framing bug or protocol change (e.g., max message size) must be fixed in two places across two separate Python runtimes.
+
+**`_WRITE_COMMANDS` frozenset is manually maintained:**
+- `MCP_Server/connection.py:39-185` maintains a 100+ entry frozenset of write command names for timeout routing. It must be updated for every new write handler. The list's inline phase comments ("Phase 12", "Phase 13") reveal accretion over time. A command omitted from this list silently gets the 10s read timeout instead of the 15s write timeout.
+- Fix approach: Derive the write command set from the `@command(..., write=True)` registry entries and expose it via `CommandRegistry`.
+
 **Duplicate phase-detection constants across two modules:**
-- Phase name sets (`_DRUM_NAMES`, `_BASS_NAMES`, `_HARMONY_NAMES`, `_MELODY_NAMES`) and device class name strings (`_COMPRESSOR`, `_GLUE_COMPRESSOR`, `_LIMITER`) are defined identically in both `MCP_Server/orchestration/checkpoint.py` and `MCP_Server/orchestration/next_actions.py`. A comment in `next_actions.py:12` acknowledges this: `"# Phase completion heuristics (same as checkpoint.py, duplicated for clarity)"`. Any update to detection logic must be applied in both files or the two modules will diverge.
-
-**Double `get_ableton_connection()` calls per checkpoint request:**
-- Both `get_checkpoint` and `get_transition_guidance` call `get_ableton_connection()` twice per invocation: once for arrangement/mix state, then again as `conn2` for the per-track clip loop. Since `get_ableton_connection` uses a global singleton under a mutex, both calls return the same socket — but the mutex is acquired and released twice, and the second call triggers a fresh liveness ping. Files: `MCP_Server/orchestration/checkpoint.py:146+157`, `MCP_Server/orchestration/next_actions.py:211+222`.
-
-**`_step()` drops the `phase` key from ExecutionStep output:**
-- The `_step` factory function in `MCP_Server/orchestration/execution.py:119` explicitly omits the `phase` key from the returned dict to minimize tokens. The `ExecutionStep` TypedDict in `MCP_Server/orchestration/schema.py:36` declares `phase: str` as a required field. Produced dicts are schema-non-conformant. This causes no runtime error (TypedDict is not enforced), but any consumer expecting `step["phase"]` will raise a `KeyError`.
-
-**`_build_arrangement_steps` contains a non-callable placeholder step:**
-- Step 5 in `_build_arrangement_steps` (`MCP_Server/orchestration/execution.py:370`) has `tool_name: "—"` and empty `suggested_args`. It is excluded from `estimated_tool_calls` but included in `total_steps` and will appear in `get_next_actions` output. Claude must detect and skip the `"—"` tool name at call time.
-
-**`neo_soul_rnb` drum pattern falls back to `house`:**
-- `_GENRE_DRUM_GROUP` in `MCP_Server/orchestration/execution.py:93` maps `neo_soul_rnb` to the `house` drum pattern with the comment `# default to house pattern`. Neo-soul/R&B uses swing-feel or live-kit patterns, not four-on-the-floor house kicks. This produces genre-inappropriate drum suggestions for `neo_soul_rnb`.
-
-**`_build_bass_steps` uses identical static notes for all genres:**
-- The bass line seed pattern in `_build_bass_steps` (`MCP_Server/orchestration/execution.py:219`) is a four-note hardcoded MIDI array used identically for all 12 genres. Unlike drums, there is no per-genre bass pattern variation. A house bass and a dubstep wobble bass are generated identically.
+- `_DRUM_NAMES`, `_BASS_NAMES`, `_HARMONY_NAMES`, `_MELODY_NAMES`, `_COMPRESSOR`, `_GLUE_COMPRESSOR`, `_LIMITER` were previously duplicated between `checkpoint.py` and `next_actions.py`. Quick task 260401-pjl deduplicated these into `MCP_Server/orchestration/phase_detection.py`. Both modules now import from there — no remaining duplication.
 
 **`conftest.py` `_GAC_PATCH_TARGETS` requires manual updates:**
-- Every new tool module that imports `get_ableton_connection` via `from ... import` must be added to `_GAC_PATCH_TARGETS` in `tests/conftest.py`. Orchestration modules (`MCP_Server/orchestration/checkpoint.py`, `MCP_Server/orchestration/next_actions.py`) that call `get_ableton_connection` indirectly are not listed and are therefore not patched in tests that use the `mock_connection` fixture. New tool modules added without updating this list will attempt a real Ableton socket connection during tests.
+- Every new tool module that imports `get_ableton_connection` via `from ... import` must be added to `_GAC_PATCH_TARGETS` in `tests/conftest.py`. New modules not listed will attempt a real socket connection during tests. Quick task 260401-pxk audited and fixed the current list, but future additions are at risk.
+
+**`_build_arrangement_steps` contains a non-callable em-dash placeholder step:**
+- Step 5 in `_build_arrangement_steps` (`MCP_Server/orchestration/execution.py:444`) has `tool_name: "\u2014"` (em-dash) and empty `suggested_args`. It is filtered by `_filter_steps` in `next_actions.py:23` before returning to Claude, but it still appears in raw `get_phase_execution_plan` output as a `total_steps` entry. `_NON_CALLABLE` in `next_actions.py:13` contains two em-dash variants (`"\u2014", "\u2014"`) — both are the same codepoint, the duplicate is benign but misleading.
+
+---
+
+## Bugs
+
+**`_LIMITER` constant may not match Ableton's real class name:**
+- `_LIMITER = "Limiter2"` in `MCP_Server/orchestration/phase_detection.py:12`. `DEVICE_PATHS` (`AbletonMCP_Remote_Script/handlers/devices.py:25`) keys on `"Limiter"`, and `MCP_Server/devices/catalog.py:1525` has key `"Limiter"`. The actual class name returned by `device.class_name` in Ableton's Python API is the ground truth.
+- Impact: If Ableton reports the class as `"Limiter"` (not `"Limiter2"`), master phase detection never passes. The master short-circuit (`checkpoint.py:57`) also checks for `_LIMITER`, so it too would fail. Tests use mocked `class_name: "Limiter2"` so they pass regardless.
+- Risk: High — only discoverable by running against real Ableton.
+- Fix approach: Load a session with a Limiter on the master track and inspect `device.class_name` via a debug command or Ableton's console.
+
+**Checkpoint cache not invalidated after write operations:**
+- `invalidate_checkpoint_cache()` exists (`MCP_Server/orchestration/checkpoint.py:267`) but is never called by any MCP tool after a write operation.
+- Impact: `get_checkpoint` returns stale data for up to 30 seconds (`_CACHE_TTL = 30.0`) after any mutation. Claude may re-attempt steps it has already completed.
+- Fix approach: Call `invalidate_checkpoint_cache()` in `MCP_Server/tools/scaffold.py`, `tracks.py`, `clips.py`, and `devices.py` after write operations, or reduce `_CACHE_TTL` to 5 seconds.
+
+**`_step()` drops the `phase` key from ExecutionStep output:**
+- The `_step` factory in `MCP_Server/orchestration/execution.py:188-200` now includes `phase` in the output dict (fixed in quick task 260401-pp9). Confirmed: line 195 sets `"phase": phase`. No remaining bug here.
+
+**`neo_soul_rnb` drum pattern used to fall back to `house`:**
+- Fixed in quick task 260401-prt. `_GENRE_DRUM_GROUP` at `MCP_Server/orchestration/execution.py:150-163` now maps `neo_soul_rnb` to `"neo_soul_rnb"` with a dedicated pattern.
 
 ---
 
 ## Performance Concerns
 
-**Checkpoint makes N+2 sequential socket round-trips:**
-- `get_production_checkpoint` issues 2 commands (`get_arrangement_state`, `get_mix_state`) plus up to 8 `get_arrangement_clips` calls — up to 10 total sequential socket round-trips. At 10 seconds read timeout each, a worst case with a slow session could take up to 100 seconds. There is no batch mechanism for multi-track clip queries.
+**`get_ableton_connection()` pings on every call while holding the global lock:**
+- Every MCP tool call invokes `get_ableton_connection()`, which holds `_connection_lock` and sends a `ping` round-trip before returning (`MCP_Server/connection.py:328-333`). This serializes all tool calls at the connection level. Concurrent async tool calls will queue behind the ping (up to `TIMEOUT_PING = 5.0s` per call).
+- Fix approach: Skip the ping if `self.sock` is non-None and no recent error occurred; only ping on reconnection or after an exception.
 
-**`get_transition_guidance` duplicates all checkpoint queries:**
-- `get_transition_guidance` (`MCP_Server/orchestration/next_actions.py:190`) independently re-fetches `get_arrangement_state`, `get_mix_state`, and up to 8 `get_arrangement_clips` calls, even when called immediately after `get_production_checkpoint`. No caching or shared state exists between the two functions.
+**`get_mix_state` serializes full parameter lists — expensive for large sessions:**
+- `get_checkpoint` calls `get_mix_state` which returns all parameters for every device on every track (`AbletonMCP_Remote_Script/handlers/devices.py:2768-2772`). Checkpoint only needs device class names, not parameter values.
+- Impact: An 8-track session with 4 devices per track at ~30 parameters each generates ~960 parameter values over the socket per checkpoint.
+- Fix approach: Add a lightweight `get_device_classes` RS command returning only `{track_name: [class_name, ...]}`.
 
-**`get_next_actions` without `phase_name` compounds checkpoint latency:**
-- When called without an explicit `phase_name`, `get_next_actions_result` calls `get_checkpoint` (the 10 round-trip operation above), then calls `get_execution_plan` (pure computation). High-frequency agent loops calling `get_next_actions` repeatedly will repeatedly incur the full checkpoint cost.
+**`apply_mix_recipe` and `apply_master_recipe` call `get_ableton_connection()` from an async executor thread:**
+- Both tools call `conn.send_command(...)` inside `asyncio.get_event_loop().run_in_executor(None, ...)` (`MCP_Server/tools/mixing.py:62-68, 95-100`). `get_ableton_connection()` acquires `_connection_lock` from the thread pool thread, contending with any concurrent tool calls on the main thread.
 
-**`apply_recipe` has 30-second timeout with no progress feedback:**
-- The `apply_recipe` command is in `_BROWSER_COMMANDS` with a 30-second timeout in `MCP_Server/connection.py:35`. A stalled device load (e.g., Ableton scanning a VST library) blocks the entire MCP server for 30 seconds before timing out. There is no progress feedback mechanism.
+**Sequential socket round-trips in checkpoint (partially fixed):**
+- Quick task 260401-pye fixed the N+2 per-track clips loop by using `has_clips` from `get_arrangement_state` rather than issuing separate `get_arrangement_clips` per track. Checkpoint now makes exactly 2 socket calls (`get_arrangement_state` + `get_mix_state`). This concern is resolved for typical sessions.
+
+---
+
+## Fragile Areas
+
+**Phase detection relies on track name substrings — breaks on custom names:**
+- `_infer_completed_phases` (`MCP_Server/orchestration/checkpoint.py:49`) uses `_DRUM_NAMES = {"drum", "kick", "snare", "percussion", "beat"}` etc. A track named "808 Kit", "Pattern 1", or "Tom" does not match. Phase is permanently reported incomplete regardless of content.
+- Safe modification: Any additions to name sets immediately affect all phase detection. Broad terms like `"beat"` can match unintended tracks.
+- Test coverage: Tests use canonical names ("Drums", "Bass") — non-standard names are not covered.
+
+**Master short-circuit can produce false "production complete":**
+- If GlueCompressor and Limiter2 (or the real class name) are on the master track with `len(tracks) >= 2`, all phases are immediately returned as complete (`MCP_Server/orchestration/checkpoint.py:55-59`). A session with only a pre-loaded master bus and 2 scaffold tracks reports 100% completion.
+- Safe modification: Test changes to this block with multi-track session fixtures.
+
+**Sentinel value resolution depends on Claude understanding description hints:**
+- `ExecutionStep.suggested_args` contains literal strings like `"<track_index>"` and `"<clip_index>"` (`MCP_Server/orchestration/execution.py:238-241`). There is no machine-enforceable contract ensuring Claude resolves these before calling the tool. A literal sentinel string passed as an integer argument fails at the MCP boundary.
+- Safe modification: All sentinel steps should have `depends_on_step` pointing to a query step (`get_arrangement_overview`, `get_all_tracks`) that provides the needed value.
+
+**Browser item loading depends on 1-tick schedule_message timing:**
+- `_verify_load` fires after `schedule_message(1, ...)` — 1 Ableton scheduler tick (`AbletonMCP_Remote_Script/handlers/browser.py:462-471`). Under load (plugin scanning, large session), one tick may not be enough for device count to increase. The automatic retry (`browser.py:535-565`) adds one more tick. With retries exhausted, the load returns `{"loaded": False}`.
+- Safe modification: Do not decrease the schedule delay. The 30-second `response_queue.get(timeout=30.0)` (`browser.py:484`) provides the outer bound.
+
+**`apply_recipe` device loading has no cap on retries:**
+- `AbletonMCP_Remote_Script/handlers/devices.py:2583` uses `response_queue.get(timeout=30.0)` for each device in the recipe. For `apply_master_recipe` with 3 devices, the worst-case timeout is `3 × 30s = 90s` before all failures surface. The MCP-side timeout `max(30.0, len(devices_payload) * 15.0)` (`MCP_Server/tools/mixing.py:61`) is calculated from MCP side, but the RS-side per-device queue wait is independent and can exceed it.
+
+---
+
+## Architectural Risks
+
+**Connection singleton is not fully safe under concurrent tool calls:**
+- `_ableton_connection` in `MCP_Server/connection.py:306` is protected by `_connection_lock` during creation and liveness validation. The per-connection `_send_lock` (added in quick task 260401-qhm, `connection.py:218, 267`) now serializes socket write+read cycles on the same connection. This prevents interleaved messages on a single socket. However, `get_ableton_connection()` holds `_connection_lock` while doing a ping, then returns the connection. A second caller acquires `_connection_lock` and also pings. Both then hold separate references and can call `send_command` concurrently — but `_send_lock` on the shared `AbletonConnection` instance serializes those. The design is correct as of 260401-qhm but is intricate and depends on callers using the same instance.
+
+**No formal session-state persistence:**
+- All production progress (completed phases, applied refinements, production brief) exists only in Ableton's live session and the in-memory MCP connection. A Claude context reset loses all orchestration state. HIST-01 (execution log) and REFN-03 (refinement log) are unimplemented, leaving resume-after-reset incomplete for any production beyond the setup phase.
+
+**Ableton `_Framework.ControlSurface` is an undocumented private API:**
+- `from _Framework.ControlSurface import ControlSurface` (`AbletonMCP_Remote_Script/__init__.py:14`). The underscore prefix signals Ableton's private internal framework. Major Ableton version upgrades (e.g., Live 11 → 12) have historically changed or removed `_Framework` classes with no public notice.
+- Fix approach: Monitor Ableton Live release notes. Add a startup check that catches `ImportError` on `_Framework` and logs a clear message.
+
+**Three key packages absent from current dev environment:**
+- `mcp` (FastMCP) is not installed; `ModuleNotFoundError: No module named 'mcp'` occurs on import of any `MCP_Server.tools.*` module. This causes ~411 test failures.
+- `pytest-asyncio` is absent; `asyncio_mode = "auto"` in `pyproject.toml` has no effect; all `async def test_*` functions fail.
+- `tiktoken` is absent; `tests/test_genre_quality.py` fails at import.
+- Fix: `pip install mcp[cli] pytest-asyncio tiktoken` or `pip install -e ".[dev]"`.
+
+**`get_arrangement_state` track index sentinel resolution requires extra round-trips:**
+- `ExecutionStep.suggested_args` uses `"<track_index>"` sentinels. The description instructs Claude to resolve via `get_all_tracks()` or `get_arrangement_overview`. Every phase execution needs at least one extra socket call per new track for index resolution. If the user adds tracks in Ableton between plan generation and execution, the resolved index may be stale.
 
 ---
 
 ## Deferred Features
 
 **HIST-01 — Execution history log:**
-- No per-session log of executed steps. `get_next_actions` always returns the full checklist from step 1, regardless of how many steps have already been run. A comment in `MCP_Server/orchestration/next_actions.py:179` acknowledges: `"# Skip steps if phase already started (progress > 0.3) — return all for now (HIST-01 deferred)"`. Claude must manually track which steps have been executed.
-- Source: `REQUIREMENTS.md` Future Requirements → HIST-01
+- No per-session log of executed steps. `get_next_actions` always returns the full checklist from step 1 regardless of steps already run. Claude must manually track which steps have been executed. Explicitly deferred (`next_actions.py:197`).
 
 **PARA-01 — Parallel phase execution:**
-- All phases are strictly sequential. `ProductionPhase.depends_on` is always `[phase_order[i-1]]`. Phases with no true data dependency (e.g., bass programming does not require drums to be complete) are not flagged as parallelizable.
-- Source: `REQUIREMENTS.md` Future Requirements → PARA-01
+- All phases are strictly sequential. `ProductionPhase.depends_on` is always `[phase_order[i-1]]`. Phases with no true data dependency (e.g., bass programming does not require drums) are not flagged as parallelizable.
 
 **ADPT-01 — Adaptive agenda refinement:**
-- No `refine_agenda` tool. A user instruction like "skip mastering" or "add a second melody phase" requires re-calling `get_production_agenda` from scratch.
-- Source: `REQUIREMENTS.md` Future Requirements → ADPT-01
+- `refine_agenda` tool was added in quick task 260401-q7f (`MCP_Server/tools/orchestration.py:131-154`). Basic instruction parsing is implemented; complex multi-step refinements may not be handled.
 
 **REFN-03 — Refinement history log:**
 - No session-scoped log of applied `SectionRefinementPlan` operations. `refine_section` cannot detect conflicting or redundant refinements. Calling it twice with opposite instructions applies both silently.
-- Source: `v1.8-REQUIREMENTS.md` Future Requirements → REFN-03
 
 **RFNA-04 — Revert section refinement:**
 - No revert capability for `apply_section_note_refinement` or `apply_section_device_refinement`. Ableton's native undo stack is the only recourse. Requires REFN-03 first.
-- Source: `v1.8-REQUIREMENTS.md` Future Requirements → RFNA-04
 
 **SNAP-03 — Cross-section comparison:**
 - No `compare_sections` tool. Claude cannot programmatically diff `SectionState` between two named sections.
-- Source: `v1.8-REQUIREMENTS.md` Future Requirements → SNAP-03
 
 **PARS-03 — Prompt signal conflict resolution:**
-- When contradictory signals appear in a prompt (e.g., "euphoric dark techno"), the parser resolves silently by whichever signal last overwrites the parameter. No `signal_conflicts` list in `ProductionBrief`.
-- Source: `v1.7-REQUIREMENTS.md` Future Requirements → PARS-03
+- When contradictory signals appear in a prompt (e.g., "euphoric dark techno"), the parser resolves silently by last-wins. No `signal_conflicts` list in `ProductionBrief`.
 
 **SESS-03 — Prompt history:**
 - No `list_production_briefs()` tool. Session-scoped brief history is not persisted.
-- Source: `v1.7-REQUIREMENTS.md` Future Requirements → SESS-03
-
-**Section-aware mixing, frequency conflict detection, full sidechain automation:**
-- `apply_mix_recipe` applies a genre recipe globally to a track with no per-section variation. Per-section timbral changes require the slower `apply_section_device_refinement` with `write_automation=True`.
-- Source: `v1.4-REQUIREMENTS.md` Future Requirements
 
 ---
 
-## Architectural Risks
+## Test Coverage Gaps
 
-**Phase completion inference is fragile name-matching:**
-- `_infer_completed_phases` in `MCP_Server/orchestration/checkpoint.py:49` determines phase completion by substring-matching track names against fixed sets (`_DRUM_NAMES = {"drum", "kick", "snare", "percussion", "beat"}`). A session where the user named the drums track "Pattern 1", "Beat Loop", or any non-matching name will cause the checkpoint to permanently report that phase as incomplete regardless of actual content. This is a core architectural assumption that cannot be worked around without HIST-01.
+**Real Ableton class name for Limiter not tested against live Ableton:**
+- All tests use mocked `class_name: "Limiter2"`. Whether Ableton's actual `device.class_name` returns `"Limiter"` or `"Limiter2"` is untested. If wrong, master phase detection silently fails.
+- Files: `tests/test_checkpoint.py:147`, `MCP_Server/orchestration/phase_detection.py:12`
+- Priority: High
 
-**Master phase short-circuits the entire phase walk:**
-- If `GlueCompressor` and `Limiter2` are both present on the master track, `_infer_completed_phases` immediately returns all phases as complete (`MCP_Server/orchestration/checkpoint.py:58-61`). A session with only a master chain pre-applied but no actual instrument tracks reports 100% production completion. This is an intentional design decision recorded in `.planning/STATE.md`, but it creates a false-positive risk for any workflow that pre-loads a master bus template.
+**`has_instrument` via `has_audio_output` not integration-tested:**
+- No test covers `get_arrangement_state` responses for audio tracks, group tracks, or MIDI tracks with only FX devices. Phase detection false positives from these cases are not caught.
+- Files: `AbletonMCP_Remote_Script/handlers/scaffold.py:71`
+- Priority: High
 
-**Connection singleton is not safe under concurrent tool calls:**
-- The global `_ableton_connection` in `MCP_Server/connection.py` is protected by `_connection_lock` during creation and liveness validation, but `send_command` does not hold the lock during the socket write+read cycle. If FastMCP dispatches two tool requests concurrently (e.g., via async parallelism), their socket messages can interleave. MCP's request/response protocol makes concurrent dispatch unlikely in practice but this is an implicit assumption rather than an enforced invariant.
+**Sentinel resolution by Claude not tested end-to-end:**
+- No test verifies that Claude correctly resolves `"<track_index>"` string sentinels to integers before calling tools. Passing a literal sentinel string as an integer argument causes a type error at the MCP boundary.
+- Files: `MCP_Server/orchestration/execution.py:256-286`
+- Priority: Medium
 
-**Three key packages are absent from the current runtime environment:**
-- `mcp` (FastMCP) is listed as a required dependency in `pyproject.toml` but is not installed. `ModuleNotFoundError: No module named 'mcp'` occurs on import of `MCP_Server.server` and any `MCP_Server.tools.*` module. This causes 411 test failures across all tool test files. Only the 132 tests in pure-Python modules (`test_checkpoint.py`, `test_genres.py`, `test_next_actions.py`, and related orchestration/genre tests) pass.
-- `pytest-asyncio` is absent: the `asyncio_mode = "auto"` setting in `pyproject.toml` has no effect; all `async def test_*` functions fail with `"async def functions are not natively supported"`.
-- `tiktoken` is absent: `tests/test_genre_quality.py` fails at import with `ModuleNotFoundError: No module named 'tiktoken'`.
-- Fix: `pip install mcp[cli] pytest-asyncio tiktoken` (or install via `pip install -e ".[dev]"` if the environment supports the full dependency group).
+**`load_instrument_or_effect` suggested_args use `instrument_name` not `path`:**
+- No test verifies that execution step suggested_args for instrument loading are actually callable. The parameter name mismatch (`instrument_name` vs `path`/`uri`) is not caught by existing tests.
+- Files: `MCP_Server/orchestration/execution.py:272, 315, 355, 396`
+- Priority: Medium
 
-**No formal session-state persistence:**
-- All production progress (completed phases, applied refinements, production brief) exists only in Ableton's live session and the in-memory MCP connection. A Claude context reset loses all orchestration state. The checkpoint tool reconstructs a heuristic partial picture, but HIST-01 (execution log) and REFN-03 (refinement log) are unimplemented, leaving resume-after-reset incomplete for any production beyond the setup phase.
-
-**`get_arrangement_state` does not include track index; sentinel resolution requires a separate call:**
-- `ExecutionStep.suggested_args` uses `"<track_index>"` sentinel strings for all phase steps requiring a track index. The `description` field instructs Claude to resolve via `get_all_tracks()`. This is a correct design for a stateless checklist generator, but it means every phase execution requires at least one additional `get_all_tracks` call per new track. If track order changes between plan generation and execution (e.g., user adds tracks in Ableton), index resolution can silently produce stale results.
+**`apply_recipe` timeout scaling under plugin scan not tested:**
+- `max(30.0, len(devices_payload) * 15.0)` MCP-side timeout may be exceeded by the RS-side per-device `response_queue.get(timeout=30.0)` in a slow plugin scan scenario.
+- Files: `MCP_Server/tools/mixing.py:61`, `AbletonMCP_Remote_Script/handlers/devices.py:2583`
+- Priority: Low
 
 ---
 
-*Concerns audit: 2026-04-01*
+*Concerns audit: 2026-04-02*
