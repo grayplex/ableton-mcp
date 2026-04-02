@@ -42,9 +42,7 @@
 
 ## Performance Concerns
 
-**`get_ableton_connection()` pings on every call while holding the global lock:**
-- Every MCP tool call invokes `get_ableton_connection()`, which holds `_connection_lock` and sends a `ping` round-trip before returning (`MCP_Server/connection.py:328-333`). This serializes all tool calls at the connection level. Concurrent async tool calls will queue behind the ping (up to `TIMEOUT_PING = 5.0s` per call).
-- Fix approach: Skip the ping if `self.sock` is non-None and no recent error occurred; only ping on reconnection or after an exception.
+**`get_ableton_connection()` pings on every call while holding the global lock:** RESOLVED (260402-lky) -- Added `_healthy` flag; ping skipped when connection is healthy.
 
 **`get_mix_state` serializes full parameter lists — expensive for large sessions:**
 - `get_checkpoint` calls `get_mix_state` which returns all parameters for every device on every track (`AbletonMCP_Remote_Script/handlers/devices.py:2768-2772`). Checkpoint only needs device class names, not parameter values.
