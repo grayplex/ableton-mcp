@@ -2530,6 +2530,7 @@ class DeviceHandlers:
         track_index = params.get("track_index", 0)
         track_type = params.get("track_type", "track")
         devices_spec = params.get("devices", [])
+        total_timeout = params.get("timeout", 30.0)
 
         if not devices_spec:
             raise ValueError("No devices provided in recipe")
@@ -2580,7 +2581,7 @@ class DeviceHandlers:
                 )
 
             try:
-                result = response_queue.get(timeout=30.0)
+                result = response_queue.get(timeout=total_timeout)
                 if isinstance(result, dict) and result.get("status") == "error":
                     raise Exception(result.get("message", "Unknown error"))
                 return result

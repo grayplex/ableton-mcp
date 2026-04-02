@@ -50,13 +50,14 @@ def apply_mix_recipe(ctx: Context, track_index: int, role: str, genre: str) -> s
         )
 
     devices_payload = convert_recipe_to_payload(recipe)
-
     timeout = max(30.0, len(devices_payload) * 15.0)
+
     conn = get_ableton_connection()
     result = conn.send_command("apply_recipe", {
         "track_index": track_index,
         "track_type": "track",
         "devices": devices_payload,
+        "timeout": timeout,
     }, timeout=timeout)
     return json.dumps(result, indent=2)
 
@@ -77,13 +78,14 @@ def apply_master_recipe(ctx: Context, genre: str) -> str:
         )
 
     devices_payload = convert_recipe_to_payload(recipe)
-
     timeout = max(30.0, len(devices_payload) * 15.0)
+
     conn = get_ableton_connection()
     result = conn.send_command("apply_recipe", {
         "track_index": 0,
         "track_type": "master",
         "devices": devices_payload,
+        "timeout": timeout,
     }, timeout=timeout)
     return json.dumps(result, indent=2)
 
