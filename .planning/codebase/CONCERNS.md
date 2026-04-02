@@ -18,11 +18,6 @@
 - Impact: Claude receives redundant early steps (e.g., "create track") after a context refresh mid-phase. Wastes tool calls.
 - Fix approach: Use `active_phase_progress` to offset the step slice, or check sentinel track names against live `get_all_tracks` output.
 
-**Stale `instrument_name` param in execution step `suggested_args`:**
-- `_build_drums_steps`, `_build_bass_steps`, `_build_harmony_steps`, `_build_melody_steps` all emit `{"instrument_name": "..."}` as a suggested arg to `load_instrument_or_effect` (`MCP_Server/orchestration/execution.py:272, 315, 355, 396, 410, 418`). The actual MCP tool signature (`MCP_Server/tools/devices.py:12`) accepts `uri` or `path`, not `instrument_name`.
-- Impact: If Claude uses suggested_args verbatim, the Remote Script raises `"Provide item_uri or path"` (browser.py:405).
-- Fix approach: Replace `instrument_name` with `"path": "instruments/..."` which matches the tool's actual parameter.
-
 **Duplicate framing protocol implementation:**
 - The length-prefix framing functions `_recv_exact`, `send_message`, `recv_message` are implemented verbatim in both `MCP_Server/protocol.py:1-39` and `AbletonMCP_Remote_Script/__init__.py:38-68`.
 - Impact: Any framing bug or protocol change (e.g., max message size) must be fixed in two places across two separate Python runtimes.
@@ -167,11 +162,6 @@
 **Sentinel resolution by Claude not tested end-to-end:**
 - No test verifies that Claude correctly resolves `"<track_index>"` string sentinels to integers before calling tools. Passing a literal sentinel string as an integer argument causes a type error at the MCP boundary.
 - Files: `MCP_Server/orchestration/execution.py:256-286`
-- Priority: Medium
-
-**`load_instrument_or_effect` suggested_args use `instrument_name` not `path`:**
-- No test verifies that execution step suggested_args for instrument loading are actually callable. The parameter name mismatch (`instrument_name` vs `path`/`uri`) is not caught by existing tests.
-- Files: `MCP_Server/orchestration/execution.py:272, 315, 355, 396`
 - Priority: Medium
 
 **`apply_recipe` timeout scaling under plugin scan not tested:**
