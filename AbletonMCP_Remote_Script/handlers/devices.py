@@ -2790,6 +2790,45 @@ class DeviceHandlers:
             self.log_message(f"Error getting mix state: {e}")
             raise
 
+    @command("get_device_classes")
+    def _get_device_classes(self, params=None):
+        """Get device class names for all tracks (no parameters).
+
+        Lightweight alternative to get_mix_state for code that only needs
+        to know which device types are loaded (e.g., checkpoint phase detection).
+
+        Returns:
+            tracks: list of {index, name, device_classes}
+            return_tracks: list of {index, name, device_classes}
+            master_track: {name, device_classes}
+        """
+        try:
+            result = {"tracks": [], "return_tracks": [], "master_track": {}}
+
+            for i, track in enumerate(self._song.tracks):
+                result["tracks"].append({
+                    "index": i,
+                    "name": track.name,
+                    "device_classes": [d.class_name for d in track.devices],
+                })
+
+            for i, track in enumerate(self._song.return_tracks):
+                result["return_tracks"].append({
+                    "index": i,
+                    "name": track.name,
+                    "device_classes": [d.class_name for d in track.devices],
+                })
+
+            master = self._song.master_track
+            result["master_track"] = {
+                "name": master.name,
+                "device_classes": [d.class_name for d in master.devices],
+            }
+            return result
+        except Exception as e:
+            self.log_message(f"Error getting device classes: {e}")
+            raise
+
     @command("get_track_meters")
     def _get_track_meters(self, params=None):
         """Get output meter levels for all tracks (for gain staging analysis).
