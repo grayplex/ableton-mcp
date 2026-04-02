@@ -172,3 +172,70 @@ class TestProtocolRoundtrip:
         finally:
             a.close()
             b.close()
+
+
+class TestProtocolSync:
+    """Verify both framing implementations share the same protocol constants.
+
+    Full behavioral equivalence is covered by TestProtocolRoundtrip (which uses
+    the reference implementation). This class guards against constant drift between
+    the two source files.
+    """
+
+    def test_max_message_size_constant(self):
+        """Both implementations must use the same 10MB safety limit."""
+        import re
+        import pathlib
+
+        mcp_source = pathlib.Path("MCP_Server/protocol.py").read_text()
+        rs_source = pathlib.Path("AbletonMCP_Remote_Script/framing.py").read_text()
+
+        # Extract the integer from '10 * 1024 * 1024' pattern
+        pattern = r"(\d+)\s*\*\s*1024\s*\*\s*1024"
+        mcp_match = re.search(pattern, mcp_source)
+        rs_match = re.search(pattern, rs_source)
+
+        assert mcp_match is not None, "MCP protocol.py missing max message size constant"
+        assert rs_match is not None, "RS framing.py missing max message size constant"
+        assert mcp_match.group(1) == rs_match.group(1), (
+            f"Max message size mismatch: MCP uses {mcp_match.group(1)}MB, "
+            f"RS uses {rs_match.group(1)}MB"
+        )
+
+    def test_header_format_constant(self):
+        """Both implementations must use the same big-endian 4-byte header format."""
+        import pathlib
+
+        mcp_source = pathlib.Path("MCP_Server/protocol.py").read_text()
+        rs_source = pathlib.Path("AbletonMCP_Remote_Script/framing.py").read_text()
+
+        # Both must use big-endian unsigned int (">I") and recv exactly 4 bytes
+        assert '">I"' in mcp_source, "MCP protocol.py must use big-endian unsigned int header"
+        assert '">I"' in rs_source, "RS framing.py must use big-endian unsigned int header"
+        assert "_recv_exact(sock, 4)" in mcp_source, "MCP protocol.py must read 4-byte header"
+        assert "_recv_exact(sock, 4)" in rs_source, "RS framing.py must read 4-byte header"
+
+    def test_rs_framing_module_exists(self):
+        """AbletonMCP_Remote_Script/framing.py must exist as the RS canonical source."""
+        import pathlib
+        assert pathlib.Path("AbletonMCP_Remote_Script/framing.py").exists(), (
+            "AbletonMCP_Remote_Script/framing.py not found — "
+            "framing was extracted from __init__.py to this module"
+        )
+
+    def test_rs_init_imports_from_framing(self):
+        """__init__.py must import framing functions from .framing, not define them inline."""
+        import pathlib
+        init_source = pathlib.Path("AbletonMCP_Remote_Script/__init__.py").read_text()
+        assert "from .framing import" in init_source, (
+            "__init__.py must import from .framing module"
+        )
+        assert "def _recv_exact" not in init_source, (
+            "_recv_exact must not be defined inline in __init__.py"
+        )
+        assert "def send_message" not in init_source, (
+            "send_message must not be defined inline in __init__.py"
+        )
+        assert "def recv_message" not in init_source, (
+            "recv_message must not be defined inline in __init__.py"
+        )
