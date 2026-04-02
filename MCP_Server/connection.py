@@ -96,6 +96,7 @@ class AbletonConnection:
     _send_lock: threading.Lock = field(
         default_factory=threading.Lock, init=False, repr=False, compare=False
     )
+    _healthy: bool = field(default=False, init=False, repr=False, compare=False)
 
     def connect(self) -> bool:
         """Connect to the Ableton Remote Script socket server."""
@@ -158,9 +159,12 @@ class AbletonConnection:
                     logger.error(f"Ableton error: {response.get('message')}")
                     raise Exception(response.get("message", "Unknown error from Ableton"))
 
-                return response.get("result", {})
+                result = response.get("result", {})
+                self._healthy = True
+                return result
             except TimeoutError as e:
                 logger.error(f"Socket timeout after {timeout:.0f}s waiting for '{command_type}'")
+                self._healthy = False
                 self.sock = None
                 raise Exception(
                     f"Timeout after {timeout:.0f}s waiting for Ableton to complete '{command_type}'. "
@@ -168,14 +172,17 @@ class AbletonConnection:
                 ) from e
             except (ConnectionError, BrokenPipeError, ConnectionResetError) as e:
                 logger.error(f"Socket connection error: {str(e)}")
+                self._healthy = False
                 self.sock = None
                 raise Exception(f"Connection to Ableton lost: {str(e)}") from e
             except json.JSONDecodeError as e:
                 logger.error(f"Invalid JSON response from Ableton: {str(e)}")
+                self._healthy = False
                 self.sock = None
                 raise Exception(f"Invalid response from Ableton: {str(e)}") from e
             except Exception as e:
                 logger.error(f"Error communicating with Ableton: {str(e)}")
+                self._healthy = False
                 self.sock = None
                 raise Exception(f"Communication error with Ableton: {str(e)}") from e
 
@@ -205,8 +212,11 @@ def get_ableton_connection():
 
     with _connection_lock:
         if _ableton_connection is not None:
+            # Fast path: skip ping round-trip when connection is healthy
+            if _ableton_connection._healthy:
+                return _ableton_connection
             try:
-                # Test the connection with a real ping command
+                # Re-validate unhealthy connection with a real ping command
                 _ableton_connection.send_command("ping")
                 return _ableton_connection
             except Exception as e:
