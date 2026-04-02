@@ -55,11 +55,6 @@
 
 ## Fragile Areas
 
-**Phase detection relies on track name substrings — breaks on custom names:**
-- `_infer_completed_phases` (`MCP_Server/orchestration/checkpoint.py:49`) uses `_DRUM_NAMES = {"drum", "kick", "snare", "percussion", "beat"}` etc. A track named "808 Kit", "Pattern 1", or "Tom" does not match. Phase is permanently reported incomplete regardless of content.
-- Safe modification: Any additions to name sets immediately affect all phase detection. Broad terms like `"beat"` can match unintended tracks.
-- Test coverage: Tests use canonical names ("Drums", "Bass") — non-standard names are not covered.
-
 **Master short-circuit can produce false "production complete":**
 - If GlueCompressor and Limiter2 (or the real class name) are on the master track with `len(tracks) >= 2`, all phases are immediately returned as complete (`MCP_Server/orchestration/checkpoint.py:55-59`). A session with only a pre-loaded master bus and 2 scaffold tracks reports 100% completion.
 - Safe modification: Test changes to this block with multi-track session fixtures.
