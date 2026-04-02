@@ -8,11 +8,10 @@ Validates that:
 - Recipe data structure is correct (role -> device_class -> param_dict)
 """
 
-import asyncio
 import json
 import sys
 import types
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -426,9 +425,9 @@ from MCP_Server.tools.mixing import (  # noqa: E402
 
 
 def _mock_ctx():
-    """Create a mock Context with async info() for recipe tool tests."""
+    """Create a mock Context for recipe tool tests."""
     ctx = MagicMock()
-    ctx.info = AsyncMock()
+    ctx.info = MagicMock()
     return ctx
 
 
@@ -440,7 +439,7 @@ class TestApplyMixRecipe:
         mock_conn.send_command.return_value = {"applied": True, "devices": []}
         ctx = _mock_ctx()
         with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
-            result = asyncio.run(apply_mix_recipe(ctx, 0, "kick", "house"))
+            result = apply_mix_recipe(ctx, 0, "kick", "house")
         mock_conn.send_command.assert_called_once()
         call_args = mock_conn.send_command.call_args
         assert call_args[0][0] == "apply_recipe"
@@ -452,7 +451,7 @@ class TestApplyMixRecipe:
 
     def test_invalid_role_returns_error(self):
         ctx = _mock_ctx()
-        result = asyncio.run(apply_mix_recipe(ctx, 0, "invalid_role", "house"))
+        result = apply_mix_recipe(ctx, 0, "invalid_role", "house")
         assert "Error" in result
         assert "No recipe found" in result
 
@@ -461,7 +460,7 @@ class TestApplyMixRecipe:
         mock_conn.send_command.return_value = {"applied": True}
         ctx = _mock_ctx()
         with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
-            asyncio.run(apply_mix_recipe(ctx, 0, "kick", "house"))
+            apply_mix_recipe(ctx, 0, "kick", "house")
         payload = mock_conn.send_command.call_args[0][1]
         for device_spec in payload["devices"]:
             assert "class_name" in device_spec, "Each device must have class_name"
@@ -474,7 +473,7 @@ class TestApplyMixRecipe:
         mock_conn.send_command.return_value = {"applied": True}
         ctx = _mock_ctx()
         with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
-            asyncio.run(apply_mix_recipe(ctx, 0, "kick", "house"))
+            apply_mix_recipe(ctx, 0, "kick", "house")
         payload = mock_conn.send_command.call_args[0][1]
         for device_spec in payload["devices"]:
             for param_name, value in device_spec["params"].items():
@@ -491,7 +490,7 @@ class TestApplyMasterRecipe:
         mock_conn.send_command.return_value = {"applied": True, "devices": []}
         ctx = _mock_ctx()
         with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
-            result = asyncio.run(apply_master_recipe(ctx, "house"))
+            result = apply_master_recipe(ctx, "house")
         mock_conn.send_command.assert_called_once()
         call_args = mock_conn.send_command.call_args
         assert call_args[0][0] == "apply_recipe"
@@ -503,7 +502,7 @@ class TestApplyMasterRecipe:
         mock_conn.send_command.return_value = {"applied": True}
         ctx = _mock_ctx()
         with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
-            asyncio.run(apply_master_recipe(ctx, "house"))
+            apply_master_recipe(ctx, "house")
         payload = mock_conn.send_command.call_args[0][1]
         class_names = {d["class_name"] for d in payload["devices"]}
         assert "GlueCompressor" in class_names
@@ -512,7 +511,7 @@ class TestApplyMasterRecipe:
 
     def test_invalid_genre_returns_error(self):
         ctx = _mock_ctx()
-        result = asyncio.run(apply_master_recipe(ctx, "invalid_genre"))
+        result = apply_master_recipe(ctx, "invalid_genre")
         assert "Error" in result
         assert "No master recipe" in result
 
@@ -556,7 +555,7 @@ class TestBatchParameterSetting:
         mock_conn.send_command.return_value = {"applied": True}
         ctx = _mock_ctx()
         with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
-            asyncio.run(apply_mix_recipe(ctx, 0, "kick", "house"))
+            apply_mix_recipe(ctx, 0, "kick", "house")
         assert mock_conn.send_command.call_count == 1, (
             f"Expected 1 send_command call, got {mock_conn.send_command.call_count}"
         )
