@@ -192,3 +192,25 @@ class TestPhaseExecutionPlan:
         for g in genres:
             result = get_execution_plan("bass", g)
             assert "error" not in result, f"bass/{g} returned error: {result.get('error')}"
+
+    def test_sentinel_steps_have_resolution_hint(self):
+        """Steps using <track_index> sentinel should have resolution hints in description."""
+        phases_with_sentinels = ["drums", "bass", "harmony", "melody"]
+        for phase in phases_with_sentinels:
+            result = get_execution_plan(phase, "house")
+            assert "error" not in result, f"{phase} returned error"
+            # Find the first step that uses <track_index> in suggested_args
+            sentinel_steps = [
+                s for s in result["steps"]
+                if s.get("suggested_args", {}).get("track_index") == "<track_index>"
+            ]
+            assert len(sentinel_steps) > 0, f"{phase} has no <track_index> sentinel steps"
+            # The first sentinel step (set_track_name, step 2) should have a resolution hint
+            first_sentinel = sentinel_steps[0]
+            desc = first_sentinel["description"].lower()
+            has_hint = ("resolve" in desc or "get_arrangement_overview" in desc
+                        or "get_all_tracks" in desc)
+            assert has_hint, (
+                f"{phase} first sentinel step description lacks resolution hint: "
+                f"'{first_sentinel['description']}'"
+            )

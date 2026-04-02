@@ -212,6 +212,38 @@ class TestArrangementProgress:
 # Tool registration
 # ---------------------------------------------------------------------------
 
+class TestArrangementOverview:
+    """Tests for get_arrangement_overview track index inclusion."""
+
+    async def test_arrangement_overview_includes_track_index(self, mcp_server, mock_connection):
+        """get_arrangement_overview returns tracks as {name, index} dicts, not bare strings."""
+        mock_connection.send_command.side_effect = _mock_execution_factory(
+            tracks=[
+                {"index": 0, "name": "kick", "has_instrument": True},
+                {"index": 1, "name": "bass", "has_instrument": False},
+                {"index": 2, "name": "lead", "has_instrument": True},
+            ],
+            cue_points=[],
+        )
+        result = await mcp_server.call_tool("get_arrangement_overview", {})
+        parsed = json.loads(result[0][0].text)
+
+        assert isinstance(parsed["tracks"], list)
+        assert len(parsed["tracks"]) == 3
+        # Each track should be a dict with name and index
+        for track in parsed["tracks"]:
+            assert isinstance(track, dict), f"Expected dict, got {type(track)}: {track}"
+            assert "name" in track
+            assert "index" in track
+        assert parsed["tracks"][0] == {"name": "kick", "index": 0}
+        assert parsed["tracks"][1] == {"name": "bass", "index": 1}
+        assert parsed["tracks"][2] == {"name": "lead", "index": 2}
+
+
+# ---------------------------------------------------------------------------
+# Tool registration
+# ---------------------------------------------------------------------------
+
 async def test_execution_tools_registered(mcp_server):
     """Both execution tools are registered as MCP tools."""
     tools = await mcp_server.list_tools()
