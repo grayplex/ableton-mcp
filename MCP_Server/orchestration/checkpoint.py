@@ -52,12 +52,6 @@ def _infer_completed_phases(genre_id: str, tracks: list, clips_by_track: dict,
         for cn in t.get("device_classes", []):
             all_device_classes.add(cn)
 
-    # If master chain is complete (GlueCompressor + Limiter2 present), all phases done.
-    master_class_names = set(master_devices)
-    if (_GLUE_COMPRESSOR in master_class_names and _LIMITER in master_class_names
-            and len(tracks) >= 2 and _COMPRESSOR in all_device_classes):
-        return list(phase_order)
-
     completed = []
     for phase_type in phase_order:
         if phase_type == "setup":

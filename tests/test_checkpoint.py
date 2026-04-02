@@ -139,30 +139,37 @@ class TestCheckpoint:
         assert result["session_stats"]["track_count"] == 1
 
     def test_master_complete(self):
+        """A genuinely complete techno production passes all sequential walk checks.
+        Techno order: setup->drums->bass->sound_design->arrangement->mix->master.
+        Each phase needs its conditions met: named tracks with instruments+clips,
+        effect devices for sound_design, clips per section for arrangement,
+        Compressor2 for mix, GlueCompressor+Limiter2 for master."""
         arr = {
             "tracks": [
-                _make_track("Kick", True, 0, device_classes=["Compressor2"], has_clips=True),
-                _make_track("Bass", True, 1, has_clips=True),
+                _make_track("Kick Drums", True, 0, device_classes=["Compressor2"], has_clips=True),
+                _make_track("Bass", True, 1, device_classes=["AutoFilter"], has_clips=True),
             ],
-            "cue_points": [{"name": "Intro", "time": 0.0}],
-            "song_length": 32.0,
+            "cue_points": [{"name": "Intro", "time": 0.0}, {"name": "Drop", "time": 32.0}],
+            "song_length": 64.0,
         }
-        dc = {"tracks": [{"index": 0, "name": "Kick", "device_classes": ["Compressor2"]},
-                         {"index": 1, "name": "Bass", "device_classes": []}],
+        dc = {"tracks": [{"index": 0, "name": "Kick Drums", "device_classes": ["Compressor2"]},
+                         {"index": 1, "name": "Bass", "device_classes": ["AutoFilter"]}],
               "return_tracks": [],
               "master_track": {"name": "Master", "device_classes": ["GlueCompressor", "Limiter2"]}}
+        # 2 clips per track to satisfy arrangement (min_clips = max(2, 2 sections) = 2)
         clips = {
-            "Kick": [{"start_time": 0.0, "end_time": 8.0}],
-            "Bass": [{"start_time": 0.0, "end_time": 8.0}],
+            "Kick Drums": [{"start_time": 0.0, "end_time": 8.0}, {"start_time": 32.0, "end_time": 40.0}],
+            "Bass": [{"start_time": 0.0, "end_time": 8.0}, {"start_time": 32.0, "end_time": 40.0}],
         }
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
                    return_value=_make_conn(arr, dc, clips)):
             result = get_checkpoint("techno")
         assert "master" in result["completed_phases"]
 
-    def test_master_shortcircuit_requires_production_work(self):
+    def test_master_template_only_not_complete(self):
         """Master bus template (GlueCompressor + Limiter2) with no real tracks
-        should NOT short-circuit to all-phases-complete."""
+        should NOT report all phases complete. The short-circuit block was removed
+        entirely; the sequential walk now handles all cases."""
         arr = {
             "tracks": [_make_track("Master Template", False, 0)],
             "cue_points": [],
