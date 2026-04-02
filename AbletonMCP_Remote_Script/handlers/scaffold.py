@@ -3,6 +3,23 @@
 from AbletonMCP_Remote_Script.registry import command
 
 
+def _is_instrument_device(device):
+    """Return True if device is an instrument (drum machine, instrument rack, or plugin instrument).
+
+    Excludes audio effect racks, MIDI effect racks, and standalone audio/MIDI effects.
+    """
+    try:
+        if device.can_have_drum_pads:
+            return True
+        if device.can_have_chains:
+            return "instrument" in device.class_display_name.lower()
+        # Standalone device: instrument if class_name does not indicate audio or MIDI effect
+        cn = device.class_name.lower()
+        return "audio_effect" not in cn and "midi_effect" not in cn
+    except Exception:
+        return False
+
+
 class ScaffoldHandler:
     """Mixin class for scaffold command handlers."""
 
@@ -68,7 +85,7 @@ class ScaffoldHandler:
             tracks.append({
                 "index": i,
                 "name": track.name,
-                "has_instrument": getattr(track, "has_audio_output", False),
+                "has_instrument": any(_is_instrument_device(d) for d in track.devices),
                 "has_clips": len(track.arrangement_clips) > 0,
             })
 

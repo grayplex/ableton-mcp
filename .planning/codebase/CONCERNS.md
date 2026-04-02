@@ -6,10 +6,6 @@
 
 ## Known Limitations
 
-**`get_arrangement_state` returns `has_audio_output` as `has_instrument` proxy:**
-- The RS handler `_get_arrangement_state` (`AbletonMCP_Remote_Script/handlers/scaffold.py:71`) emits `"has_instrument": getattr(track, "has_audio_output", False)`. Audio tracks always have `has_audio_output = True`, so empty audio tracks appear to have instruments. MIDI tracks with only FX devices also test True because FX devices produce audio output. Phase detection in checkpoint.py and next_actions.py consumes this field.
-- Fix approach: Use a device type check (`any(d for d in track.devices if is_instrument_device(d))`) rather than the `has_audio_output` proxy.
-
 **Checkpoint `clips_by_track` uses a sentinel `["_"]` instead of real clip data:**
 - `get_checkpoint` (`MCP_Server/orchestration/checkpoint.py:162-166`) uses `["_"] if track.get("has_clips") else []` to build `clips_by_track`. Only clip presence (boolean) is tracked, not count, length, or which sections have clips. The arrangement phase completion check sees any clip as sufficient.
 - Impact: Cannot distinguish "one 4-bar intro clip" from "clips across all sections".
@@ -170,11 +166,6 @@
 **Real Ableton class name for Limiter not tested against live Ableton:**
 - All tests use mocked `class_name: "Limiter2"`. Whether Ableton's actual `device.class_name` returns `"Limiter"` or `"Limiter2"` is untested. If wrong, master phase detection silently fails.
 - Files: `tests/test_checkpoint.py:147`, `MCP_Server/orchestration/phase_detection.py:12`
-- Priority: High
-
-**`has_instrument` via `has_audio_output` not integration-tested:**
-- No test covers `get_arrangement_state` responses for audio tracks, group tracks, or MIDI tracks with only FX devices. Phase detection false positives from these cases are not caught.
-- Files: `AbletonMCP_Remote_Script/handlers/scaffold.py:71`
 - Priority: High
 
 **Sentinel resolution by Claude not tested end-to-end:**
