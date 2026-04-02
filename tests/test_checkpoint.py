@@ -376,24 +376,54 @@ class TestNonCanonicalTrackNames:
         _checkpoint_cache.clear()
 
     def _check_phase(self, track_name, expected_phase, has_instrument=True):
-        """Helper: create a session with one named track (with clips) and verify expected phase is detected."""
+        """Helper: create a session with the named track (with clips) and prerequisite
+        tracks so all prior phases are complete, then verify expected phase is detected.
+
+        Phase order for house: setup -> drums -> bass -> harmony -> melody -> ...
+        Each later phase requires all earlier phases to be complete (sequential walk).
+        """
+        # Prerequisite tracks needed for each target phase
+        prereq_tracks = {
+            "drums": [],
+            "bass": [("Kick", True)],       # drums prereq
+            "harmony": [("Kick", True), ("Bass Line", True)],  # drums + bass prereqs
+            "melody": [("Kick", True), ("Bass Line", True), ("Chords", True)],  # drums + bass + harmony
+        }
+        prereqs = prereq_tracks.get(expected_phase, [])
+
+        all_tracks = []
+        all_dc_tracks = []
+        clips = {}
+        idx = 0
+
+        # Add prerequisite tracks (all with clips)
+        for prereq_name, has_inst in prereqs:
+            all_tracks.append(_make_track(prereq_name, has_inst, idx, has_clips=True))
+            all_dc_tracks.append({"index": idx, "name": prereq_name, "device_classes": []})
+            clips[prereq_name] = [{"start_time": 0.0, "end_time": 8.0}]
+            idx += 1
+
+        # Add the target track
+        all_tracks.append(_make_track(track_name, has_instrument, idx, has_clips=True))
+        all_dc_tracks.append({"index": idx, "name": track_name, "device_classes": []})
+        clips[track_name] = [{"start_time": 0.0, "end_time": 8.0}]
+        idx += 1
+
+        # Ensure at least 2 tracks for setup phase completion
+        if len(all_tracks) < 2:
+            all_tracks.append(_make_track("Extra", True, idx))
+            all_dc_tracks.append({"index": idx, "name": "Extra", "device_classes": []})
+
         arr = {
-            "tracks": [
-                _make_track(track_name, has_instrument, 0, has_clips=True),
-                _make_track("Pad", True, 1),  # second track so setup is complete
-            ],
+            "tracks": all_tracks,
             "cue_points": [{"name": "Intro", "time": 0.0}],
             "song_length": 32.0,
         }
         dc = {
-            "tracks": [
-                {"index": 0, "name": track_name, "device_classes": []},
-                {"index": 1, "name": "Pad", "device_classes": []},
-            ],
+            "tracks": all_dc_tracks,
             "return_tracks": [],
             "master_track": {"name": "Master", "device_classes": []},
         }
-        clips = {track_name: [{"start_time": 0.0, "end_time": 8.0}]}
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
                    return_value=_make_conn(arr, dc, clips)):
             result = get_checkpoint("house")
