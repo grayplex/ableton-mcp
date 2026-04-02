@@ -175,6 +175,7 @@ def set_track_name(ctx: Context, track_index: int, name: str, track_type: str = 
             "set_track_name",
             {"track_index": track_index, "name": name, "track_type": track_type},
         )
+        invalidate_checkpoint_cache()
         return f"Renamed track to: {result.get('name', name)}"
     except Exception as e:
         return format_error(
@@ -199,6 +200,7 @@ def set_track_color(ctx: Context, track_index: int, color: str, track_type: str 
             "set_track_color",
             {"track_index": track_index, "color": color, "track_type": track_type},
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -221,6 +223,7 @@ def set_group_fold(ctx: Context, track_index: int, folded: bool) -> str:
         result = ableton.send_command(
             "set_group_fold", {"track_index": track_index, "folded": folded}
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -259,6 +262,7 @@ def stop_track_clips(ctx: Context, track_index: int, track_type: str = "track") 
             "stop_track_clips",
             {"track_index": track_index, "track_type": track_type},
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(

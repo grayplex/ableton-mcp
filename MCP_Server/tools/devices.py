@@ -5,6 +5,7 @@ import json
 from mcp.server.fastmcp import Context
 
 from MCP_Server.connection import format_error, get_ableton_connection
+from MCP_Server.orchestration.checkpoint import invalidate_checkpoint_cache
 from MCP_Server.server import mcp
 
 
@@ -39,6 +40,7 @@ def load_instrument_or_effect(
         result = ableton.send_command("load_browser_item", params)
 
         if result.get("loaded", False):
+            invalidate_checkpoint_cache()
             return json.dumps(result, indent=2)
         else:
             error_msg = result.get("error", "Unknown reason")
@@ -143,6 +145,7 @@ def set_device_parameter(
         if chain_device_index is not None:
             params["chain_device_index"] = chain_device_index
         result = ableton.send_command("set_device_parameter", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -184,6 +187,7 @@ def delete_device(
         if chain_device_index is not None:
             params["chain_device_index"] = chain_device_index
         result = ableton.send_command("delete_device", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -268,6 +272,7 @@ def insert_device(
                 "track_type": track_type,
             },
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -310,6 +315,7 @@ def move_device(
                 "target_track_type": target_track_type,
             },
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -346,6 +352,7 @@ def crop_simpler(
                 "track_type": track_type,
             },
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -379,6 +386,7 @@ def reverse_simpler(
                 "track_type": track_type,
             },
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -417,6 +425,7 @@ def warp_simpler(
         if beats is not None:
             params["beats"] = beats
         result = ableton.send_command("warp_simpler", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -486,6 +495,7 @@ def set_simpler_playback_mode(
                 "mode": mode,
             },
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -522,6 +532,7 @@ def insert_simpler_slice(
                 "time": time,
             },
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -561,6 +572,7 @@ def move_simpler_slice(
                 "destination_time": destination_time,
             },
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -597,6 +609,7 @@ def remove_simpler_slice(
                 "time": time,
             },
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -630,6 +643,7 @@ def clear_simpler_slices(
                 "track_type": track_type,
             },
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -669,6 +683,7 @@ def set_drum_pad_mute(
                 "mute": mute,
             },
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -711,6 +726,7 @@ def set_drum_pad_solo(
                 "exclusive": exclusive,
             },
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -747,6 +763,7 @@ def delete_drum_pad_chains(
                 "note": note,
             },
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -816,6 +833,7 @@ def set_plugin_preset(
                 "preset_index": preset_index,
             },
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -851,6 +869,7 @@ def compare_ab(
         if action is not None:
             params["action"] = action
         result = ableton.send_command("compare_ab", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -945,6 +964,7 @@ def set_wavetable_oscillator(
         if chain_device_index is not None:
             params["chain_device_index"] = chain_device_index
         result = ableton.send_command("set_wavetable_oscillator", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -1012,6 +1032,7 @@ def set_wavetable_voice_config(
         if chain_device_index is not None:
             params["chain_device_index"] = chain_device_index
         result = ableton.send_command("set_wavetable_voice_config", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -1059,6 +1080,7 @@ def add_wavetable_modulation(
         if chain_device_index is not None:
             params["chain_device_index"] = chain_device_index
         result = ableton.send_command("add_wavetable_modulation", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -1112,6 +1134,7 @@ def set_wavetable_modulation_value(
         if chain_device_index is not None:
             params["chain_device_index"] = chain_device_index
         result = ableton.send_command("set_wavetable_modulation_value", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -1252,6 +1275,7 @@ def set_compressor_sidechain(
         if chain_device_index is not None:
             params["chain_device_index"] = chain_device_index
         result = ableton.send_command("set_compressor_sidechain", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -1342,6 +1366,7 @@ def rack_variation_action(
         if chain_device_index is not None:
             params["chain_device_index"] = chain_device_index
         result = ableton.send_command("rack_variation_action", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -1384,6 +1409,7 @@ def rack_macro_action(
         if chain_device_index is not None:
             params["chain_device_index"] = chain_device_index
         result = ableton.send_command("rack_macro_action", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -1427,6 +1453,7 @@ def insert_rack_chain(
         if chain_device_index is not None:
             params["chain_device_index"] = chain_device_index
         result = ableton.send_command("insert_rack_chain", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -1472,6 +1499,7 @@ def copy_drum_pad(
         if chain_device_index is not None:
             params["chain_device_index"] = chain_device_index
         result = ableton.send_command("copy_drum_pad", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -1556,6 +1584,7 @@ def set_drum_chain_config(
         if choke_group is not None:
             params["choke_group"] = choke_group
         result = ableton.send_command("set_drum_chain_config", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -1654,6 +1683,7 @@ def re_enable_parameter_automation(
         if chain_device_index is not None:
             params["chain_device_index"] = chain_device_index
         result = ableton.send_command("re_enable_parameter_automation", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -1747,6 +1777,7 @@ def set_drift_mod_matrix(
         if chain_device_index is not None:
             params["chain_device_index"] = chain_device_index
         result = ableton.send_command("set_drift_mod_matrix", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -1832,6 +1863,7 @@ def looper_action(
         if chain_device_index is not None:
             params["chain_device_index"] = chain_device_index
         result = ableton.send_command("looper_action", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -1874,6 +1906,7 @@ def looper_export_to_clip_slot(
         if chain_device_index is not None:
             params["chain_device_index"] = chain_device_index
         result = ableton.send_command("looper_export_to_clip_slot", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -1984,6 +2017,7 @@ def set_spectral_resonator_config(
         if chain_device_index is not None:
             params["chain_device_index"] = chain_device_index
         result = ableton.send_command("set_spectral_resonator_config", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -2078,6 +2112,7 @@ def set_eq8_mode(
         if chain_device_index is not None:
             params["chain_device_index"] = chain_device_index
         result = ableton.send_command("set_eq8_mode", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -2181,6 +2216,7 @@ def create_take_lane_clip(
             "clip_type": clip_type,
         }
         result = ableton.send_command("create_take_lane_clip", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -2234,6 +2270,7 @@ def set_tuning_system(
         if note_tunings is not None:
             params["note_tunings"] = json.loads(note_tunings)
         result = ableton.send_command("set_tuning_system", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -2280,6 +2317,7 @@ def set_chain_mute_solo(
         if solo is not None:
             params["solo"] = solo
         result = ableton.send_command("set_chain_mute_solo", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -2322,6 +2360,7 @@ def set_chain_name_color(
         if color_index is not None:
             params["color_index"] = color_index
         result = ableton.send_command("set_chain_name_color", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(

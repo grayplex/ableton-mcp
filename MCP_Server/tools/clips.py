@@ -5,6 +5,7 @@ import json
 from mcp.server.fastmcp import Context
 
 from MCP_Server.connection import format_error, get_ableton_connection
+from MCP_Server.orchestration.checkpoint import invalidate_checkpoint_cache
 from MCP_Server.server import mcp
 
 
@@ -22,6 +23,7 @@ def create_clip(ctx: Context, track_index: int, clip_index: int, length: float =
         result = ableton.send_command(
             "create_clip", {"track_index": track_index, "clip_index": clip_index, "length": length}
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -48,6 +50,7 @@ def add_notes_to_clip(
             "add_notes_to_clip",
             {"track_index": track_index, "clip_index": clip_index, "notes": notes},
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -71,6 +74,7 @@ def set_clip_name(ctx: Context, track_index: int, clip_index: int, name: str) ->
         ableton.send_command(
             "set_clip_name", {"track_index": track_index, "clip_index": clip_index, "name": name}
         )
+        invalidate_checkpoint_cache()
         return f"Renamed clip at track {track_index}, slot {clip_index} to '{name}'"
     except Exception as e:
         return format_error(
@@ -91,6 +95,7 @@ def fire_clip(ctx: Context, track_index: int, clip_index: int) -> str:
     try:
         ableton = get_ableton_connection()
         result = ableton.send_command("fire_clip", {"track_index": track_index, "clip_index": clip_index})
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -111,6 +116,7 @@ def stop_clip(ctx: Context, track_index: int, clip_index: int) -> str:
     try:
         ableton = get_ableton_connection()
         result = ableton.send_command("stop_clip", {"track_index": track_index, "clip_index": clip_index})
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -151,6 +157,7 @@ def delete_clip(ctx: Context, track_index: int, clip_index: int) -> str:
     try:
         ableton = get_ableton_connection()
         result = ableton.send_command("delete_clip", {"track_index": track_index, "clip_index": clip_index})
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -181,6 +188,7 @@ def duplicate_clip(ctx: Context, track_index: int, clip_index: int, target_track
                 "target_clip_index": target_clip_index,
             },
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -204,6 +212,7 @@ def set_clip_color(ctx: Context, track_index: int, clip_index: int, color: str) 
         result = ableton.send_command(
             "set_clip_color", {"track_index": track_index, "clip_index": clip_index, "color": color}
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -273,6 +282,7 @@ def set_clip_launch_settings(
         if velocity_amount is not None:
             params["velocity_amount"] = velocity_amount
         result = ableton.send_command("set_clip_launch_settings", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -297,6 +307,7 @@ def set_clip_muted(ctx: Context, track_index: int, clip_index: int, muted: bool)
             "set_clip_muted",
             {"track_index": track_index, "clip_index": clip_index, "muted": muted},
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -320,6 +331,7 @@ def crop_clip(ctx: Context, track_index: int, clip_index: int) -> str:
             "crop_clip",
             {"track_index": track_index, "clip_index": clip_index},
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -343,6 +355,7 @@ def duplicate_clip_loop(ctx: Context, track_index: int, clip_index: int) -> str:
             "duplicate_clip_loop",
             {"track_index": track_index, "clip_index": clip_index},
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -382,6 +395,7 @@ def duplicate_clip_region(
                 "destination_time": destination_time,
             },
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -413,6 +427,7 @@ def set_clip_groove(
         else:
             params["groove_index"] = None
         result = ableton.send_command("set_clip_groove", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -442,6 +457,7 @@ def create_session_audio_clip(
             "create_session_audio_clip",
             {"track_index": track_index, "clip_index": clip_index, "file_path": file_path},
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -487,6 +503,7 @@ def set_clip_loop(
         if end_marker is not None:
             params["end_marker"] = end_marker
         result = ableton.send_command("set_clip_loop", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
