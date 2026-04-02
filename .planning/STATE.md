@@ -108,10 +108,11 @@ None — v1.9 complete.
 | 260402-l9f | Fix checkpoint cache not invalidated after write operations | 2026-04-02 | ba09f84 | [260402-l9f-fix-checkpoint-cache-not-invalidated-aft](./quick/260402-l9f-fix-checkpoint-cache-not-invalidated-aft/) |
 | 260402-lky | Skip ping in get_ableton_connection when connection is healthy | 2026-04-02 | 4867792 | [260402-lky-skip-ping-in-get-ableton-connection-when](./quick/260402-lky-skip-ping-in-get-ableton-connection-when/) |
 | 260402-lys | Add get_device_classes RS command to avoid full parameter serialization in checkpoint | 2026-04-02 | 6be4b56 | [260402-lys-add-get-device-classes-rs-command-to-avo](./quick/260402-lys-add-get-device-classes-rs-command-to-avo/) |
+| 260402-ofy | Fix apply_mix_recipe and apply_master_recipe run_in_executor connection contention | 2026-04-02 | 01acab4 | [260402-ofy-fix-apply-mix-recipe-and-apply-master-re](./quick/260402-ofy-fix-apply-mix-recipe-and-apply-master-re/) |
 
 ## Session Continuity
 
 Last session: 2026-04-01
 Stopped at: "v1.9 complete — all 4 phases shipped, 31 tests passing"
-Last activity: 2026-04-02 - Completed quick task 260402-lys: Add get_device_classes RS command to avoid full parameter serialization in checkpoint
+Last activity: 2026-04-02 - Completed quick task 260402-ofy: Fix apply_mix_recipe and apply_master_recipe run_in_executor connection contention
 Resume file: None
