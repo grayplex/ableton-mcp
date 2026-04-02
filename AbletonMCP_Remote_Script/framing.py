@@ -1,13 +1,19 @@
-"""Length-prefix framing protocol for Ableton socket communication."""
-# Remote Script canonical source: AbletonMCP_Remote_Script/framing.py
-# Both files MUST stay in sync. See tests/test_protocol.py::TestProtocolSync.
+"""Length-prefix framing protocol for Ableton socket communication.
+
+This is the canonical framing implementation for the Remote Script runtime.
+The server-side canonical source is MCP_Server/protocol.py.
+
+Both files MUST remain byte-for-byte identical in their framing logic.
+If you change the framing protocol (e.g., max message size, header format),
+update BOTH files and verify with tests/test_protocol.py::TestProtocolSync.
+"""
 
 import json
 import socket
 import struct
 
 
-def _recv_exact(sock: socket.socket, n: int):
+def _recv_exact(sock, n):
     """Read exactly n bytes from socket."""
     buf = bytearray()
     while len(buf) < n:
@@ -18,14 +24,14 @@ def _recv_exact(sock: socket.socket, n: int):
     return bytes(buf)
 
 
-def send_message(sock: socket.socket, data: dict) -> None:
+def send_message(sock, data):
     """Send a length-prefixed JSON message."""
     payload = json.dumps(data, ensure_ascii=False).encode("utf-8")
     header = struct.pack(">I", len(payload))
     sock.sendall(header + payload)
 
 
-def recv_message(sock: socket.socket, timeout: float = 15.0) -> dict:
+def recv_message(sock, timeout=15.0):
     """Receive a length-prefixed JSON message."""
     sock.settimeout(timeout)
     header = _recv_exact(sock, 4)
