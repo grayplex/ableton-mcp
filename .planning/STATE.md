@@ -102,10 +102,11 @@ None — v1.9 complete.
 | 260401-q25 | fix get_next_actions checkpoint latency when called without phase_name | 2026-04-01 | d04f164 | [260401-q25-fix-get-next-actions-checkpoint-latency-](./quick/260401-q25-fix-get-next-actions-checkpoint-latency-/) |
 | 260401-q5l | apply_recipe has 30-second timeout with no progress feedback | 2026-04-01 | b832a42 | [260401-q5l-apply-recipe-has-30-second-timeout-with-](./quick/260401-q5l-apply-recipe-has-30-second-timeout-with-/) |
 | 260401-q7f | ADPT-01 - add refine_agenda tool for adaptive agenda refinement | 2026-04-01 | 19b9051 | [260401-q7f-adpt-01-add-refine-agenda-tool-for-adapt](./quick/260401-q7f-adpt-01-add-refine-agenda-tool-for-adapt/) |
+| 260401-qc5 | Guard master short-circuit against empty-session false-positive | 2026-04-01 | bc8eafa | [260401-qc5-master-phase-short-circuits-phase-walk-w](./quick/260401-qc5-master-phase-short-circuits-phase-walk-w/) |
 
 ## Session Continuity
 
 Last session: 2026-04-01
 Stopped at: "v1.9 complete — all 4 phases shipped, 31 tests passing"
-Last activity: 2026-04-01 - Completed quick task 260401-q7f: ADPT-01 - add refine_agenda tool for adaptive agenda refinement
+Last activity: 2026-04-01 - Completed quick task 260401-qc5: Guard master short-circuit against empty-session false-positive
 Resume file: None
