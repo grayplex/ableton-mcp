@@ -22,9 +22,6 @@
 - The length-prefix framing functions `_recv_exact`, `send_message`, `recv_message` are implemented verbatim in both `MCP_Server/protocol.py:1-39` and `AbletonMCP_Remote_Script/__init__.py:38-68`.
 - Impact: Any framing bug or protocol change (e.g., max message size) must be fixed in two places across two separate Python runtimes.
 
-**Duplicate phase-detection constants across two modules:**
-- `_DRUM_NAMES`, `_BASS_NAMES`, `_HARMONY_NAMES`, `_MELODY_NAMES`, `_COMPRESSOR`, `_GLUE_COMPRESSOR`, `_LIMITER` were previously duplicated between `checkpoint.py` and `next_actions.py`. Quick task 260401-pjl deduplicated these into `MCP_Server/orchestration/phase_detection.py`. Both modules now import from there — no remaining duplication.
-
 **`conftest.py` `_GAC_PATCH_TARGETS` requires manual updates:**
 - Every new tool module that imports `get_ableton_connection` via `from ... import` must be added to `_GAC_PATCH_TARGETS` in `tests/conftest.py`. New modules not listed will attempt a real socket connection during tests. Quick task 260401-pxk audited and fixed the current list, but future additions are at risk.
 
