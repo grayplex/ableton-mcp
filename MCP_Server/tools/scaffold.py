@@ -159,8 +159,9 @@ def scaffold_arrangement(ctx: Context, plan: dict) -> str:
 def get_arrangement_overview(ctx: Context) -> str:
     """Get arrangement state: locators, tracks, session length in bars.
 
-    Returns locators with 1-indexed bar positions, flat track name list,
-    and session length in bars for mid-session re-orientation.
+    Returns locators with 1-indexed bar positions, tracks as {name, index}
+    dicts, and session length in bars for mid-session re-orientation.
+    Track indices can be used to resolve <track_index> sentinels directly.
     """
     try:
         ableton = get_ableton_connection()
@@ -183,7 +184,7 @@ def get_arrangement_overview(ctx: Context) -> str:
 
         return json.dumps({
             "locators": locators,
-            "tracks": [t["name"] for t in state["tracks"]],
+            "tracks": [{"name": t["name"], "index": t["index"]} for t in state["tracks"]],
             "session_length_bars": session_length_bars,
         })
     except Exception as e:

@@ -235,8 +235,10 @@ def _build_setup_steps(genre_id, blueprint):
 
 
 
-# Sentinel hints removed — the "<track_index>" / "<clip_index>" values in
-# suggested_args already signal that Claude must resolve them at call time.
+# Sentinel resolution: steps using "<track_index>" / "<clip_index>" sentinels
+# include a hint in their description instructing Claude to resolve the value
+# via get_arrangement_overview or get_all_tracks at call time.
+_SENTINEL_HINT = " -- resolve <track_index> via get_arrangement_overview or get_all_tracks"
 
 
 def _build_drums_steps(genre_id, pattern, section_name):
@@ -264,7 +266,7 @@ def _build_drums_steps(genre_id, pattern, section_name):
     steps = [
         _step(1, "Create Drums MIDI track",
               "create_midi_track", {"index": -1}, pt),
-        _step(2, f"Name track 'Drums'",
+        _step(2, f"Name track 'Drums'" + _SENTINEL_HINT,
               "set_track_name", {"track_index": "<track_index>", "name": "Drums"}, pt, 1),
         _step(3, f"Load Drum Rack",
               "load_instrument_or_effect", {"track_index": "<track_index>", "instrument_name": "Drum Rack"}, pt, 2),
@@ -307,7 +309,7 @@ def _build_bass_steps(genre_id, instruments, section_name):
     return [
         _step(1, "Create Bass MIDI track",
               "create_midi_track", {"index": -1}, pt),
-        _step(2, f"Name track 'Bass'",
+        _step(2, f"Name track 'Bass'" + _SENTINEL_HINT,
               "set_track_name", {"track_index": "<track_index>", "name": "Bass"}, pt, 1),
         _step(3, f"Load {bass_instr} on Bass track",
               "load_instrument_or_effect", {"track_index": "<track_index>", "instrument_name": bass_instr}, pt, 2),
@@ -347,7 +349,7 @@ def _build_harmony_steps(genre_id, instruments, section_name):
     return [
         _step(1, "Create Chords MIDI track",
               "create_midi_track", {"index": -1}, pt),
-        _step(2, f"Name track 'Chords'",
+        _step(2, f"Name track 'Chords'" + _SENTINEL_HINT,
               "set_track_name", {"track_index": "<track_index>", "name": "Chords"}, pt, 1),
         _step(3, f"Load {harmony_instr} on Chords track",
               "load_instrument_or_effect", {"track_index": "<track_index>", "instrument_name": harmony_instr}, pt, 2),
@@ -388,7 +390,7 @@ def _build_melody_steps(genre_id, instruments, section_name):
     return [
         _step(1, "Create Lead MIDI track",
               "create_midi_track", {"index": -1}, pt),
-        _step(2, f"Name track 'Lead'",
+        _step(2, f"Name track 'Lead'" + _SENTINEL_HINT,
               "set_track_name", {"track_index": "<track_index>", "name": "Lead"}, pt, 1),
         _step(3, f"Load {melody_instr} on Lead track",
               "load_instrument_or_effect", {"track_index": "<track_index>", "instrument_name": melody_instr}, pt, 2),
@@ -402,7 +404,7 @@ def _build_melody_steps(genre_id, instruments, section_name):
 
 def _build_sound_design_steps(genre_id):
     pt = "sound_design"
-    sn = "Replace <synth_track_index> with actual index from get_all_tracks()"
+    sn = "resolve <synth_track_index> via get_arrangement_overview or get_all_tracks"
     return [
         _step(1, f"Load Auto Filter on synth track. {sn}",
               "load_instrument_or_effect",
@@ -453,7 +455,7 @@ def _build_mix_steps(genre_id, blueprint):
     for i, role in enumerate(roles):
         steps.append(_step(
             i + 1,
-            f"Apply mix recipe for {role}. Replace <{role}_track_index> with actual index from get_all_tracks().",
+            f"Apply mix recipe for {role}. resolve <{role}_track_index> via get_arrangement_overview or get_all_tracks.",
             "apply_mix_recipe",
             {"track_index": f"<{role}_track_index>", "role": role, "genre": genre_id},
             pt,
