@@ -32,11 +32,6 @@
 - Risk: High — only discoverable by running against real Ableton.
 - Fix approach: Load a session with a Limiter on the master track and inspect `device.class_name` via a debug command or Ableton's console.
 
-**Checkpoint cache not invalidated after write operations:**
-- `invalidate_checkpoint_cache()` exists (`MCP_Server/orchestration/checkpoint.py:267`) but is never called by any MCP tool after a write operation.
-- Impact: `get_checkpoint` returns stale data for up to 30 seconds (`_CACHE_TTL = 30.0`) after any mutation. Claude may re-attempt steps it has already completed.
-- Fix approach: Call `invalidate_checkpoint_cache()` in `MCP_Server/tools/scaffold.py`, `tracks.py`, `clips.py`, and `devices.py` after write operations, or reduce `_CACHE_TTL` to 5 seconds.
-
 **`_step()` drops the `phase` key from ExecutionStep output:**
 - The `_step` factory in `MCP_Server/orchestration/execution.py:188-200` now includes `phase` in the output dict (fixed in quick task 260401-pp9). Confirmed: line 195 sets `"phase": phase`. No remaining bug here.
 
