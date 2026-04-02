@@ -111,10 +111,11 @@ None — v1.9 complete.
 | 260402-ofy | Fix apply_mix_recipe and apply_master_recipe run_in_executor connection contention | 2026-04-02 | 01acab4 | [260402-ofy-fix-apply-mix-recipe-and-apply-master-re](./quick/260402-ofy-fix-apply-mix-recipe-and-apply-master-re/) |
 | 260402-p28 | Expand phase detection name sets to cover common custom track names | 2026-04-02 | 4f99e0e | [260402-p28-expand-phase-detection-name-sets-to-cove](./quick/260402-p28-expand-phase-detection-name-sets-to-cove/) |
 | 260402-r2p | Fix master short-circuit false production-complete | 2026-04-02 | 7fbd8ff | [260402-r2p-fix-master-short-circuit-false-productio](./quick/260402-r2p-fix-master-short-circuit-false-productio/) |
+| 260402-rb4 | Ensure all sentinel-arg execution steps have depends_on_step | 2026-04-02 | eda5a73 | [260402-rb4-ensure-all-sentinel-arg-execution-steps-](./quick/260402-rb4-ensure-all-sentinel-arg-execution-steps-/) |
 
 ## Session Continuity
 
-Last session: 2026-04-01
-Stopped at: "v1.9 complete — all 4 phases shipped, 31 tests passing"
-Last activity: 2026-04-02 - Completed quick task 260402-r2p: Fix master short-circuit false production-complete
+Last session: 2026-04-02
+Stopped at: "Completed quick task 260402-rb4: Ensure all sentinel-arg execution steps have depends_on_step"
+Last activity: 2026-04-02 - Completed quick task 260402-rb4: Ensure all sentinel-arg execution steps have depends_on_step
 Resume file: None
