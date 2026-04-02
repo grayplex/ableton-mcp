@@ -269,7 +269,7 @@ def _build_drums_steps(genre_id, pattern, section_name):
         _step(2, f"Name track 'Drums'" + _SENTINEL_HINT,
               "set_track_name", {"track_index": "<track_index>", "name": "Drums"}, pt, 1),
         _step(3, f"Load Drum Rack",
-              "load_instrument_or_effect", {"track_index": "<track_index>", "instrument_name": "Drum Rack"}, pt, 2),
+              "load_instrument_or_effect", {"track_index": "<track_index>", "path": "instruments/Drum Rack"}, pt, 2),
         clip_step,
         _step(5, f"Add {beat_desc} notes",
               "add_notes_to_clip",
@@ -312,7 +312,7 @@ def _build_bass_steps(genre_id, instruments, section_name):
         _step(2, f"Name track 'Bass'" + _SENTINEL_HINT,
               "set_track_name", {"track_index": "<track_index>", "name": "Bass"}, pt, 1),
         _step(3, f"Load {bass_instr} on Bass track",
-              "load_instrument_or_effect", {"track_index": "<track_index>", "instrument_name": bass_instr}, pt, 2),
+              "load_instrument_or_effect", {"track_index": "<track_index>", "path": f"instruments/{bass_instr}"}, pt, 2),
         clip_step,
         _step(5, f"Add bass line notes",
               "add_notes_to_clip",
@@ -352,7 +352,7 @@ def _build_harmony_steps(genre_id, instruments, section_name):
         _step(2, f"Name track 'Chords'" + _SENTINEL_HINT,
               "set_track_name", {"track_index": "<track_index>", "name": "Chords"}, pt, 1),
         _step(3, f"Load {harmony_instr} on Chords track",
-              "load_instrument_or_effect", {"track_index": "<track_index>", "instrument_name": harmony_instr}, pt, 2),
+              "load_instrument_or_effect", {"track_index": "<track_index>", "path": f"instruments/{harmony_instr}"}, pt, 2),
         clip_step,
         _step(5, f"Add 2-chord loop notes",
               "add_notes_to_clip",
@@ -393,7 +393,7 @@ def _build_melody_steps(genre_id, instruments, section_name):
         _step(2, f"Name track 'Lead'" + _SENTINEL_HINT,
               "set_track_name", {"track_index": "<track_index>", "name": "Lead"}, pt, 1),
         _step(3, f"Load {melody_instr} on Lead track",
-              "load_instrument_or_effect", {"track_index": "<track_index>", "instrument_name": melody_instr}, pt, 2),
+              "load_instrument_or_effect", {"track_index": "<track_index>", "path": f"instruments/{melody_instr}"}, pt, 2),
         clip_step,
         _step(5, f"Add melodic phrase notes",
               "add_notes_to_clip",
@@ -406,22 +406,24 @@ def _build_sound_design_steps(genre_id):
     pt = "sound_design"
     sn = "resolve <synth_track_index> via get_arrangement_overview or get_all_tracks"
     return [
-        _step(1, f"Load Auto Filter on synth track. {sn}",
+        _step(1, "Query tracks to resolve synth track index",
+              "get_arrangement_overview", {}, pt),
+        _step(2, f"Load Auto Filter on synth track. {sn}",
               "load_instrument_or_effect",
-              {"track_index": "<synth_track_index>", "instrument_name": "Auto Filter"},
-              pt),
-        _step(2, f"Set Auto Filter Frequency to 0.6. {sn}",
+              {"track_index": "<synth_track_index>", "path": "audio_effects/Auto Filter"},
+              pt, 1),
+        _step(3, f"Set Auto Filter Frequency to 0.6. {sn}",
               "set_device_parameter",
               {"track_index": "<synth_track_index>", "device_index": 0, "parameter_name": "Frequency", "value": 0.6},
-              pt, 1),
-        _step(3, f"Load Reverb on synth track. {sn}",
-              "load_instrument_or_effect",
-              {"track_index": "<synth_track_index>", "instrument_name": "Reverb"},
               pt, 2),
-        _step(4, f"Set Reverb Dry/Wet to 0.3. {sn}",
+        _step(4, f"Load Reverb on synth track. {sn}",
+              "load_instrument_or_effect",
+              {"track_index": "<synth_track_index>", "path": "audio_effects/Reverb"},
+              pt, 3),
+        _step(5, f"Set Reverb Dry/Wet to 0.3. {sn}",
               "set_device_parameter",
               {"track_index": "<synth_track_index>", "device_index": 1, "parameter_name": "Dry/Wet", "value": 0.3},
-              pt, 3),
+              pt, 4),
     ]
 
 
@@ -439,9 +441,6 @@ def _build_arrangement_steps(genre_id, section_name):
               "get_section_checklist",
               {"plan": {"genre": genre_id, "sections": []}, "section_name": sn},
               pt, 3),
-        # Non-callable placeholder — filtered by next_actions before returning to Claude
-        _step(5, "Review evaluate_session output and apply each item in top_fixes",
-              "\u2014", {}, pt, 4),
     ]
 
 
@@ -451,15 +450,18 @@ def _build_mix_steps(genre_id, blueprint):
     if not roles:
         roles = ["kick", "bass", "pad"]
 
-    steps = []
+    steps = [
+        _step(1, "Query tracks to resolve role track indices",
+              "get_arrangement_overview", {}, pt),
+    ]
     for i, role in enumerate(roles):
         steps.append(_step(
-            i + 1,
+            i + 2,
             f"Apply mix recipe for {role}. resolve <{role}_track_index> via get_arrangement_overview or get_all_tracks.",
             "apply_mix_recipe",
             {"track_index": f"<{role}_track_index>", "role": role, "genre": genre_id},
             pt,
-            i if i > 0 else None,
+            i + 1 if i > 0 else 1,
         ))
 
     n = len(steps)
@@ -555,8 +557,7 @@ def get_execution_plan(phase_name: str, genre: str,
         step["step_number"] = i + 1
 
     total = len(steps)
-    # estimated_tool_calls excludes description-only steps (tool_name == "—")
-    tool_calls = sum(1 for s in steps if s["tool_name"] != "—")
+    tool_calls = total
 
     return PhaseChecklist(
         phase_name=phase_name_lower,

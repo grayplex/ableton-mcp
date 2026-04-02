@@ -9,6 +9,7 @@ import json
 from mcp.server.fastmcp import Context
 
 from MCP_Server.connection import format_error, get_ableton_connection
+from MCP_Server.orchestration.checkpoint import invalidate_checkpoint_cache
 from MCP_Server.server import mcp
 
 
@@ -146,6 +147,7 @@ def scaffold_arrangement(ctx: Context, plan: dict) -> str:
         }
         if locator_errors:
             response["locator_errors"] = locator_errors
+        invalidate_checkpoint_cache()
         return json.dumps(response)
     except Exception as e:
         return format_error(

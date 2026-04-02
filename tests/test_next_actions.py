@@ -27,24 +27,38 @@ import pytest
 from MCP_Server.orchestration.next_actions import get_next_actions_result, get_transition_guidance
 
 
-def _make_track(name, has_instrument=True, index=0):
-    return {"name": name, "has_instrument": has_instrument, "index": index, "devices": []}
+def _make_track(name, has_instrument=True, index=0, device_classes=None):
+    return {"name": name, "has_instrument": has_instrument, "index": index, "device_classes": device_classes or [], "clips": [], "clip_count": 0, "has_clips": False}
 
 
-def _make_conn(tracks, master_devices=None, clips_by_track=None):
+def _make_conn(tracks, master_device_classes=None, clips_by_track=None):
     clips_by_track = clips_by_track or {}
-    master_devices = master_devices or []
-    arr_state = {"tracks": tracks, "cue_points": [], "song_length": 32.0}
-    mix_state = {"tracks": [], "return_tracks": [], "master_track": {"devices": master_devices}}
+    master_device_classes = master_device_classes or []
+    # Inject real clips into each track dict so get_arrangement_state carries them
+    enriched_tracks = []
+    for t in tracks:
+        tc = dict(t)
+        tc["clips"] = clips_by_track.get(tc["name"], [])
+        tc["clip_count"] = len(tc["clips"])
+        tc["has_clips"] = len(tc["clips"]) > 0
+        enriched_tracks.append(tc)
+    arr_state = {"tracks": enriched_tracks, "cue_points": [], "song_length": 32.0}
+    device_classes_state = {
+        "tracks": [{"index": i, "name": tc["name"],
+                    "device_classes": tc.get("device_classes", [])}
+                   for i, tc in enumerate(enriched_tracks)],
+        "return_tracks": [],
+        "master_track": {"name": "Master", "device_classes": master_device_classes}
+    }
     mock_conn = MagicMock()
     def send_command(cmd, params=None):
         if cmd == "get_arrangement_state":
             return arr_state
-        elif cmd == "get_mix_state":
-            return mix_state
+        elif cmd == "get_device_classes":
+            return device_classes_state
         elif cmd == "get_arrangement_clips":
             idx = (params or {}).get("track_index", 0)
-            name = next((t["name"] for t in tracks if t.get("index") == idx), "")
+            name = next((t["name"] for t in enriched_tracks if t.get("index") == idx), "")
             return {"clips": clips_by_track.get(name, [])}
         return {}
     mock_conn.send_command.side_effect = send_command
@@ -101,23 +115,17 @@ class TestGetTransitionGuidance:
         assert result["blockers"] == []
 
 class TestArrangementStepFiltering:
-    def test_arrangement_steps_exclude_non_callable(self):
-        """Arrangement checklist steps returned by get_next_actions_result
-        never include non-callable placeholder tool names."""
+    def test_arrangement_steps_all_callable(self):
+        """All arrangement checklist steps have real (callable) tool names."""
         result = get_next_actions_result("house", phase_name="arrangement")
         assert "error" not in result
-        steps = result["steps"]
-        # All returned steps must have a real tool_name
-        for step in steps:
-            assert step["tool_name"] not in {"\u2014", "\u2014", "", None}, (
+        for step in result["steps"]:
+            assert step["tool_name"] not in {"\u2014", "", None}, (
                 f"Step {step['step_number']} has non-callable tool_name: {step['tool_name']!r}"
             )
-        # The placeholder description should appear in notes
-        assert len(result.get("notes", [])) >= 1
-        assert any("top_fixes" in n for n in result["notes"])
 
     def test_arrangement_callable_steps_preserved(self):
-        """Arrangement checklist preserves the 4 callable steps."""
+        """Arrangement checklist contains exactly 4 callable steps."""
         result = get_next_actions_result("house", phase_name="arrangement")
         steps = result["steps"]
         assert len(steps) == 4

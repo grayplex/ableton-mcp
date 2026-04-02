@@ -57,7 +57,7 @@ Milestone: v1.9 COMPLETE (shipped 2026-04-01)
 - [v1.9]: Checkpoint reads live Ableton state (not persisted) — phase completion inferred heuristically from session topology
 - [v1.9]: ExecutionStep uses sentinel values for session-state args — Claude resolves at call time; keeps checklist generation stateless
 - [v1.9]: Token budget enforced by compact note arrays (≤8 notes per step) and short descriptions; all checklists <2000 chars
-- [v1.9]: master phase short-circuits phase-walk — GlueCompressor+Limiter2 on master → all phases complete (avoids requiring sound_design devices)
+- [v1.9]: master phase short-circuit removed — sequential walk handles master detection at phase_type=="master" check; no premature all-complete bypass
 - [v1.9]: get_next_actions with explicit phase_name bypasses checkpoint (pure computation, no connection needed)
 
 ### Roadmap Evolution
@@ -105,10 +105,18 @@ None — v1.9 complete.
 | 260401-qc5 | Guard master short-circuit against empty-session false-positive | 2026-04-01 | bc8eafa | [260401-qc5-master-phase-short-circuits-phase-walk-w](./quick/260401-qc5-master-phase-short-circuits-phase-walk-w/) |
 | 260401-qhm | make send_command thread-safe by holding a per-connection lock during the socket write+read cycle | 2026-04-02 | 4d86ff9 | [260401-qhm-make-send-command-thread-safe-by-holding](./quick/260401-qhm-make-send-command-thread-safe-by-holding/) |
 | 260401-qjf | fix get_arrangement_state track index sentinel resolution | 2026-04-02 | a05dc6e | [260401-qjf-fix-get-arrangement-state-track-index-se](./quick/260401-qjf-fix-get-arrangement-state-track-index-se/) |
+| 260402-l9f | Fix checkpoint cache not invalidated after write operations | 2026-04-02 | ba09f84 | [260402-l9f-fix-checkpoint-cache-not-invalidated-aft](./quick/260402-l9f-fix-checkpoint-cache-not-invalidated-aft/) |
+| 260402-lky | Skip ping in get_ableton_connection when connection is healthy | 2026-04-02 | 4867792 | [260402-lky-skip-ping-in-get-ableton-connection-when](./quick/260402-lky-skip-ping-in-get-ableton-connection-when/) |
+| 260402-lys | Add get_device_classes RS command to avoid full parameter serialization in checkpoint | 2026-04-02 | 6be4b56 | [260402-lys-add-get-device-classes-rs-command-to-avo](./quick/260402-lys-add-get-device-classes-rs-command-to-avo/) |
+| 260402-ofy | Fix apply_mix_recipe and apply_master_recipe run_in_executor connection contention | 2026-04-02 | 01acab4 | [260402-ofy-fix-apply-mix-recipe-and-apply-master-re](./quick/260402-ofy-fix-apply-mix-recipe-and-apply-master-re/) |
+| 260402-p28 | Expand phase detection name sets to cover common custom track names | 2026-04-02 | 4f99e0e | [260402-p28-expand-phase-detection-name-sets-to-cove](./quick/260402-p28-expand-phase-detection-name-sets-to-cove/) |
+| 260402-r2p | Fix master short-circuit false production-complete | 2026-04-02 | 7fbd8ff | [260402-r2p-fix-master-short-circuit-false-productio](./quick/260402-r2p-fix-master-short-circuit-false-productio/) |
+| 260402-rb4 | Ensure all sentinel-arg execution steps have depends_on_step | 2026-04-02 | eda5a73 | [260402-rb4-ensure-all-sentinel-arg-execution-steps-](./quick/260402-rb4-ensure-all-sentinel-arg-execution-steps-/) |
+| 260402-t7c | Increase browser load verification tick delay for reliability under load | 2026-04-02 | 9a408bc | [260402-t7c-increase-browser-load-verification-tick-](./quick/260402-t7c-increase-browser-load-verification-tick-/) |
 
 ## Session Continuity
 
-Last session: 2026-04-01
-Stopped at: "v1.9 complete — all 4 phases shipped, 31 tests passing"
-Last activity: 2026-04-02 - Completed quick task 260401-qjf: fix get_arrangement_state track index sentinel resolution
+Last session: 2026-04-02
+Stopped at: "Completed quick task 260402-rb4: Ensure all sentinel-arg execution steps have depends_on_step"
+Last activity: 2026-04-02 - Completed quick task 260402-t7c: Increase browser load verification tick delay for reliability under load
 Resume file: None

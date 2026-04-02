@@ -10,7 +10,7 @@ from MCP_Server.orchestration.phase_detection import _DRUM_NAMES, _BASS_NAMES, _
 
 logger = logging.getLogger("AbletonMCPServer")
 
-_NON_CALLABLE = frozenset({"\u2014", "\u2014", "", None})  # em-dash variants, empty, None
+_NON_CALLABLE = frozenset({"\u2014", "", None})  # em-dash, empty, None
 
 _EFFECT_CLASSES = {"AutoFilter", "Reverb", "Redux", "Saturator", "Chorus", "Flanger", "Phaser"}
 
@@ -39,9 +39,9 @@ def _phase_complete(phase_type: str, tracks: list, clips_by_track: dict,
 
     all_device_classes = set()
     for t in tracks:
-        for d in t.get("devices", []):
-            all_device_classes.add(d.get("class_name", ""))
-    master_class_names = {d.get("class_name", "") for d in master_devices}
+        for cn in t.get("device_classes", []):
+            all_device_classes.add(cn)
+    master_class_names = set(master_devices)
 
     if phase_type == "setup":
         if len(tracks) >= 2:
@@ -242,18 +242,22 @@ def get_transition_guidance(from_phase: str, genre: str = None, to_phase: str = 
         try:
             conn = get_ableton_connection()
             arrangement_state = conn.send_command("get_arrangement_state")
-            mix_state = conn.send_command("get_mix_state")
+            device_classes = conn.send_command("get_device_classes")
         except Exception as e:
             return {"error": f"Could not connect to Ableton: {e}"}
 
         tracks = arrangement_state.get("tracks", [])
-        master_devices = mix_state.get("master_track", {}).get("devices", [])
+        master_devices = device_classes.get("master_track", {}).get("device_classes", [])
+
+        # Merge device class names into arrangement tracks for phase detection
+        dc_by_name = {}
+        for dc_track in device_classes.get("tracks", []):
+            dc_by_name[dc_track["name"]] = dc_track.get("device_classes", [])
+        for t in tracks:
+            t["device_classes"] = dc_by_name.get(t["name"], [])
 
         # Build clips_by_track from arrangement_state (no extra round-trips)
-        clips_by_track = {}
-        for track in tracks:
-            # has_clips from get_arrangement_state; use sentinel list for truthy check
-            clips_by_track[track["name"]] = ["_"] if track.get("has_clips") else []
+        clips_by_track = {track["name"]: track.get("clips", []) for track in tracks}
 
     is_complete, blockers = _phase_complete(from_phase, tracks, clips_by_track, master_devices)
 

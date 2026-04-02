@@ -35,155 +35,33 @@ _BROWSER_COMMANDS = frozenset(
     ]
 )
 
-# Commands that modify state (write operations)
-_WRITE_COMMANDS = frozenset(
-    [
-        "create_midi_track",
-        "create_audio_track",
-        "create_return_track",
-        "create_group_track",
-        "set_track_name",
-        "delete_track",
-        "duplicate_track",
-        "set_track_color",
-        "set_group_fold",
-        "create_clip",
-        "add_notes_to_clip",
-        "set_clip_name",
-        "set_tempo",
-        "fire_clip",
-        "stop_clip",
-        "set_device_parameter",
-        "start_playback",
-        "stop_playback",
-        # Phase 4: Mixing Controls
-        "set_track_volume",
-        "set_track_pan",
-        "set_track_mute",
-        "set_track_solo",
-        "set_track_arm",
-        "set_send_level",
-        # Phase 5: Clip Management
-        "delete_clip",
-        "duplicate_clip",
-        "set_clip_color",
-        "set_clip_loop",
-        # Phase 6: MIDI Editing
-        "remove_notes",
-        "quantize_notes",
-        "transpose_notes",
-        # Phase 7: Device & Browser
-        "delete_device",
-        # Phase 8: Scene and Transport
-        "create_scene",
-        "set_scene_name",
-        "fire_scene",
-        "delete_scene",
-        "continue_playback",
-        "stop_all_clips",
-        "set_time_signature",
-        "set_loop_region",
-        "undo",
-        "redo",
-        # Phase 9: Automation
-        "insert_envelope_breakpoints",
-        "clear_clip_envelopes",
-        # Phase 10: Routing & Audio Clips
-        "set_input_routing",
-        "set_output_routing",
-        "set_audio_clip_properties",
-        # Phase 12: Song Gaps
-        "set_scale",
-        "set_or_delete_cue",
-        "jump_to_cue",
-        "capture_scene",
-        "capture_midi",
-        "tap_tempo",
-        "set_metronome",
-        "set_groove_amount",
-        "set_swing_amount",
-        "set_clip_trigger_quantization",
-        "set_session_record",
-        "jump_by",
-        "play_selection",
-        "duplicate_scene",
-        # Phase 12: Track + Arrangement Gaps
-        "create_arrangement_midi_clip",
-        "create_arrangement_audio_clip",
-        "duplicate_clip_to_arrangement",
-        "insert_device",
-        "move_device",
-        "stop_track_clips",
-        # Phase 12: Clip + Note Gaps
-        "set_clip_launch_settings",
-        "set_clip_muted",
-        "crop_clip",
-        "duplicate_clip_loop",
-        "duplicate_clip_region",
-        "apply_note_modifications",
-        "select_all_notes",
-        "deselect_all_notes",
-        "select_notes_by_id",
-        "remove_notes_by_id",
-        "duplicate_notes_by_id",
-        "native_quantize",
-        "insert_warp_marker",
-        "move_warp_marker",
-        "remove_warp_marker",
-        # Phase 13: Scene + Mixer Extended
-        "set_scene_color",
-        "set_scene_tempo",
-        "set_scene_time_signature",
-        "fire_scene_as_selected",
-        "set_crossfader",
-        "set_crossfade_assign",
-        # Phase 13: Device Extended (Simpler, DrumPad, Plugin, A/B)
-        "crop_simpler",
-        "reverse_simpler",
-        "warp_simpler",
-        "set_simpler_playback_mode",
-        "insert_simpler_slice",
-        "move_simpler_slice",
-        "remove_simpler_slice",
-        "clear_simpler_slices",
-        "set_drum_pad_mute",
-        "set_drum_pad_solo",
-        "delete_drum_pad_chains",
-        "set_plugin_preset",
-        "compare_ab",
-        # Phase 13: Groove + Clip Extended
-        "set_groove_params",
-        "set_clip_groove",
-        "create_session_audio_clip",
-        # Quick Task: LOM Gap Implementation
-        "add_wavetable_modulation",
-        "copy_drum_pad",
-        "create_take_lane_clip",
-        "insert_rack_chain",
-        "looper_action",
-        "looper_export_to_clip_slot",
-        "rack_macro_action",
-        "rack_variation_action",
-        "re_enable_parameter_automation",
-        "set_chain_mute_solo",
-        "set_chain_name_color",
-        "set_compressor_sidechain",
-        "set_drift_mod_matrix",
-        "set_drum_chain_config",
-        "set_eq8_mode",
-        "set_spectral_resonator_config",
-        "set_tuning_system",
-        "set_wavetable_modulation_value",
-        "set_wavetable_oscillator",
-        "set_wavetable_voice_config",
-        # Phase 27: Scaffold
-        "create_locator_at",
-        "scaffold_tracks",
-        # Phase 31: Batch parameters and sidechain routing
-        "set_device_parameters",
-        "set_sidechain_source",
-    ]
-)
+# Commands that modify state (write operations).
+# Derived from @command(write=True) registry entries at import time so the
+# set stays in sync automatically when new handlers are added.
+def _build_write_commands() -> frozenset:
+    import sys
+    import types
+
+    # MCP_Server runs in a separate process from Ableton, so _Framework is absent.
+    # Stub the one symbol that AbletonMCP_Remote_Script/__init__.py needs so the
+    # handler modules can be imported and their @command decorators can fire.
+    if "_Framework" not in sys.modules:
+        _fw = types.ModuleType("_Framework")
+        _fw_cs = types.ModuleType("_Framework.ControlSurface")
+        _fw_cs.ControlSurface = object
+        sys.modules["_Framework"] = _fw
+        sys.modules["_Framework.ControlSurface"] = _fw_cs
+
+    try:
+        import AbletonMCP_Remote_Script.handlers  # noqa: F401 — triggers @command registrations
+        from AbletonMCP_Remote_Script.registry import CommandRegistry
+        return CommandRegistry.get_write_commands()
+    except Exception as exc:
+        logger.warning("Could not derive write commands from registry: %s", exc)
+        return frozenset()
+
+
+_WRITE_COMMANDS = _build_write_commands()
 
 
 # --- AI-friendly error formatting ---
@@ -218,6 +96,7 @@ class AbletonConnection:
     _send_lock: threading.Lock = field(
         default_factory=threading.Lock, init=False, repr=False, compare=False
     )
+    _healthy: bool = field(default=False, init=False, repr=False, compare=False)
 
     def connect(self) -> bool:
         """Connect to the Ableton Remote Script socket server."""
@@ -280,9 +159,12 @@ class AbletonConnection:
                     logger.error(f"Ableton error: {response.get('message')}")
                     raise Exception(response.get("message", "Unknown error from Ableton"))
 
-                return response.get("result", {})
+                result = response.get("result", {})
+                self._healthy = True
+                return result
             except TimeoutError as e:
                 logger.error(f"Socket timeout after {timeout:.0f}s waiting for '{command_type}'")
+                self._healthy = False
                 self.sock = None
                 raise Exception(
                     f"Timeout after {timeout:.0f}s waiting for Ableton to complete '{command_type}'. "
@@ -290,14 +172,17 @@ class AbletonConnection:
                 ) from e
             except (ConnectionError, BrokenPipeError, ConnectionResetError) as e:
                 logger.error(f"Socket connection error: {str(e)}")
+                self._healthy = False
                 self.sock = None
                 raise Exception(f"Connection to Ableton lost: {str(e)}") from e
             except json.JSONDecodeError as e:
                 logger.error(f"Invalid JSON response from Ableton: {str(e)}")
+                self._healthy = False
                 self.sock = None
                 raise Exception(f"Invalid response from Ableton: {str(e)}") from e
             except Exception as e:
                 logger.error(f"Error communicating with Ableton: {str(e)}")
+                self._healthy = False
                 self.sock = None
                 raise Exception(f"Communication error with Ableton: {str(e)}") from e
 
@@ -327,8 +212,11 @@ def get_ableton_connection():
 
     with _connection_lock:
         if _ableton_connection is not None:
+            # Fast path: skip ping round-trip when connection is healthy
+            if _ableton_connection._healthy:
+                return _ableton_connection
             try:
-                # Test the connection with a real ping command
+                # Re-validate unhealthy connection with a real ping command
                 _ableton_connection.send_command("ping")
                 return _ableton_connection
             except Exception as e:

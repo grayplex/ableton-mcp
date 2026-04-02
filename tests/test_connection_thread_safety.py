@@ -134,5 +134,127 @@ class TestConcurrentSendCommandSerializes(unittest.TestCase):
             )
 
 
+class TestHealthyFlag(unittest.TestCase):
+    """Tests for _healthy flag on AbletonConnection."""
+
+    def test_healthy_defaults_to_false(self):
+        conn = AbletonConnection(host="localhost", port=9877)
+        self.assertFalse(conn._healthy)
+
+    def test_send_command_sets_healthy_true_on_success(self):
+        conn = AbletonConnection(host="localhost", port=9877)
+        conn.sock = MagicMock()
+        fake_response = {"status": "ok", "result": {"bpm": 120}}
+
+        with (
+            patch("MCP_Server.connection.send_message"),
+            patch("MCP_Server.connection.recv_message", return_value=fake_response),
+        ):
+            conn.send_command("ping")
+
+        self.assertTrue(conn._healthy)
+
+    def test_send_command_sets_healthy_false_on_timeout(self):
+        conn = AbletonConnection(host="localhost", port=9877)
+        conn.sock = MagicMock()
+        conn._healthy = True
+
+        with (
+            patch("MCP_Server.connection.send_message"),
+            patch("MCP_Server.connection.recv_message", side_effect=TimeoutError("timeout")),
+        ):
+            with self.assertRaises(Exception):
+                conn.send_command("ping")
+
+        self.assertFalse(conn._healthy)
+
+    def test_send_command_sets_healthy_false_on_connection_error(self):
+        conn = AbletonConnection(host="localhost", port=9877)
+        conn.sock = MagicMock()
+        conn._healthy = True
+
+        with (
+            patch("MCP_Server.connection.send_message"),
+            patch("MCP_Server.connection.recv_message", side_effect=ConnectionError("lost")),
+        ):
+            with self.assertRaises(Exception):
+                conn.send_command("ping")
+
+        self.assertFalse(conn._healthy)
+
+    def test_send_command_sets_healthy_false_on_json_error(self):
+        import json as json_mod
+        conn = AbletonConnection(host="localhost", port=9877)
+        conn.sock = MagicMock()
+        conn._healthy = True
+
+        with (
+            patch("MCP_Server.connection.send_message"),
+            patch("MCP_Server.connection.recv_message", side_effect=json_mod.JSONDecodeError("bad", "", 0)),
+        ):
+            with self.assertRaises(Exception):
+                conn.send_command("ping")
+
+        self.assertFalse(conn._healthy)
+
+
+class TestSkipPingFastPath(unittest.TestCase):
+    """Tests for get_ableton_connection() skip-ping when healthy."""
+
+    def test_skips_ping_when_healthy(self):
+        """get_ableton_connection() returns immediately without pinging when _healthy=True."""
+        from MCP_Server.connection import get_ableton_connection
+
+        mock_conn = MagicMock(spec=AbletonConnection)
+        mock_conn._healthy = True
+        mock_conn.sock = MagicMock()
+
+        with (
+            patch("MCP_Server.connection._ableton_connection", mock_conn),
+            patch("MCP_Server.connection._connection_lock", threading.Lock()),
+        ):
+            result = get_ableton_connection()
+
+        self.assertIs(result, mock_conn)
+        mock_conn.send_command.assert_not_called()
+
+    def test_pings_when_unhealthy(self):
+        """get_ableton_connection() pings when _healthy=False."""
+        from MCP_Server.connection import get_ableton_connection
+
+        mock_conn = MagicMock(spec=AbletonConnection)
+        mock_conn._healthy = False
+        mock_conn.sock = MagicMock()
+        mock_conn.send_command.return_value = {}
+
+        with (
+            patch("MCP_Server.connection._ableton_connection", mock_conn),
+            patch("MCP_Server.connection._connection_lock", threading.Lock()),
+        ):
+            result = get_ableton_connection()
+
+        self.assertIs(result, mock_conn)
+        mock_conn.send_command.assert_called_once_with("ping")
+
+    def test_new_connection_sets_healthy_via_send_command(self):
+        """New connection path: _healthy becomes True after successful get_session_info."""
+        from MCP_Server.connection import get_ableton_connection
+
+        mock_conn = MagicMock(spec=AbletonConnection)
+        mock_conn._healthy = False
+        mock_conn.connect.return_value = True
+        mock_conn.send_command.return_value = {"session": "info"}
+
+        with (
+            patch("MCP_Server.connection._ableton_connection", None),
+            patch("MCP_Server.connection._connection_lock", threading.Lock()),
+            patch("MCP_Server.connection.AbletonConnection", return_value=mock_conn),
+        ):
+            result = get_ableton_connection()
+
+        self.assertIs(result, mock_conn)
+        mock_conn.send_command.assert_called_with("get_session_info")
+
+
 if __name__ == "__main__":
     unittest.main()

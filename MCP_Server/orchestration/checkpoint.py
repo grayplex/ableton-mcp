@@ -44,19 +44,13 @@ def _track_has_clips(track_name: str, clips_by_track: dict) -> bool:
 
 
 def _infer_completed_phases(genre_id: str, tracks: list, clips_by_track: dict,
-                             master_devices: list) -> list:
+                             master_devices: list, cue_points: list = None) -> list:
     """Walk AGENDA_CATALOG phase order; return list of phase_ids inferred complete."""
     phase_order = AGENDA_CATALOG.get(genre_id, [])
     all_device_classes = set()
     for t in tracks:
-        for d in t.get("devices", []):
-            all_device_classes.add(d.get("class_name", ""))
-
-    # If master chain is complete (GlueCompressor + Limiter2 present), all phases done.
-    master_class_names = {d.get("class_name", "") for d in master_devices}
-    if (_GLUE_COMPRESSOR in master_class_names and _LIMITER in master_class_names
-            and len(tracks) >= 2 and _COMPRESSOR in all_device_classes):
-        return list(phase_order)
+        for cn in t.get("device_classes", []):
+            all_device_classes.add(cn)
 
     completed = []
     for phase_type in phase_order:
@@ -91,16 +85,19 @@ def _infer_completed_phases(genre_id: str, tracks: list, clips_by_track: dict,
             effect_classes = {"AutoFilter", "Reverb", "Redux", "Saturator", "Chorus", "Flanger", "Phaser"}
             done = bool(all_device_classes & effect_classes)
         elif phase_type == "arrangement":
-            # All tracks have instruments and at least one clip
+            # All instrument tracks must have clips covering all defined sections.
+            # min_clips = max(2, section_count) so a single intro clip never passes.
             tracks_with_instruments = [t for t in tracks if t.get("has_instrument")]
+            num_sections = len(cue_points) if cue_points else 0
+            min_clips = max(2, num_sections)
             done = (len(tracks_with_instruments) >= 2
-                    and all(_track_has_clips(t["name"], clips_by_track)
+                    and all(len(clips_by_track.get(t["name"], [])) >= min_clips
                             for t in tracks_with_instruments))
         elif phase_type == "mix":
             # At least one non-master track has Compressor2
             done = _COMPRESSOR in all_device_classes
         elif phase_type == "master":
-            master_class_names = {d.get("class_name", "") for d in master_devices}
+            master_class_names = set(master_devices)
             done = _GLUE_COMPRESSOR in master_class_names and _LIMITER in master_class_names
         else:
             done = False
@@ -118,9 +115,9 @@ def _build_session_stats(tracks: list, clips_by_track: dict, master_devices: lis
     tracks_with_clips = sum(1 for t in tracks if _track_has_clips(t["name"], clips_by_track))
     all_device_classes = set()
     for t in tracks:
-        for d in t.get("devices", []):
-            all_device_classes.add(d.get("class_name", ""))
-    master_class_names = {d.get("class_name", "") for d in master_devices}
+        for cn in t.get("device_classes", []):
+            all_device_classes.add(cn)
+    master_class_names = set(master_devices)
     return SessionStats(
         track_count=len(tracks),
         tracks_with_instruments=tracks_with_instruments,
@@ -152,18 +149,23 @@ def get_checkpoint(genre: str = None) -> dict:
     try:
         conn = get_ableton_connection()
         arrangement_state = conn.send_command("get_arrangement_state")
-        mix_state = conn.send_command("get_mix_state")
+        device_classes = conn.send_command("get_device_classes")
     except Exception as e:
         return {"error": f"Could not connect to Ableton: {e}"}
 
     tracks = arrangement_state.get("tracks", [])
-    master_devices = mix_state.get("master_track", {}).get("devices", [])
+    cue_points = arrangement_state.get("cue_points", [])
+    master_devices = device_classes.get("master_track", {}).get("device_classes", [])
 
-    # Build clips_by_track from arrangement_state (no extra round-trips)
-    clips_by_track = {}
-    for track in tracks:
-        # has_clips from get_arrangement_state; use sentinel list for truthy check
-        clips_by_track[track["name"]] = ["_"] if track.get("has_clips") else []
+    # Merge device class names into arrangement tracks for phase detection
+    dc_by_name = {}
+    for dc_track in device_classes.get("tracks", []):
+        dc_by_name[dc_track["name"]] = dc_track.get("device_classes", [])
+    for t in tracks:
+        t["device_classes"] = dc_by_name.get(t["name"], [])
+
+    # Build clips_by_track from real clip data returned by get_arrangement_state
+    clips_by_track = {track["name"]: track.get("clips", []) for track in tracks}
 
     # Empty session
     if not tracks:
@@ -206,7 +208,7 @@ def get_checkpoint(genre: str = None) -> dict:
     genre_id = resolved["genre_id"]
 
     stats = _build_session_stats(tracks, clips_by_track, master_devices)
-    completed = _infer_completed_phases(genre_id, tracks, clips_by_track, master_devices)
+    completed = _infer_completed_phases(genre_id, tracks, clips_by_track, master_devices, cue_points)
 
     phase_order = AGENDA_CATALOG.get(genre_id, [])
     active_phase = None

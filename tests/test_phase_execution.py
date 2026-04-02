@@ -193,6 +193,46 @@ class TestPhaseExecutionPlan:
             result = get_execution_plan("bass", g)
             assert "error" not in result, f"bass/{g} returned error: {result.get('error')}"
 
+    def test_sentinel_steps_have_depends_on_step(self):
+        """Every step with a <...> sentinel in suggested_args must have depends_on_step set."""
+        import re
+        sentinel_re = re.compile(r"^<.*>$")
+        phase_types = [
+            "setup", "drums", "bass", "harmony", "melody",
+            "sound_design", "arrangement", "mix", "master",
+        ]
+        for pt in phase_types:
+            result = get_execution_plan(pt, "house")
+            if "error" in result:
+                continue
+            for step in result["steps"]:
+                args = step.get("suggested_args", {})
+                has_sentinel = any(
+                    isinstance(v, str) and sentinel_re.match(v)
+                    for v in args.values()
+                )
+                if has_sentinel:
+                    assert "depends_on_step" in step, (
+                        f"{pt} step {step['step_number']} ({step['tool_name']}) "
+                        f"uses sentinel args but has no depends_on_step"
+                    )
+                    assert isinstance(step["depends_on_step"], int), (
+                        f"{pt} step {step['step_number']} ({step['tool_name']}) "
+                        f"depends_on_step is not an int: {step['depends_on_step']}"
+                    )
+
+    def test_sound_design_starts_with_query_step(self):
+        """sound_design phase should start with get_arrangement_overview query step."""
+        result = get_execution_plan("sound_design", "house")
+        assert "error" not in result
+        assert result["steps"][0]["tool_name"] == "get_arrangement_overview"
+
+    def test_mix_starts_with_query_step(self):
+        """mix phase should start with get_arrangement_overview query step."""
+        result = get_execution_plan("mix", "house")
+        assert "error" not in result
+        assert result["steps"][0]["tool_name"] == "get_arrangement_overview"
+
     def test_sentinel_steps_have_resolution_hint(self):
         """Steps using <track_index> sentinel should have resolution hints in description."""
         phases_with_sentinels = ["drums", "bass", "harmony", "melody"]
