@@ -52,12 +52,12 @@ def _make_track(name, has_instrument=True, index=0, devices=None, has_clips=Fals
 def _make_conn(arrangement_state, mix_state, clips_by_track=None):
     """Build a mock connection that returns fixture data."""
     clips_by_track = clips_by_track or {}
-    # Inject has_clips into tracks based on clips_by_track for backward compat
+    # Inject real clip lists into each track (simulates get_arrangement_state RS output)
     for t in arrangement_state.get("tracks", []):
-        if t["name"] in clips_by_track and clips_by_track[t["name"]]:
-            t["has_clips"] = True
-        elif "has_clips" not in t:
-            t["has_clips"] = False
+        t_clips = clips_by_track.get(t["name"], t.get("clips", []))
+        t["clips"] = t_clips
+        t["clip_count"] = len(t_clips)
+        t["has_clips"] = len(t_clips) > 0
     mock_conn = MagicMock()
 
     def send_command(cmd, params=None):
@@ -204,6 +204,55 @@ class TestCheckpoint:
             result = get_checkpoint("house")
         assert result["session_stats"]["track_count"] == 2
         assert result["session_stats"]["tracks_with_instruments"] == 1
+
+    def test_arrangement_single_clip_not_complete(self):
+        """Arrangement phase is NOT complete when each track has only one clip.
+
+        A single intro clip (even if every instrument track has one) must not
+        satisfy the arrangement phase — clips must span all defined sections.
+        """
+        # techno: setup→drums→bass→sound_design→arrangement→mix→master
+        devices_sd = [{"class_name": "AutoFilter"}]
+        arr = {
+            "tracks": [
+                _make_track("Kick Drums", True, 0),
+                _make_track("Bass", True, 1),
+                _make_track("Synth", True, 2, devices=devices_sd),
+            ],
+            "cue_points": [{"name": "Intro", "time": 0.0}, {"name": "Drop", "time": 32.0}],
+            "song_length": 64.0,
+        }
+        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+        # One clip per track — fewer than the 2 defined sections
+        single_clips = {t: [{"start_time": 0.0, "length": 8.0}]
+                        for t in ("Kick Drums", "Bass", "Synth")}
+        with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+                   return_value=_make_conn(arr, mix, single_clips)):
+            result = get_checkpoint("techno")
+        assert "arrangement" not in result["completed_phases"]
+
+    def test_arrangement_multi_section_clips_complete(self):
+        """Arrangement phase IS complete when each track has one clip per section."""
+        devices_sd = [{"class_name": "AutoFilter"}]
+        arr = {
+            "tracks": [
+                _make_track("Kick Drums", True, 0),
+                _make_track("Bass", True, 1),
+                _make_track("Synth", True, 2, devices=devices_sd),
+            ],
+            "cue_points": [{"name": "Intro", "time": 0.0}, {"name": "Drop", "time": 32.0}],
+            "song_length": 64.0,
+        }
+        mix = {"tracks": [], "return_tracks": [], "master_track": {"devices": []}}
+        # Two clips per track — one per defined section
+        multi_clips = {
+            t: [{"start_time": 0.0, "length": 8.0}, {"start_time": 32.0, "length": 8.0}]
+            for t in ("Kick Drums", "Bass", "Synth")
+        }
+        with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+                   return_value=_make_conn(arr, mix, multi_clips)):
+            result = get_checkpoint("techno")
+        assert "arrangement" in result["completed_phases"]
 
     def test_no_per_track_clip_queries(self):
         """Checkpoint must not issue per-track get_arrangement_clips calls."""

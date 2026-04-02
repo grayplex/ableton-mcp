@@ -6,10 +6,6 @@
 
 ## Known Limitations
 
-**Checkpoint `clips_by_track` uses a sentinel `["_"]` instead of real clip data:**
-- `get_checkpoint` (`MCP_Server/orchestration/checkpoint.py:162-166`) uses `["_"] if track.get("has_clips") else []` to build `clips_by_track`. Only clip presence (boolean) is tracked, not count, length, or which sections have clips. The arrangement phase completion check sees any clip as sufficient.
-- Impact: Cannot distinguish "one 4-bar intro clip" from "clips across all sections".
-
 **Prompt parser is English-only:**
 - The signal lexicon (`MCP_Server/prompt/lexicon.py:1-13`) covers English keywords only. Non-English prompts pass tokens through as `raw_descriptors` with no signal extraction. This is documented in the file header but there is no translation layer or multilingual fallback.
 

@@ -82,11 +82,17 @@ class ScaffoldHandler:
 
         tracks = []
         for i, track in enumerate(self._song.tracks):
+            clip_list = [
+                {"start_time": c.start_time, "length": c.length}
+                for c in track.arrangement_clips
+            ]
             tracks.append({
                 "index": i,
                 "name": track.name,
                 "has_instrument": any(_is_instrument_device(d) for d in track.devices),
-                "has_clips": len(track.arrangement_clips) > 0,
+                "has_clips": len(clip_list) > 0,
+                "clip_count": len(clip_list),
+                "clips": clip_list,
             })
 
         return {
