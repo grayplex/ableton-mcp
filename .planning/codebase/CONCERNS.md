@@ -46,8 +46,7 @@
 
 **`get_mix_state` serializes full parameter lists — expensive for large sessions:** RESOLVED (260402-lys) -- Checkpoint and next_actions now use lightweight `get_device_classes` RS command (class names only, no parameters).
 
-**`apply_mix_recipe` and `apply_master_recipe` call `get_ableton_connection()` from an async executor thread:**
-- Both tools call `conn.send_command(...)` inside `asyncio.get_event_loop().run_in_executor(None, ...)` (`MCP_Server/tools/mixing.py:62-68, 95-100`). `get_ableton_connection()` acquires `_connection_lock` from the thread pool thread, contending with any concurrent tool calls on the main thread.
+**`apply_mix_recipe` and `apply_master_recipe` executor thread contention:** RESOLVED (260402-ofy) -- Converted both tools from async to sync def. FastMCP runs sync tools in its own thread pool, eliminating the manual run_in_executor and associated lock contention.
 
 **Sequential socket round-trips in checkpoint (partially fixed):**
 - Quick task 260401-pye fixed the N+2 per-track clips loop by using `has_clips` from `get_arrangement_state` rather than issuing separate `get_arrangement_clips` per track. Checkpoint now makes exactly 2 socket calls (`get_arrangement_state` + `get_device_classes`). This concern is resolved for typical sessions.
