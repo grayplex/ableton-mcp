@@ -5,6 +5,7 @@ import json
 from mcp.server.fastmcp import Context
 
 from MCP_Server.connection import format_error, get_ableton_connection
+from MCP_Server.orchestration.checkpoint import invalidate_checkpoint_cache
 from MCP_Server.server import mcp
 
 
@@ -40,6 +41,7 @@ def create_midi_track(ctx: Context, index: int = -1) -> str:
     try:
         ableton = get_ableton_connection()
         result = ableton.send_command("create_midi_track", {"index": index})
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -59,6 +61,7 @@ def create_audio_track(ctx: Context, index: int = -1) -> str:
     try:
         ableton = get_ableton_connection()
         result = ableton.send_command("create_audio_track", {"index": index})
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -74,6 +77,7 @@ def create_return_track(ctx: Context) -> str:
     try:
         ableton = get_ableton_connection()
         result = ableton.send_command("create_return_track", {})
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -99,6 +103,7 @@ def create_group_track(ctx: Context, index: int = -1, track_indices: str = "") -
         result = ableton.send_command(
             "create_group_track", {"index": index, "track_indices": parsed_indices}
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -121,6 +126,7 @@ def delete_track(ctx: Context, track_index: int, track_type: str = "track") -> s
         result = ableton.send_command(
             "delete_track", {"track_index": track_index, "track_type": track_type}
         )
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
@@ -144,6 +150,7 @@ def duplicate_track(ctx: Context, track_index: int, new_name: str = "") -> str:
             params["new_name"] = new_name
         ableton = get_ableton_connection()
         result = ableton.send_command("duplicate_track", params)
+        invalidate_checkpoint_cache()
         return json.dumps(result, indent=2)
     except Exception as e:
         return format_error(
