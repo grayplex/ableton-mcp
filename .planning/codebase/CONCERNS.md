@@ -22,10 +22,6 @@
 - The length-prefix framing functions `_recv_exact`, `send_message`, `recv_message` are implemented verbatim in both `MCP_Server/protocol.py:1-39` and `AbletonMCP_Remote_Script/__init__.py:38-68`.
 - Impact: Any framing bug or protocol change (e.g., max message size) must be fixed in two places across two separate Python runtimes.
 
-**`_WRITE_COMMANDS` frozenset is manually maintained:**
-- `MCP_Server/connection.py:39-185` maintains a 100+ entry frozenset of write command names for timeout routing. It must be updated for every new write handler. The list's inline phase comments ("Phase 12", "Phase 13") reveal accretion over time. A command omitted from this list silently gets the 10s read timeout instead of the 15s write timeout.
-- Fix approach: Derive the write command set from the `@command(..., write=True)` registry entries and expose it via `CommandRegistry`.
-
 **Duplicate phase-detection constants across two modules:**
 - `_DRUM_NAMES`, `_BASS_NAMES`, `_HARMONY_NAMES`, `_MELODY_NAMES`, `_COMPRESSOR`, `_GLUE_COMPRESSOR`, `_LIMITER` were previously duplicated between `checkpoint.py` and `next_actions.py`. Quick task 260401-pjl deduplicated these into `MCP_Server/orchestration/phase_detection.py`. Both modules now import from there — no remaining duplication.
 
