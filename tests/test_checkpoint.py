@@ -366,3 +366,101 @@ class TestCheckpointCache:
             result = get_checkpoint("house")
         assert "error" in result
         assert "house" not in _checkpoint_cache
+
+
+class TestNonCanonicalTrackNames:
+    """Test phase detection with non-standard track names commonly used in real Ableton sessions."""
+
+    def setup_method(self):
+        from MCP_Server.orchestration.checkpoint import _checkpoint_cache
+        _checkpoint_cache.clear()
+
+    def _check_phase(self, track_name, expected_phase, has_instrument=True):
+        """Helper: create a session with one named track (with clips) and verify expected phase is detected."""
+        arr = {
+            "tracks": [
+                _make_track(track_name, has_instrument, 0, has_clips=True),
+                _make_track("Pad", True, 1),  # second track so setup is complete
+            ],
+            "cue_points": [{"name": "Intro", "time": 0.0}],
+            "song_length": 32.0,
+        }
+        dc = {
+            "tracks": [
+                {"index": 0, "name": track_name, "device_classes": []},
+                {"index": 1, "name": "Pad", "device_classes": []},
+            ],
+            "return_tracks": [],
+            "master_track": {"name": "Master", "device_classes": []},
+        }
+        clips = {track_name: [{"start_time": 0.0, "end_time": 8.0}]}
+        with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
+                   return_value=_make_conn(arr, dc, clips)):
+            result = get_checkpoint("house")
+        return result
+
+    # --- Drum name variants ---
+
+    def test_808_kit_detected_as_drums(self):
+        result = self._check_phase("808 Kit", "drums")
+        assert "drums" in result["completed_phases"]
+
+    def test_hi_hat_detected_as_drums(self):
+        result = self._check_phase("Hi Hat", "drums")
+        assert "drums" in result["completed_phases"]
+
+    def test_tom_fill_detected_as_drums(self):
+        result = self._check_phase("Tom Fill", "drums")
+        assert "drums" in result["completed_phases"]
+
+    def test_clap_detected_as_drums(self):
+        result = self._check_phase("Clap", "drums")
+        assert "drums" in result["completed_phases"]
+
+    # --- Bass name variants ---
+
+    def test_sub_bass_detected_as_bass(self):
+        result = self._check_phase("Sub Bass", "bass")
+        assert "bass" in result["completed_phases"]
+
+    # --- Harmony name variants ---
+
+    def test_keys_detected_as_harmony(self):
+        result = self._check_phase("Keys", "harmony")
+        assert "harmony" in result["completed_phases"]
+
+    def test_rhodes_chords_detected_as_harmony(self):
+        result = self._check_phase("Rhodes Chords", "harmony")
+        assert "harmony" in result["completed_phases"]
+
+    # --- Melody name variants ---
+
+    def test_lead_synth_detected_as_melody(self):
+        result = self._check_phase("Lead Synth", "melody")
+        assert "melody" in result["completed_phases"]
+
+    def test_arp_sequence_detected_as_melody(self):
+        result = self._check_phase("Arp Sequence", "melody")
+        assert "melody" in result["completed_phases"]
+
+    # --- Negative case ---
+
+    def test_fx_riser_not_detected_as_instrument(self):
+        """FX Riser should NOT match any instrument name set (sound_design uses device classes)."""
+        from MCP_Server.orchestration.phase_detection import _DRUM_NAMES, _BASS_NAMES, _HARMONY_NAMES, _MELODY_NAMES
+        from MCP_Server.orchestration.checkpoint import _has_name_match
+        assert not _has_name_match("FX Riser", _DRUM_NAMES)
+        assert not _has_name_match("FX Riser", _BASS_NAMES)
+        assert not _has_name_match("FX Riser", _HARMONY_NAMES)
+        assert not _has_name_match("FX Riser", _MELODY_NAMES)
+
+    # --- Regression guard: canonical names still work ---
+
+    def test_canonical_names_still_match(self):
+        """Existing canonical names must not regress."""
+        from MCP_Server.orchestration.phase_detection import _DRUM_NAMES, _BASS_NAMES, _HARMONY_NAMES, _MELODY_NAMES
+        from MCP_Server.orchestration.checkpoint import _has_name_match
+        assert _has_name_match("Drums", _DRUM_NAMES)
+        assert _has_name_match("Bass", _BASS_NAMES)
+        assert _has_name_match("Chords", _HARMONY_NAMES)
+        assert _has_name_match("Lead", _MELODY_NAMES)
