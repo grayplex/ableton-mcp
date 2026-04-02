@@ -108,6 +108,39 @@ def get_arrangement_clips(
 
 
 @mcp.tool()
+def get_arrangement_clip_notes(
+    ctx: Context,
+    track_index: int,
+    clip_start_time: float,
+    track_type: str = "track",
+) -> str:
+    """Get all MIDI notes from an arrangement clip identified by its beat position.
+
+    Parameters:
+    - track_index: Index of the track containing the clip
+    - clip_start_time: Beat position of the clip's start time (float)
+    - track_type: Track collection - "track", "return", or "master"
+    """
+    try:
+        ableton = get_ableton_connection()
+        result = ableton.send_command(
+            "get_arrangement_clip_notes",
+            {
+                "track_index": track_index,
+                "clip_start_time": clip_start_time,
+                "track_type": track_type,
+            },
+        )
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return format_error(
+            "Failed to get arrangement clip notes",
+            detail=str(e),
+            suggestion="Verify clip exists with get_arrangement_clips and use exact start_time value",
+        )
+
+
+@mcp.tool()
 def duplicate_clip_to_arrangement(
     ctx: Context,
     track_index: int,

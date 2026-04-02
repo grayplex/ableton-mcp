@@ -6,9 +6,6 @@
 
 ## Known Limitations
 
-**`get_arrangement_clip_notes` is arrangement-only:**
-- The RS command `get_arrangement_clip_notes` (`AbletonMCP_Remote_Script/handlers/arrangement.py:116`) retrieves MIDI notes from arrangement clips only, identified by `clip_start_time` float position. There is no equivalent command for reading notes from session-view clip slots. Any tool that needs note content from session clips must use `get_clip_info` and is limited to clip metadata, not note data.
-
 **`get_arrangement_state` returns `has_audio_output` as `has_instrument` proxy:**
 - The RS handler `_get_arrangement_state` (`AbletonMCP_Remote_Script/handlers/scaffold.py:71`) emits `"has_instrument": getattr(track, "has_audio_output", False)`. Audio tracks always have `has_audio_output = True`, so empty audio tracks appear to have instruments. MIDI tracks with only FX devices also test True because FX devices produce audio output. Phase detection in checkpoint.py and next_actions.py consumes this field.
 - Fix approach: Use a device type check (`any(d for d in track.devices if is_instrument_device(d))`) rather than the `has_audio_output` proxy.
