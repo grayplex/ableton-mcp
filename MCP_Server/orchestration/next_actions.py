@@ -177,6 +177,7 @@ def get_next_actions_result(genre: str, phase_name: str = None, n: int = 10) -> 
         return result
 
     active_phase = checkpoint.get("active_phase") or "setup"
+    active_phase_progress = checkpoint.get("active_phase_progress", 0.0)
     completed = checkpoint.get("completed_phases", [])
     genre_id = checkpoint.get("genre") or genre
 
@@ -194,8 +195,18 @@ def get_next_actions_result(genre: str, phase_name: str = None, n: int = 10) -> 
         return {"checkpoint_summary": summary, "active_phase": active_phase,
                 "genre": genre_id, "steps": []}
 
-    # Skip steps if phase already started (progress > 0.3) — return all for now (HIST-01 deferred)
-    steps, notes = _filter_steps(checklist["steps"][:n])
+    # HIST-01: skip already-completed steps based on active_phase_progress.
+    # progress=0.3 → track+instrument exist; skip the creation steps.
+    # progress=0.0 → phase not yet started; return all steps from step 1.
+    all_steps = checklist["steps"]
+    skip_count = 0
+    if active_phase_progress >= 0.3:
+        skip_count = int(active_phase_progress * len(all_steps))
+        # Always return at least 1 step
+        skip_count = min(skip_count, max(0, len(all_steps) - 1))
+
+    remaining = all_steps[skip_count:]
+    steps, notes = _filter_steps(remaining[:n])
 
     result = {
         "checkpoint_summary": summary,
@@ -203,6 +214,8 @@ def get_next_actions_result(genre: str, phase_name: str = None, n: int = 10) -> 
         "genre": genre_id,
         "steps": steps,
     }
+    if skip_count > 0:
+        result["steps_skipped"] = skip_count
     if notes:
         result["notes"] = notes
     return result

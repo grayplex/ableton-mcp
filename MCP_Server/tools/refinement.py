@@ -19,6 +19,14 @@ from MCP_Server.prompt.deriver import (
 )
 from MCP_Server.prompt.lexicon import GROOVE_HINTS
 from MCP_Server.prompt.parser import classify_prompt
+from MCP_Server.refinement.history import (
+    clear_history,
+    detect_conflicts,
+    detect_redundancies,
+    get_history,
+    pop_last_refinement,
+    record_refinement,
+)
 from MCP_Server.refinement.interpreter import build_section_refinement_plan
 from MCP_Server.refinement.schema import ClipSummary, SectionState, TrackStateEntry
 from MCP_Server.server import mcp
@@ -558,6 +566,45 @@ def _find_device_index(mix_state_track: dict, class_name: str):
     return None
 
 
+# ---------------------------------------------------------------------------
+# RFNA-04 helpers
+# ---------------------------------------------------------------------------
+
+
+def _build_apply_snapshot(plan_tracks: list) -> dict:
+    """Build a pre-application snapshot from plan data (zero extra Ableton calls).
+
+    For each track captures:
+    - note_op: the NoteOperation dict (semitone_shift, density_delta,
+      scale_substitutions, velocity_shift) — used to compute inverse on revert.
+    - device_params: {class_name: {param_name: current_normalized}} extracted
+      from each DeviceChange.current_normalized — used for exact restoration.
+
+    Returns:
+        {track_name: {note_op: {...}, device_params: {class: {param: float}}}}
+    """
+    snapshot: dict = {}
+    for entry in plan_tracks:
+        track_name = entry["track_name"]
+        note_op = dict(entry.get("note_operation") or {})
+        device_params: dict = {}
+        for dc in entry.get("device_changes") or []:
+            cls = dc["class_name"]
+            if cls not in device_params:
+                device_params[cls] = {}
+            device_params[cls][dc["param_name"]] = dc["current_normalized"]
+        snapshot[track_name] = {"note_op": note_op, "device_params": device_params}
+    return snapshot
+
+
+def _inverse_scale_subs(scale_subs: list) -> list:
+    """Return the inverse of a scale substitution list (swap from/to pairs)."""
+    return [
+        {"from_pitch_class": s["to_pitch_class"], "to_pitch_class": s["from_pitch_class"]}
+        for s in (scale_subs or [])
+    ]
+
+
 @mcp.tool()
 def apply_section_note_refinement(
     ctx: Context,
@@ -821,7 +868,19 @@ def refine_section(
     conn = get_ableton_connection()
     plan = build_section_refinement_plan(section_name, instruction, conn)
 
+    # REFN-03: check for conflicts and redundancies before applying
+    conflicts = detect_conflicts(section_name, plan["vector"])
+    redundancies = detect_redundancies(section_name, instruction)
+
+    # RFNA-04: capture pre-application snapshot (zero extra Ableton calls —
+    # uses current_normalized values already present in the plan's DeviceChange list)
+    snapshot = _build_apply_snapshot(plan["tracks"])
+
     if not plan["tracks"]:
+        # Still record when the instruction was recognised (vector non-empty),
+        # so subsequent calls can detect conflicts/redundancies.
+        if plan["vector"]:
+            record_refinement(section_name, instruction, plan["vector"], [], snapshot)
         return json.dumps({
             "section": section_name,
             "instruction": instruction,
@@ -829,6 +888,8 @@ def refine_section(
             "note_changes": [],
             "device_changes": [],
             "reasoning": plan["reasoning"],
+            "conflicts": conflicts,
+            "redundancies": redundancies,
         })
 
     note_changes = []
@@ -880,11 +941,128 @@ def refine_section(
             if dev_result.get("devices_modified", 0) > 0:
                 tracks_with_changes.add(track_name)
 
-    return json.dumps({
+    # REFN-03 + RFNA-04: record applied refinement with snapshot to session log
+    record_refinement(section_name, instruction, plan["vector"], plan["tracks"], snapshot)
+
+    response = {
         "section": section_name,
         "instruction": instruction,
         "tracks_modified": len(tracks_with_changes),
         "note_changes": note_changes,
         "device_changes": device_changes,
         "reasoning": plan["reasoning"],
+        "conflicts": conflicts,
+        "redundancies": redundancies,
+    }
+    return json.dumps(response)
+
+
+@mcp.tool()
+def get_section_refinement_history(ctx: Context, section_name: str = None) -> str:
+    """Return the session-scoped log of applied section refinements.
+
+    Exposes the REFN-03 history so Claude can review what has already been
+    applied to a section before issuing new refinement instructions.
+
+    Args:
+        section_name: Named section to query. If omitted, returns all history
+                      across every section as a flat list.
+
+    Returns:
+        JSON with ``section`` (or null) and ``history`` list. Each entry has:
+        section, instruction, vector, tracks (list of track names), timestamp.
+    """
+    history = get_history(section_name)
+    return json.dumps({
+        "section": section_name,
+        "history": history,
+        "total": len(history),
+    })
+
+
+@mcp.tool()
+def revert_section_refinement(ctx: Context, section_name: str) -> str:
+    """Revert the most recently applied refinement for a named section.
+
+    Computes the inverse of the stored RefinementVector and re-applies it
+    as a new note refinement pass (negated shifts, swapped scale substitutions,
+    negated density). Device parameters are restored to their pre-refinement
+    values using the snapshot captured when the refinement was originally applied.
+
+    Removes the reverted entry from the refinement history log. Call multiple
+    times to step back through the refinement stack one entry at a time.
+
+    Note: density_delta revert is best-effort (halve-then-double is approximate).
+    For exact note restoration, use Ableton's native undo (Cmd/Ctrl+Z) instead.
+
+    Args:
+        section_name: Named arrangement section (case-insensitive locator match)
+
+    Returns:
+        JSON with reverted_instruction, note_changes, device_changes, and
+        a warning list for any non-exact revert operations.
+    """
+    last = pop_last_refinement(section_name)
+    if last is None:
+        return json.dumps({
+            "section": section_name,
+            "reverted_instruction": None,
+            "note_changes": [],
+            "device_changes": [],
+            "warnings": [],
+            "error": f"No refinement history found for section '{section_name}'",
+        })
+
+    instruction = last["instruction"]
+    snapshot: dict = last.get("snapshot") or {}
+    warnings: list = []
+
+    conn = get_ableton_connection()
+    note_changes = []
+    device_changes = []
+
+    for track_name in last.get("tracks") or []:
+        track_snap = snapshot.get(track_name) or {}
+        note_op = track_snap.get("note_op") or {}
+        device_params_snap = track_snap.get("device_params") or {}
+
+        # --- Inverse note operation ---
+        semitone_inv = -(note_op.get("semitone_shift") or 0)
+        velocity_inv = -(note_op.get("velocity_shift") or 0)
+        density_inv = -(note_op.get("density_delta") or 0)
+        scale_subs_inv = _inverse_scale_subs(note_op.get("scale_substitutions") or [])
+
+        if density_inv != 0:
+            warnings.append(
+                f"density_delta revert on '{track_name}' is best-effort "
+                f"(original={-density_inv:+d}, inverse={density_inv:+d}); "
+                "use Ableton undo for exact note restoration"
+            )
+
+        has_note_op = (semitone_inv != 0 or velocity_inv != 0
+                       or density_inv != 0 or scale_subs_inv)
+        if has_note_op:
+            note_result_str = apply_section_note_refinement(
+                ctx, section_name, track_name,
+                semitone_shift=semitone_inv,
+                density_delta=density_inv,
+                scale_substitutions=scale_subs_inv,
+                velocity_shift=velocity_inv,
+            )
+            note_changes.append(json.loads(note_result_str))
+
+        # --- Restore device params from snapshot ---
+        if device_params_snap:
+            dev_result_str = apply_section_device_refinement(
+                ctx, section_name, track_name,
+                param_targets=device_params_snap,
+            )
+            device_changes.append(json.loads(dev_result_str))
+
+    return json.dumps({
+        "section": section_name,
+        "reverted_instruction": instruction,
+        "note_changes": note_changes,
+        "device_changes": device_changes,
+        "warnings": warnings,
     })
