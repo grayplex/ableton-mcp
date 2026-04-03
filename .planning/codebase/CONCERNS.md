@@ -22,10 +22,6 @@
 - Impact: Claude receives redundant early steps (e.g., "create track") after a context refresh mid-phase. Wastes tool calls.
 - Fix approach: Use `active_phase_progress` to offset the step slice, or check sentinel track names against live `get_all_tracks` output.
 
-**Duplicate framing protocol implementation:**
-- The length-prefix framing functions `_recv_exact`, `send_message`, `recv_message` are implemented verbatim in both `MCP_Server/protocol.py:1-39` and `AbletonMCP_Remote_Script/__init__.py:38-68`.
-- Impact: Any framing bug or protocol change (e.g., max message size) must be fixed in two places across two separate Python runtimes.
-
 ---
 
 ## Bugs
