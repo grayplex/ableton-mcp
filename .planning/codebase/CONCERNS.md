@@ -50,8 +50,8 @@
 **HIST-01 — Execution history log:**
 - No per-session log of executed steps. `get_next_actions` always returns the full checklist from step 1 regardless of steps already run. Claude must manually track which steps have been executed. Explicitly deferred (`next_actions.py:197`).
 
-**ADPT-01 — Adaptive agenda refinement:**
-- `refine_agenda` tool was added in quick task 260401-q7f (`MCP_Server/tools/orchestration.py:131-154`). Basic instruction parsing is implemented; complex multi-step refinements may not be handled.
+**ADPT-01 — Adaptive agenda refinement:** ✅ resolved (260403-adpt01)
+- `refine_agenda` now handles compound instructions split on 'and / then / also / , / ;' — each sub-instruction applied in sequence. New `move <phase> before|after <phase>` instruction type added for reordering. All modifications are logged in a `changes_made` list returned alongside the agenda. Unrecognised sub-instructions are silently skipped; recognised ones still apply. 27 new tests across `TestRefineAgendaMultiStep` and `TestRefineAgendaReorder`.
 
 **REFN-03 — Refinement history log:**
 - No session-scoped log of applied `SectionRefinementPlan` operations. `refine_section` cannot detect conflicting or redundant refinements. Calling it twice with opposite instructions applies both silently.

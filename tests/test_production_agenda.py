@@ -144,7 +144,10 @@ class TestRefineAgenda:
     def test_unrecognised_instruction_returns_agenda_unchanged(self):
         agenda = self._house_agenda()
         result = refine_agenda(agenda, "do something weird XYZ-unknown")
-        assert result == agenda
+        # phases and totals unchanged; changes_made is always present but empty
+        assert result["phases"] == agenda["phases"]
+        assert result["total_estimated_steps"] == agenda["total_estimated_steps"]
+        assert result["changes_made"] == []
 
     def test_instruction_is_case_insensitive(self):
         agenda = self._house_agenda()
@@ -163,6 +166,135 @@ class TestRefineAgenda:
         result = refine_agenda(agenda, "add another melody")
         expected = sum(p["estimated_steps"] for p in result["phases"])
         assert result["total_estimated_steps"] == expected
+
+    def test_changes_made_populated_on_skip(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "skip mastering")
+        assert len(result["changes_made"]) == 1
+        assert "master" in result["changes_made"][0]
+
+    def test_changes_made_populated_on_duplicate(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "add another melody")
+        assert len(result["changes_made"]) == 1
+        assert "melody" in result["changes_made"][0]
+
+    def test_changes_made_always_present(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "techno")
+        assert "changes_made" in result
+        assert isinstance(result["changes_made"], list)
+
+
+class TestRefineAgendaMultiStep:
+    """ADPT-01: compound instructions applied in sequence."""
+
+    def _house_agenda(self):
+        return get_agenda("house")
+
+    def test_skip_and_duplicate_applied_together(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "skip mastering and add a second melody phase")
+        phase_types = [p["phase_type"] for p in result["phases"]]
+        assert "master" not in phase_types
+        assert "melody_2" in [p["phase_id"] for p in result["phases"]]
+
+    def test_multi_step_changes_made_lists_both(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "skip mastering and add a second melody phase")
+        assert len(result["changes_made"]) == 2
+
+    def test_comma_separated_instructions(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "skip master, add another melody")
+        phase_types = [p["phase_type"] for p in result["phases"]]
+        assert "master" not in phase_types
+        assert "melody_2" in [p["phase_id"] for p in result["phases"]]
+
+    def test_then_separated_instructions(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "skip mix then skip master")
+        phase_types = [p["phase_type"] for p in result["phases"]]
+        assert "mix" not in phase_types
+        assert "master" not in phase_types
+        assert len(result["changes_made"]) == 2
+
+    def test_partial_match_applies_recognised_only(self):
+        # Second sub-instruction is gibberish — first skip still applies
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "skip mastering and do something weird")
+        phase_types = [p["phase_type"] for p in result["phases"]]
+        assert "master" not in phase_types
+        assert len(result["changes_made"]) == 1
+
+    def test_total_steps_correct_after_multi_step(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "skip mastering and skip mix")
+        expected = sum(p["estimated_steps"] for p in result["phases"])
+        assert result["total_estimated_steps"] == expected
+
+    def test_also_conjunction(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "skip mastering also skip mix")
+        phase_types = [p["phase_type"] for p in result["phases"]]
+        assert "master" not in phase_types
+        assert "mix" not in phase_types
+
+
+class TestRefineAgendaReorder:
+    """ADPT-01: move <phase> before|after <phase>."""
+
+    def _house_agenda(self):
+        return get_agenda("house")
+
+    def test_move_harmony_before_drums(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "move harmony before drums")
+        phase_types = [p["phase_type"] for p in result["phases"]]
+        assert phase_types.index("harmony") < phase_types.index("drums")
+
+    def test_move_sound_design_after_arrangement(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "move sound_design after arrangement")
+        phase_types = [p["phase_type"] for p in result["phases"]]
+        assert phase_types.index("sound_design") > phase_types.index("arrangement")
+
+    def test_move_preserves_all_phases(self):
+        agenda = self._house_agenda()
+        original_types = sorted(p["phase_type"] for p in agenda["phases"])
+        result = refine_agenda(agenda, "move harmony before drums")
+        result_types = sorted(p["phase_type"] for p in result["phases"])
+        assert result_types == original_types
+
+    def test_move_changes_made_records_move(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "move harmony before drums")
+        assert len(result["changes_made"]) == 1
+        assert "harmony" in result["changes_made"][0]
+        assert "before" in result["changes_made"][0]
+
+    def test_move_combined_with_skip(self):
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "move harmony before drums and skip mastering")
+        phase_types = [p["phase_type"] for p in result["phases"]]
+        assert phase_types.index("harmony") < phase_types.index("drums")
+        assert "master" not in phase_types
+        assert len(result["changes_made"]) == 2
+
+    def test_move_unknown_phase_no_op(self):
+        agenda = self._house_agenda()
+        original_types = [p["phase_type"] for p in agenda["phases"]]
+        result = refine_agenda(agenda, "move zubzub before drums")
+        # zubzub not a phase word — unrecognised, no change
+        assert [p["phase_type"] for p in result["phases"]] == original_types
+        assert result["changes_made"] == []
+
+    def test_move_alias_mastering_after_mix(self):
+        # "mastering" is an alias for "master"
+        agenda = self._house_agenda()
+        result = refine_agenda(agenda, "move mastering after mix")
+        phase_types = [p["phase_type"] for p in result["phases"]]
+        assert phase_types.index("master") > phase_types.index("mix")
 
 
 class TestParallelDependencies:

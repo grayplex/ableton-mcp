@@ -236,7 +236,7 @@ def get_agenda(genre: str, brief: dict = None) -> dict:
 # instruction, without regenerating from scratch.
 # ---------------------------------------------------------------------------
 
-# Known phase types, used for matching skip/add instructions.
+# Known phase types, used for matching skip/add/move instructions.
 _ALL_PHASE_TYPES = list(_ESTIMATED_STEPS.keys())
 
 # Alias map for instruction words -> canonical phase_type
@@ -246,64 +246,129 @@ _PHASE_TYPE_ALIASES = {
     "drumming": "drums",
 }
 
-# Pattern: "skip|remove|no <phase_type or alias>"
+# Phase words sorted longest-first so longer aliases win in regex alternation
 _ALL_PHASE_WORDS = list(_ALL_PHASE_TYPES) + list(_PHASE_TYPE_ALIASES.keys())
-_SKIP_PATTERN = re.compile(
-    r"\b(?:skip|remove|no)\s+(" + "|".join(_ALL_PHASE_WORDS) + r")\b"
-)
+_PHASE_WORDS_RE = "|".join(re.escape(w) for w in sorted(_ALL_PHASE_WORDS, key=len, reverse=True))
+
+# Pattern: "skip|remove|no <phase_type or alias>"
+_SKIP_PATTERN = re.compile(r"\b(?:skip|remove|no)\s+(" + _PHASE_WORDS_RE + r")\b")
 
 # Pattern: "add (a )?(second|another) <phase_type>" or "duplicate <phase_type>"
 _ADD_PATTERN = re.compile(
-    r"\b(?:add\s+(?:a\s+)?(?:second|another)\s+(" + "|".join(_ALL_PHASE_WORDS) + r")"
-    r"|duplicate\s+(" + "|".join(_ALL_PHASE_WORDS) + r"))\b"
+    r"\b(?:add\s+(?:a\s+)?(?:second|another)\s+(" + _PHASE_WORDS_RE + r")"
+    r"|duplicate\s+(" + _PHASE_WORDS_RE + r"))\b"
 )
 
+# Pattern: "move <phase_type> [to] before|after <phase_type>"
+_MOVE_PATTERN = re.compile(
+    r"\bmove\s+(" + _PHASE_WORDS_RE + r")\s+(?:to\s+)?(before|after)\s+(" + _PHASE_WORDS_RE + r")\b"
+)
 
-def refine_agenda(agenda: dict, instruction: str) -> dict:
-    """Modify an existing ProductionAgenda with a natural-language instruction.
+# Conjunction splitter for multi-step instructions
+_INSTRUCTION_SPLIT_RE = re.compile(r"\s+(?:and|then|also)\s+|[,;]\s*", re.IGNORECASE)
 
-    Supported instructions (case-insensitive):
-      - "skip <phase_type>" / "remove <phase_type>" / "no <phase_type>":
-        Removes all phases with the given phase_type.
-      - "add a second <phase_type>" / "add another <phase_type>" /
-        "duplicate <phase_type>":
-        Appends a copy of the first matching phase as "<phase_type>_2",
-        inserted immediately after the original in the phases list.
 
-    Unrecognised instructions return the original agenda unchanged (no mutation).
-    total_estimated_steps is always recomputed after any modification.
+def _split_instructions(instruction: str) -> list:
+    """Split a compound instruction into individual sub-instructions.
 
-    Returns:
-        A new ProductionAgenda dict (never mutates the input).
+    Splits on ' and ', ' then ', ' also ', ',' and ';'.
+    Returns a list of one or more non-empty stripped strings.
+    """
+    parts = _INSTRUCTION_SPLIT_RE.split(instruction.strip())
+    return [p.strip() for p in parts if p.strip()]
+
+
+def _apply_single_instruction(agenda: dict, instruction: str) -> tuple:
+    """Apply one atomic instruction to agenda.
+
+    Returns (new_agenda, change_description) if the instruction was recognised
+    and modified the agenda, or (agenda, None) if unrecognised or no-op.
+    Never mutates the input agenda.
     """
     norm = instruction.lower().strip()
+    phases = agenda["phases"]
 
     # --- skip / remove / no <phase_type> ---
     skip_match = _SKIP_PATTERN.search(norm)
     if skip_match:
         target = _PHASE_TYPE_ALIASES.get(skip_match.group(1), skip_match.group(1))
-        new_phases = [p for p in agenda["phases"] if p["phase_type"] != target]
-        new_steps = sum(p["estimated_steps"] for p in new_phases)
-        return dict(agenda, phases=new_phases, total_estimated_steps=new_steps)
+        new_phases = [p for p in phases if p["phase_type"] != target]
+        if len(new_phases) < len(phases):
+            new_steps = sum(p["estimated_steps"] for p in new_phases)
+            return dict(agenda, phases=new_phases, total_estimated_steps=new_steps), f"removed phase '{target}'"
+        return agenda, None
 
     # --- add a second / duplicate <phase_type> ---
     add_match = _ADD_PATTERN.search(norm)
     if add_match:
         raw_target = add_match.group(1) or add_match.group(2)
         target = _PHASE_TYPE_ALIASES.get(raw_target, raw_target)
-        # Find the source phase
-        source_idx = next(
-            (i for i, p in enumerate(agenda["phases"]) if p["phase_type"] == target),
-            None,
-        )
+        source_idx = next((i for i, p in enumerate(phases) if p["phase_type"] == target), None)
         if source_idx is not None:
-            new_phases = list(agenda["phases"])
+            new_phases = list(phases)
             new_phase = copy.deepcopy(new_phases[source_idx])
             new_phase["phase_id"] = f"{target}_2"
             new_phase["depends_on"] = [new_phases[source_idx]["phase_id"]]
             new_phases.insert(source_idx + 1, new_phase)
             new_steps = sum(p["estimated_steps"] for p in new_phases)
-            return dict(agenda, phases=new_phases, total_estimated_steps=new_steps)
+            return dict(agenda, phases=new_phases, total_estimated_steps=new_steps), f"duplicated phase '{target}' as '{target}_2'"
+        return agenda, None
 
-    # Unrecognised instruction — return unchanged
-    return agenda
+    # --- move <phase_type> before|after <phase_type> ---
+    move_match = _MOVE_PATTERN.search(norm)
+    if move_match:
+        raw_subject = move_match.group(1)
+        direction = move_match.group(2)   # "before" or "after"
+        raw_anchor = move_match.group(3)
+        subject = _PHASE_TYPE_ALIASES.get(raw_subject, raw_subject)
+        anchor = _PHASE_TYPE_ALIASES.get(raw_anchor, raw_anchor)
+
+        subject_phases = [p for p in phases if p["phase_type"] == subject]
+        if subject_phases and subject != anchor:
+            remaining = [p for p in phases if p["phase_type"] != subject]
+            anchor_idx = next((i for i, p in enumerate(remaining) if p["phase_type"] == anchor), None)
+            if anchor_idx is not None:
+                insert_at = anchor_idx if direction == "before" else anchor_idx + 1
+                new_phases = remaining[:insert_at] + subject_phases + remaining[insert_at:]
+                new_steps = sum(p["estimated_steps"] for p in new_phases)
+                return dict(agenda, phases=new_phases, total_estimated_steps=new_steps), f"moved '{subject}' {direction} '{anchor}'"
+        return agenda, None
+
+    # Unrecognised instruction
+    return agenda, None
+
+
+def refine_agenda(agenda: dict, instruction: str) -> dict:
+    """Modify an existing ProductionAgenda with a natural-language instruction.
+
+    Supports compound instructions joined by 'and', 'then', 'also', ',' or ';'
+    — each sub-instruction is applied in sequence to the running agenda.
+
+    Supported atomic instructions (case-insensitive):
+      - "skip <phase>" / "remove <phase>" / "no <phase>":
+        Removes all phases with the given phase_type.
+      - "add a second <phase>" / "add another <phase>" / "duplicate <phase>":
+        Inserts a copy of the phase (as "<phase_type>_2") immediately after
+        the original.
+      - "move <phase> before <phase>" / "move <phase> after <phase>":
+        Relocates the named phase relative to an anchor phase.
+
+    Always returns a dict with a ``changes_made`` list describing every
+    modification applied. The list is empty when nothing was recognised.
+    total_estimated_steps is always recomputed after any modification.
+
+    Returns:
+        A new dict (never mutates the input) with all ProductionAgenda fields
+        plus a ``changes_made`` list.
+    """
+    sub_instructions = _split_instructions(instruction)
+    current = agenda
+    changes_made = []
+
+    for sub in sub_instructions:
+        new_agenda, change = _apply_single_instruction(current, sub)
+        if change is not None:
+            changes_made.append(change)
+            current = new_agenda
+
+    return dict(current, changes_made=changes_made)
