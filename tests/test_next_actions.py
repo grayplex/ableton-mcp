@@ -147,6 +147,102 @@ class TestGetTransitionGuidanceToPhase:
         assert result["next_phase"] == "mix"
 
 
+class TestHistStepSkipping:
+    """HIST-01: active_phase_progress used to skip already-completed steps."""
+
+    def _checkpoint(self, active_phase, progress, genre="house"):
+        return {
+            "genre": genre,
+            "completed_phases": [],
+            "active_phase": active_phase,
+            "active_phase_progress": progress,
+            "pending_steps": [],
+            "session_stats": {},
+            "next_phase": "bass",
+            "resume_hint": "continue",
+        }
+
+    def test_progress_zero_returns_from_step_1(self):
+        """progress=0.0 → no steps skipped, first step_number is 1."""
+        cp = self._checkpoint("drums", 0.0)
+        with patch("MCP_Server.orchestration.next_actions.get_checkpoint", return_value=cp):
+            result = get_next_actions_result("house", n=25)
+        assert result["steps"][0]["step_number"] == 1
+        assert result.get("steps_skipped", 0) == 0
+
+    def test_progress_0_3_skips_steps(self):
+        """progress=0.3 → int(0.3 * total_steps) steps skipped, first returned step > 1."""
+        cp = self._checkpoint("drums", 0.3)
+        with patch("MCP_Server.orchestration.next_actions.get_checkpoint", return_value=cp):
+            result = get_next_actions_result("house", n=25)
+        # Drums has 7 steps; skip_count = int(0.3 * 7) = 2 → first step number = 3
+        assert result["steps"][0]["step_number"] > 1
+        assert result["steps_skipped"] == 2
+
+    def test_steps_skipped_key_present_when_progress_above_threshold(self):
+        cp = self._checkpoint("drums", 0.3)
+        with patch("MCP_Server.orchestration.next_actions.get_checkpoint", return_value=cp):
+            result = get_next_actions_result("house", n=25)
+        assert "steps_skipped" in result
+        assert result["steps_skipped"] > 0
+
+    def test_steps_skipped_key_absent_when_progress_zero(self):
+        cp = self._checkpoint("drums", 0.0)
+        with patch("MCP_Server.orchestration.next_actions.get_checkpoint", return_value=cp):
+            result = get_next_actions_result("house", n=25)
+        assert "steps_skipped" not in result
+
+    def test_always_returns_at_least_one_step(self):
+        """Even at very high progress, at least 1 step is always returned."""
+        cp = self._checkpoint("master", 0.95)
+        with patch("MCP_Server.orchestration.next_actions.get_checkpoint", return_value=cp):
+            result = get_next_actions_result("house", n=25)
+        assert len(result["steps"]) >= 1
+
+    def test_explicit_phase_not_affected_by_progress(self):
+        """phase_name=explicit → always full checklist from step 1 regardless of progress."""
+        cp = self._checkpoint("drums", 0.3)
+        with patch("MCP_Server.orchestration.next_actions.get_checkpoint", return_value=cp):
+            result = get_next_actions_result("house", phase_name="drums", n=25)
+        assert result["steps"][0]["step_number"] == 1
+        assert result.get("steps_skipped", 0) == 0
+
+    def test_n_still_limits_steps_after_skipping(self):
+        """n parameter caps the returned steps count even after skipping."""
+        cp = self._checkpoint("drums", 0.0)
+        with patch("MCP_Server.orchestration.next_actions.get_checkpoint", return_value=cp):
+            result = get_next_actions_result("house", n=2)
+        assert len(result["steps"]) <= 2
+
+    def test_returned_steps_are_contiguous_after_skip(self):
+        """Step numbers in returned list are sequential after the skip offset."""
+        cp = self._checkpoint("drums", 0.3)
+        with patch("MCP_Server.orchestration.next_actions.get_checkpoint", return_value=cp):
+            result = get_next_actions_result("house", n=25)
+        nums = [s["step_number"] for s in result["steps"]]
+        # Step numbers should increase by 1 each time
+        for i in range(1, len(nums)):
+            assert nums[i] == nums[i - 1] + 1
+
+    def test_skip_count_matches_steps_skipped_field(self):
+        """steps_skipped value is consistent with the first returned step number."""
+        cp = self._checkpoint("drums", 0.3)
+        with patch("MCP_Server.orchestration.next_actions.get_checkpoint", return_value=cp):
+            result = get_next_actions_result("house", n=25)
+        skipped = result["steps_skipped"]
+        first_step = result["steps"][0]["step_number"]
+        assert first_step == skipped + 1
+
+    def test_high_progress_arrangement_skips_proportionally(self):
+        """Arrangement with progress=0.75 skips 3 of 4 steps."""
+        cp = self._checkpoint("arrangement", 0.75)
+        with patch("MCP_Server.orchestration.next_actions.get_checkpoint", return_value=cp):
+            result = get_next_actions_result("house", n=25)
+        # Arrangement has 4 steps; skip_count = int(0.75 * 4) = 3
+        assert result.get("steps_skipped", 0) == 3
+        assert len(result["steps"]) == 1
+
+
 class TestTransitionGuidancePreFetched:
     def test_prefetched_skips_ableton_connection(self):
         """When all three state params provided, no Ableton connection is made."""
