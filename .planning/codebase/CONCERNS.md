@@ -50,8 +50,6 @@
 **HIST-01 — Execution history log:**
 - No per-session log of executed steps. `get_next_actions` always returns the full checklist from step 1 regardless of steps already run. Claude must manually track which steps have been executed. Explicitly deferred (`next_actions.py:197`).
 
-**PARA-01 — Parallel phase execution: RESOLVED** — `depends_on` in `ProductionAgenda` now reflects true musical dependencies. Phases with `parallelizable: true` (drums, bass, harmony, melody, sound_design) can execute concurrently after setup. Claude must coordinate parallel execution manually.
-
 **ADPT-01 — Adaptive agenda refinement:**
 - `refine_agenda` tool was added in quick task 260401-q7f (`MCP_Server/tools/orchestration.py:131-154`). Basic instruction parsing is implemented; complex multi-step refinements may not be handled.
 
@@ -61,8 +59,8 @@
 **RFNA-04 — Revert section refinement:**
 - No revert capability for `apply_section_note_refinement` or `apply_section_device_refinement`. Ableton's native undo stack is the only recourse. Requires REFN-03 first.
 
-**SNAP-03 — Cross-section comparison:**
-- No `compare_sections` tool. Claude cannot programmatically diff `SectionState` between two named sections.
+**SNAP-03 -- Cross-section comparison:** RESOLVED (260402-r8x)
+- `compare_sections` tool added in `MCP_Server/tools/refinement.py`. Accepts two section names + optional genre, returns structured diff of track presence, clips, notes, pitch, mix, and devices.
 
 **PARS-03 — Prompt signal conflict resolution:**
 - When contradictory signals appear in a prompt (e.g., "euphoric dark techno"), the parser resolves silently by last-wins. No `signal_conflicts` list in `ProductionBrief`.
