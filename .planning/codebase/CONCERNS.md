@@ -59,8 +59,8 @@
 **RFNA-04 — Revert section refinement:**
 - No revert capability for `apply_section_note_refinement` or `apply_section_device_refinement`. Ableton's native undo stack is the only recourse. Requires REFN-03 first.
 
-**PARS-03 — Prompt signal conflict resolution:**
-- When contradictory signals appear in a prompt (e.g., "euphoric dark techno"), the parser resolves silently by last-wins. No `signal_conflicts` list in `ProductionBrief`.
+**PARS-03 — Prompt signal conflict resolution:** ✅ resolved (260403-pars03)
+- `ProductionBrief` now includes a `signal_conflicts` list. Three conflict types are detected: genre (multiple genre signals → first-wins), scale_bias (contradictory mood tonal pulls → first-wins), and energy_level (mood energy span ≥ 4 → averaged). Each conflict records `field`, `terms`, `values`, and `resolved_to`. Conflicts are also appended to the `reasoning` list.
 
 **SESS-03 — Prompt history:**
 - No `list_production_briefs()` tool. Session-scoped brief history is not persisted.
