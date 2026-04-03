@@ -89,11 +89,17 @@ class TestProductionAgendaCatalog:
         assert result["total_estimated_steps"] == expected
 
     def test_json_output_reasonable_size(self):
-        """Serialized JSON should be under 1600 chars (~400 tokens) for all 12 genres."""
+        """Serialized JSON should be under 2000 chars (~500 tokens) for all 12 genres.
+
+        Budget was raised from 1600 to 2000 after PARA-01: the true dependency map
+        adds ~20 chars per phase (parallelizable field) plus arrangement's depends_on
+        list now contains up to 5 phase ids instead of 1. 9-phase genres add ~250
+        chars vs. the pre-PARA-01 budget. All genres remain well under 500 tokens.
+        """
         for genre_id in AGENDA_CATALOG:
             result = get_agenda(genre_id)
             serialized = json.dumps(result)
-            assert len(serialized) < 1600, f"{genre_id} agenda too large: {len(serialized)} chars"
+            assert len(serialized) < 2000, f"{genre_id} agenda too large: {len(serialized)} chars"
 
     def test_house_drums_phase_roles(self):
         result = get_agenda("house")
@@ -157,3 +163,71 @@ class TestRefineAgenda:
         result = refine_agenda(agenda, "add another melody")
         expected = sum(p["estimated_steps"] for p in result["phases"])
         assert result["total_estimated_steps"] == expected
+
+
+class TestParallelDependencies:
+    """Tests for true musical dependency map and parallelizable field (PARA-01)."""
+
+    def _get_phase(self, genre: str, phase_type: str) -> dict:
+        agenda = get_agenda(genre)
+        return next(p for p in agenda["phases"] if p["phase_type"] == phase_type)
+
+    def test_bass_depends_only_on_setup(self):
+        phase = self._get_phase("house", "bass")
+        assert phase["depends_on"] == ["setup"]
+
+    def test_drums_depends_only_on_setup(self):
+        phase = self._get_phase("house", "drums")
+        assert phase["depends_on"] == ["setup"]
+
+    def test_harmony_depends_only_on_setup(self):
+        phase = self._get_phase("house", "harmony")
+        assert phase["depends_on"] == ["setup"]
+
+    def test_mix_depends_on_arrangement(self):
+        phase = self._get_phase("house", "mix")
+        assert "arrangement" in phase["depends_on"]
+
+    def test_master_depends_on_mix(self):
+        phase = self._get_phase("house", "master")
+        assert phase["depends_on"] == ["mix"]
+
+    def test_parallelizable_field_present_on_all_phases(self):
+        agenda = get_agenda("house")
+        for phase in agenda["phases"]:
+            assert "parallelizable" in phase, f"phase {phase['phase_id']} missing parallelizable"
+            assert isinstance(phase["parallelizable"], bool)
+
+    def test_drums_bass_harmony_are_parallelizable(self):
+        agenda = get_agenda("house")
+        for phase in agenda["phases"]:
+            if phase["phase_type"] in ("drums", "bass", "harmony"):
+                assert phase["parallelizable"] is True, (
+                    f"{phase['phase_type']} should be parallelizable"
+                )
+
+    def test_mix_master_are_not_parallelizable(self):
+        agenda = get_agenda("house")
+        for phase in agenda["phases"]:
+            if phase["phase_type"] in ("mix", "master"):
+                assert phase["parallelizable"] is False, (
+                    f"{phase['phase_type']} should not be parallelizable"
+                )
+
+    def test_ambient_parallel_deps(self):
+        # ambient has no drums — harmony still only depends on setup
+        phase = self._get_phase("ambient", "harmony")
+        assert phase["depends_on"] == ["setup"]
+
+    def test_arrangement_deps_filtered_to_genre(self):
+        # techno has no harmony or melody — arrangement should not list them
+        phase = self._get_phase("techno", "arrangement")
+        techno_phase_types = [
+            p["phase_type"] for p in get_agenda("techno")["phases"]
+        ]
+        for dep in phase["depends_on"]:
+            assert dep in techno_phase_types, (
+                f"arrangement dep '{dep}' not in techno agenda phases"
+            )
+        assert "harmony" not in phase["depends_on"]
+        assert "melody" not in phase["depends_on"]

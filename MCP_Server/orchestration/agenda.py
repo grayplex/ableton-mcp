@@ -72,6 +72,25 @@ _AMBIENT_NAME_OVERRIDES = {
 }
 
 # ---------------------------------------------------------------------------
+# True musical dependency map (PARA-01)
+# Maps phase_type -> list of phase_types that must be complete before this one.
+# These are filtered at get_agenda() time to only include types present in the
+# genre's agenda, so genres that lack certain phases are handled automatically.
+# ---------------------------------------------------------------------------
+
+_PHASE_DEPS = {
+    "setup":        [],                                                    # root — no prerequisites
+    "drums":        ["setup"],                                             # only needs tempo/key from setup
+    "bass":         ["setup"],                                             # only needs tempo/key from setup
+    "harmony":      ["setup"],                                             # only needs key/scale from setup
+    "melody":       ["setup"],                                             # only needs key/scale from setup
+    "sound_design": ["setup"],                                             # timbre work, no content dependency
+    "arrangement":  ["drums", "bass", "harmony", "melody", "sound_design"],  # needs all content phases
+    "mix":          ["arrangement"],                                       # needs arrangement done
+    "master":       ["mix"],                                               # needs mix done
+}
+
+# ---------------------------------------------------------------------------
 # Role filter sets per phase type (D-05 from CONTEXT.md)
 # ---------------------------------------------------------------------------
 
@@ -84,11 +103,13 @@ def _filter_roles(all_roles: list, phase_type: str) -> list:
     """Return genre roles relevant to this phase type.
 
     Utility phases (setup, arrangement, mix, master) return an empty list
-    to keep the serialized agenda under the 1600-char budget for all genres.
+    to keep the serialized agenda under the token budget for all genres.
+    Role lists are capped to limit JSON size; the parallelizable field and
+    extended arrangement depends_on list consume additional budget.
     """
     if phase_type == "drums":
         filtered = [r for r in all_roles if r in _DRUM_ROLES]
-        return filtered[:4]
+        return filtered[:3]
     elif phase_type == "bass":
         return [r for r in all_roles if r in _BASS_ROLES][:2]
     elif phase_type == "harmony":
@@ -124,7 +145,7 @@ AGENDA_CATALOG = {
 
 
 def _build_phase(phase_type: str, all_roles: list, depends_on: list,
-                 name_overrides: dict = None) -> ProductionPhase:
+                 name_overrides: dict = None, parallelizable: bool = False) -> ProductionPhase:
     """Build a ProductionPhase dict for the given phase_type."""
     name = (name_overrides or {}).get(phase_type, _PHASE_NAMES[phase_type])
     return ProductionPhase(
@@ -135,6 +156,7 @@ def _build_phase(phase_type: str, all_roles: list, depends_on: list,
         roles=_filter_roles(all_roles, phase_type),
         estimated_steps=_ESTIMATED_STEPS[phase_type],
         depends_on=depends_on,
+        parallelizable=parallelizable,
     )
 
 
@@ -192,9 +214,12 @@ def get_agenda(genre: str, brief: dict = None) -> dict:
             phase_types.insert(1, "drums")
 
     phases = []
-    for i, phase_type in enumerate(phase_types):
-        depends_on = [phase_types[i - 1]] if i > 0 else []
-        phase = _build_phase(phase_type, all_roles, depends_on, name_overrides)
+    phase_types_set = set(phase_types)
+    for phase_type in phase_types:
+        raw_deps = _PHASE_DEPS.get(phase_type, [])
+        depends_on = [d for d in raw_deps if d in phase_types_set]
+        parallelizable = depends_on == ["setup"]
+        phase = _build_phase(phase_type, all_roles, depends_on, name_overrides, parallelizable)
         phases.append(phase)
 
     total_steps = sum(p["estimated_steps"] for p in phases)
