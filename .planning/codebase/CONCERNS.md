@@ -50,8 +50,7 @@
 **HIST-01 — Execution history log:**
 - No per-session log of executed steps. `get_next_actions` always returns the full checklist from step 1 regardless of steps already run. Claude must manually track which steps have been executed. Explicitly deferred (`next_actions.py:197`).
 
-**PARA-01 — Parallel phase execution:**
-- All phases are strictly sequential. `ProductionPhase.depends_on` is always `[phase_order[i-1]]`. Phases with no true data dependency (e.g., bass programming does not require drums) are not flagged as parallelizable.
+**PARA-01 — Parallel phase execution: RESOLVED** — `depends_on` in `ProductionAgenda` now reflects true musical dependencies. Phases with `parallelizable: true` (drums, bass, harmony, melody, sound_design) can execute concurrently after setup. Claude must coordinate parallel execution manually.
 
 **ADPT-01 — Adaptive agenda refinement:**
 - `refine_agenda` tool was added in quick task 260401-q7f (`MCP_Server/tools/orchestration.py:131-154`). Basic instruction parsing is implemented; complex multi-step refinements may not be handled.
