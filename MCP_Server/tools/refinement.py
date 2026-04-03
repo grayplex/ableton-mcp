@@ -19,6 +19,13 @@ from MCP_Server.prompt.deriver import (
 )
 from MCP_Server.prompt.lexicon import GROOVE_HINTS
 from MCP_Server.prompt.parser import classify_prompt
+from MCP_Server.refinement.history import (
+    clear_history,
+    detect_conflicts,
+    detect_redundancies,
+    get_history,
+    record_refinement,
+)
 from MCP_Server.refinement.interpreter import build_section_refinement_plan
 from MCP_Server.refinement.schema import ClipSummary, SectionState, TrackStateEntry
 from MCP_Server.server import mcp
@@ -821,7 +828,15 @@ def refine_section(
     conn = get_ableton_connection()
     plan = build_section_refinement_plan(section_name, instruction, conn)
 
+    # REFN-03: check for conflicts and redundancies before applying
+    conflicts = detect_conflicts(section_name, plan["vector"])
+    redundancies = detect_redundancies(section_name, instruction)
+
     if not plan["tracks"]:
+        # Still record when the instruction was recognised (vector non-empty),
+        # so subsequent calls can detect conflicts/redundancies.
+        if plan["vector"]:
+            record_refinement(section_name, instruction, plan["vector"], [])
         return json.dumps({
             "section": section_name,
             "instruction": instruction,
@@ -829,6 +844,8 @@ def refine_section(
             "note_changes": [],
             "device_changes": [],
             "reasoning": plan["reasoning"],
+            "conflicts": conflicts,
+            "redundancies": redundancies,
         })
 
     note_changes = []
@@ -880,11 +897,40 @@ def refine_section(
             if dev_result.get("devices_modified", 0) > 0:
                 tracks_with_changes.add(track_name)
 
-    return json.dumps({
+    # REFN-03: record applied refinement to session log
+    record_refinement(section_name, instruction, plan["vector"], plan["tracks"])
+
+    response = {
         "section": section_name,
         "instruction": instruction,
         "tracks_modified": len(tracks_with_changes),
         "note_changes": note_changes,
         "device_changes": device_changes,
         "reasoning": plan["reasoning"],
+        "conflicts": conflicts,
+        "redundancies": redundancies,
+    }
+    return json.dumps(response)
+
+
+@mcp.tool()
+def get_section_refinement_history(ctx: Context, section_name: str = None) -> str:
+    """Return the session-scoped log of applied section refinements.
+
+    Exposes the REFN-03 history so Claude can review what has already been
+    applied to a section before issuing new refinement instructions.
+
+    Args:
+        section_name: Named section to query. If omitted, returns all history
+                      across every section as a flat list.
+
+    Returns:
+        JSON with ``section`` (or null) and ``history`` list. Each entry has:
+        section, instruction, vector, tracks (list of track names), timestamp.
+    """
+    history = get_history(section_name)
+    return json.dumps({
+        "section": section_name,
+        "history": history,
+        "total": len(history),
     })

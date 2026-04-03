@@ -53,8 +53,8 @@
 **ADPT-01 — Adaptive agenda refinement:** ✅ resolved (260403-adpt01)
 - `refine_agenda` now handles compound instructions split on 'and / then / also / , / ;' — each sub-instruction applied in sequence. New `move <phase> before|after <phase>` instruction type added for reordering. All modifications are logged in a `changes_made` list returned alongside the agenda. Unrecognised sub-instructions are silently skipped; recognised ones still apply. 27 new tests across `TestRefineAgendaMultiStep` and `TestRefineAgendaReorder`.
 
-**REFN-03 — Refinement history log:**
-- No session-scoped log of applied `SectionRefinementPlan` operations. `refine_section` cannot detect conflicting or redundant refinements. Calling it twice with opposite instructions applies both silently.
+**REFN-03 — Refinement history log:** ✅ resolved (260403-refn03)
+- New `MCP_Server/refinement/history.py` maintains an in-memory session log keyed by section name. `refine_section` now calls `detect_conflicts` (opposite-sign vector fields + mode_bias contradiction) and `detect_redundancies` (same instruction) before applying, and calls `record_refinement` after. Both lists are surfaced in the response as `conflicts` and `redundancies`. New `get_section_refinement_history` MCP tool exposes the log. 37 tests in `test_refinement_history.py`.
 
 **RFNA-04 — Revert section refinement:**
 - No revert capability for `apply_section_note_refinement` or `apply_section_device_refinement`. Ableton's native undo stack is the only recourse. Requires REFN-03 first.
