@@ -59,9 +59,6 @@
 **RFNA-04 — Revert section refinement:**
 - No revert capability for `apply_section_note_refinement` or `apply_section_device_refinement`. Ableton's native undo stack is the only recourse. Requires REFN-03 first.
 
-**SNAP-03 -- Cross-section comparison:** RESOLVED (260402-r8x)
-- `compare_sections` tool added in `MCP_Server/tools/refinement.py`. Accepts two section names + optional genre, returns structured diff of track presence, clips, notes, pitch, mix, and devices.
-
 **PARS-03 — Prompt signal conflict resolution:**
 - When contradictory signals appear in a prompt (e.g., "euphoric dark techno"), the parser resolves silently by last-wins. No `signal_conflicts` list in `ProductionBrief`.
 
