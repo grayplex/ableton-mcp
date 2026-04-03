@@ -271,6 +271,112 @@ def get_section_state(ctx: Context, section_name: str, genre: str = None) -> str
 
 
 @mcp.tool()
+def compare_sections(ctx: Context, section_a: str, section_b: str, genre: str = None) -> str:
+    """Compare two named arrangement sections and return a structured diff.
+
+    Calls get_section_state for each section, then computes per-track differences
+    in clip counts, note density, pitch ranges, mix parameters, and device chains.
+
+    Args:
+        section_a: First section name (matches locator, case-insensitive)
+        section_b: Second section name (matches locator, case-insensitive)
+        genre: Optional genre for recipe delta computation
+    """
+    state_a_str = get_section_state(ctx, section_a, genre=genre)
+    state_b_str = get_section_state(ctx, section_b, genre=genre)
+    state_a = json.loads(state_a_str)
+    state_b = json.loads(state_b_str)
+
+    # Check for errors in either section
+    if state_a.get("error"):
+        return json.dumps({
+            "section_a": section_a, "section_b": section_b,
+            "error": state_a["error"], "diff": None,
+        })
+    if state_b.get("error"):
+        return json.dumps({
+            "section_a": section_a, "section_b": section_b,
+            "error": state_b["error"], "diff": None,
+        })
+
+    # Index tracks by name
+    tracks_a = {t["track_name"]: t for t in state_a["tracks"]}
+    tracks_b = {t["track_name"]: t for t in state_b["tracks"]}
+
+    names_a = set(tracks_a.keys())
+    names_b = set(tracks_b.keys())
+    only_in_a = sorted(names_a - names_b)
+    only_in_b = sorted(names_b - names_a)
+    common = sorted(names_a & names_b)
+
+    track_diffs = []
+    for name in common:
+        ta = tracks_a[name]
+        tb = tracks_b[name]
+
+        clips_a = ta["clips"]
+        clips_b = tb["clips"]
+
+        # Total notes (None treated as 0 for audio clips)
+        total_notes_a = sum(c.get("note_count") or 0 for c in clips_a)
+        total_notes_b = sum(c.get("note_count") or 0 for c in clips_b)
+
+        # Average rhythm density across MIDI clips (skip None)
+        def _avg_density(clips):
+            densities = [c["rhythm_density"] for c in clips
+                         if c.get("rhythm_density") is not None]
+            return round(sum(densities) / len(densities), 2) if densities else None
+
+        # Pitch range (overall min/max across all clips)
+        def _pitch_range(clips):
+            mins = [c["pitch_min"] for c in clips if c.get("pitch_min") is not None]
+            maxs = [c["pitch_max"] for c in clips if c.get("pitch_max") is not None]
+            return {
+                "min": min(mins) if mins else None,
+                "max": max(maxs) if maxs else None,
+            }
+
+        # Devices comparison
+        devices_a_names = {d["class_name"] for d in ta["mix_context"].get("devices", [])}
+        devices_b_names = {d["class_name"] for d in tb["mix_context"].get("devices", [])}
+
+        track_diffs.append({
+            "track_name": name,
+            "role": ta.get("role"),
+            "clips": {"a": len(clips_a), "b": len(clips_b)},
+            "total_notes": {"a": total_notes_a, "b": total_notes_b},
+            "avg_rhythm_density": {"a": _avg_density(clips_a), "b": _avg_density(clips_b)},
+            "pitch_range": {"a": _pitch_range(clips_a), "b": _pitch_range(clips_b)},
+            "mix": {
+                "volume": {
+                    "a": ta["mix_context"].get("volume"),
+                    "b": tb["mix_context"].get("volume"),
+                },
+                "pan": {
+                    "a": ta["mix_context"].get("pan"),
+                    "b": tb["mix_context"].get("pan"),
+                },
+            },
+            "devices_a_only": sorted(devices_a_names - devices_b_names),
+            "devices_b_only": sorted(devices_b_names - devices_a_names),
+            "devices_both": sorted(devices_a_names & devices_b_names),
+        })
+
+    return json.dumps({
+        "section_a": section_a,
+        "section_b": section_b,
+        "bar_ranges": {
+            "section_a": {"start": state_a["start_bar"], "end": state_a["end_bar"]},
+            "section_b": {"start": state_b["start_bar"], "end": state_b["end_bar"]},
+        },
+        "only_in_a": only_in_a,
+        "only_in_b": only_in_b,
+        "track_diffs": track_diffs,
+        "error": None,
+    })
+
+
+@mcp.tool()
 def interpret_section_refinement(ctx: Context, section_name: str, instruction: str) -> str:
     """Interpret a refinement instruction for a named section — returns a read-only plan.
 
