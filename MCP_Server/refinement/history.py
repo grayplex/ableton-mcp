@@ -35,7 +35,8 @@ _DYNAMIC_SIGNED_FIELDS = ("velocity_shift", "compression_ratio_delta")
 
 
 def record_refinement(section_name: str, instruction: str,
-                      vector: dict, tracks: list) -> None:
+                      vector: dict, tracks: list,
+                      snapshot: Optional[dict] = None) -> None:
     """Append a successfully applied refinement to the session log.
 
     Args:
@@ -43,6 +44,9 @@ def record_refinement(section_name: str, instruction: str,
         instruction: The raw instruction string that was applied.
         vector: The merged RefinementVector dict from the plan.
         tracks: The list of TrackRefinementEntry dicts from the plan.
+        snapshot: Optional pre-application state snapshot produced by
+                  _build_apply_snapshot(). Used by revert_section_refinement
+                  to restore the exact pre-refinement state.
     """
     key = section_name.lower()
     if key not in _REFINEMENT_LOG:
@@ -52,6 +56,7 @@ def record_refinement(section_name: str, instruction: str,
         "instruction": instruction,
         "vector": vector,
         "tracks": [t["track_name"] for t in tracks],
+        "snapshot": snapshot or {},
         "timestamp": time.time(),
     })
 
@@ -80,6 +85,24 @@ def clear_history(section_name: Optional[str] = None) -> None:
         _REFINEMENT_LOG.clear()
     else:
         _REFINEMENT_LOG.pop(section_name.lower(), None)
+
+
+def pop_last_refinement(section_name: str) -> Optional[dict]:
+    """Remove and return the most recent refinement entry for a section.
+
+    Used by revert_section_refinement to retrieve the snapshot and unregister
+    the reverted operation from the log.
+
+    Returns None if no history exists for the section.
+    """
+    key = section_name.lower()
+    entries = _REFINEMENT_LOG.get(key)
+    if not entries:
+        return None
+    entry = entries.pop()
+    if not entries:
+        del _REFINEMENT_LOG[key]
+    return entry
 
 
 def detect_conflicts(section_name: str, new_vector: dict) -> list:
