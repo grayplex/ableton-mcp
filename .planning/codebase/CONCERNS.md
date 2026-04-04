@@ -36,8 +36,40 @@
 
 ## Deferred Features
 
-**Section-aware mixing, frequency conflict detection, full sidechain automation:**
-- `apply_mix_recipe` applies a genre recipe globally to a track with no per-section variation. Per-section timbral changes require the slower `apply_section_device_refinement` with `write_automation=True`.
+**HIST-01 — Execution history log:**
+- No per-session log of executed steps. `get_next_actions` always returns the full checklist from step 1, regardless of how many steps have already been run. A comment in `MCP_Server/orchestration/next_actions.py:179` acknowledges: `"# Skip steps if phase already started (progress > 0.3) — return all for now (HIST-01 deferred)"`. Claude must manually track which steps have been executed.
+- Source: `REQUIREMENTS.md` Future Requirements → HIST-01
+
+**PARA-01 — Parallel phase execution:**
+- All phases are strictly sequential. `ProductionPhase.depends_on` is always `[phase_order[i-1]]`. Phases with no true data dependency (e.g., bass programming does not require drums to be complete) are not flagged as parallelizable.
+- Source: `REQUIREMENTS.md` Future Requirements → PARA-01
+
+**ADPT-01 — Adaptive agenda refinement:**
+- No `refine_agenda` tool. A user instruction like "skip mastering" or "add a second melody phase" requires re-calling `get_production_agenda` from scratch.
+- Source: `REQUIREMENTS.md` Future Requirements → ADPT-01
+
+**REFN-03 — Refinement history log:**
+- No session-scoped log of applied `SectionRefinementPlan` operations. `refine_section` cannot detect conflicting or redundant refinements. Calling it twice with opposite instructions applies both silently.
+- Source: `v1.8-REQUIREMENTS.md` Future Requirements → REFN-03
+
+**RFNA-04 — Revert section refinement:**
+- No revert capability for `apply_section_note_refinement` or `apply_section_device_refinement`. Ableton's native undo stack is the only recourse. Requires REFN-03 first.
+- Source: `v1.8-REQUIREMENTS.md` Future Requirements → RFNA-04
+
+**SNAP-03 — Cross-section comparison:**
+- No `compare_sections` tool. Claude cannot programmatically diff `SectionState` between two named sections.
+- Source: `v1.8-REQUIREMENTS.md` Future Requirements → SNAP-03
+
+**PARS-03 — Prompt signal conflict resolution:**
+- When contradictory signals appear in a prompt (e.g., "euphoric dark techno"), the parser resolves silently by whichever signal last overwrites the parameter. No `signal_conflicts` list in `ProductionBrief`.
+- Source: `v1.7-REQUIREMENTS.md` Future Requirements → PARS-03
+
+~~**SESS-03 — Prompt history:**~~
+- Resolved: `list_production_briefs()` tool added. Session-scoped brief history stored in `MCP_Server/prompt/history.py`.
+
+**~~Section-aware mixing, frequency conflict detection, full sidechain automation:~~** RESOLVED
+- ~~`apply_mix_recipe` applies a genre recipe globally to a track with no per-section variation. Per-section timbral changes require the slower `apply_section_device_refinement` with `write_automation=True`.~~
+- Resolved: 2026-04-04 — implemented `apply_section_mix_recipe`, `detect_frequency_conflicts`, and `setup_sidechain_chain` MCP tools
 - Source: `v1.4-REQUIREMENTS.md` Future Requirements
 
 ---
