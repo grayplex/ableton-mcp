@@ -15,15 +15,6 @@
 
 ---
 
-## Technical Debt
-
-**HIST-01 — Phase step-skipping is deferred:**
-- When `active_phase_progress > 0.3`, `get_next_actions` should skip already-done steps. This is explicitly commented out: `# Skip steps if phase already started (progress > 0.3) — return all for now (HIST-01 deferred)` (`MCP_Server/orchestration/next_actions.py:197`).
-- Impact: Claude receives redundant early steps (e.g., "create track") after a context refresh mid-phase. Wastes tool calls.
-- Fix approach: Use `active_phase_progress` to offset the step slice, or check sentinel track names against live `get_all_tracks` output.
-
----
-
 ## Bugs
 
 **`_LIMITER` constant may not match Ableton's real class name:**
@@ -35,10 +26,6 @@
 ---
 
 ## Deferred Features
-
-**HIST-01 — Execution history log:**
-- No per-session log of executed steps. `get_next_actions` always returns the full checklist from step 1, regardless of how many steps have already been run. A comment in `MCP_Server/orchestration/next_actions.py:179` acknowledges: `"# Skip steps if phase already started (progress > 0.3) — return all for now (HIST-01 deferred)"`. Claude must manually track which steps have been executed.
-- Source: `REQUIREMENTS.md` Future Requirements → HIST-01
 
 **PARA-01 — Parallel phase execution:**
 - All phases are strictly sequential. `ProductionPhase.depends_on` is always `[phase_order[i-1]]`. Phases with no true data dependency (e.g., bass programming does not require drums to be complete) are not flagged as parallelizable.
@@ -77,7 +64,7 @@
 ## Architectural Risks
 
 **No formal session-state persistence:**
-- All production progress (completed phases, applied refinements, production brief) exists only in Ableton's live session and the in-memory MCP connection. A Claude context reset loses all orchestration state. HIST-01 (execution log) and REFN-03 (refinement log) are unimplemented, leaving resume-after-reset incomplete for any production beyond the setup phase.
+- All production progress (completed phases, applied refinements, production brief) exists only in Ableton's live session and the in-memory MCP connection. A Claude context reset loses all orchestration state. REFN-03 (refinement log) is unimplemented, leaving resume-after-reset incomplete for any production beyond the setup phase.
 
 **Ableton `_Framework.ControlSurface` is an undocumented private API:**
 - `from _Framework.ControlSurface import ControlSurface` (`AbletonMCP_Remote_Script/__init__.py:14`). The underscore prefix signals Ableton's private internal framework. Major Ableton version upgrades (e.g., Live 11 → 12) have historically changed or removed `_Framework` classes with no public notice.
