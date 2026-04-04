@@ -12,6 +12,7 @@ from mcp.server.fastmcp import Context
 from MCP_Server.connection import format_error
 from MCP_Server.genres.catalog import get_blueprint
 from MCP_Server.prompt.deriver import derive
+from MCP_Server.prompt.history import record_brief, get_briefs, _SESSION_START
 from MCP_Server.server import mcp
 from MCP_Server.tools.plans import _build_plan_sections
 
@@ -44,6 +45,7 @@ def interpret_prompt(ctx: Context, text: str) -> str:
     """
     try:
         brief = derive(text)
+        record_brief(text, brief, "interpret_prompt")
         return json.dumps(brief, indent=2)
     except Exception as e:
         return format_error(
@@ -77,6 +79,7 @@ def interpret_prompt_to_plan(
     """
     try:
         brief = derive(text)
+        record_brief(text, brief, "interpret_prompt_to_plan")
 
         result: dict = {"brief": brief, "plan": None}
 
@@ -146,3 +149,42 @@ def interpret_prompt_to_plan(
             detail=str(e),
             suggestion="Check that the prompt is a non-empty string",
         )
+
+
+@mcp.tool()
+def list_production_briefs(ctx: Context) -> str:
+    """List all production briefs interpreted during this session.
+
+    Returns a JSON summary of each prompt interpretation, ordered chronologically.
+    Use after a context reset to recall what prompts have been processed.
+
+    Returns JSON with:
+    - count: Number of briefs interpreted this session
+    - session_started: Unix timestamp when the server session began
+    - briefs: Array of brief summaries (index, raw_prompt, primary_genre,
+              bpm_range, key_feel, energy_level, confidence, source, timestamp)
+    """
+    entries = get_briefs()
+    summaries = []
+    for i, entry in enumerate(entries):
+        brief = entry["brief"]
+        tempo = brief.get("tempo_range", {})
+        bpm_range = f"{tempo.get('min_bpm', '?')}-{tempo.get('max_bpm', '?')}"
+        kf = brief.get("key_feel", {})
+        key_feel = f"{kf.get('scale', '?')} {kf.get('mode', '?')}"
+        summaries.append({
+            "index": i,
+            "raw_prompt": entry["raw_prompt"],
+            "primary_genre": brief.get("primary_genre"),
+            "bpm_range": bpm_range,
+            "key_feel": key_feel,
+            "energy_level": brief.get("energy_level"),
+            "confidence": brief.get("confidence"),
+            "source": entry["source"],
+            "timestamp": entry["timestamp"],
+        })
+    return json.dumps({
+        "count": len(entries),
+        "session_started": _SESSION_START,
+        "briefs": summaries,
+    }, indent=2)
