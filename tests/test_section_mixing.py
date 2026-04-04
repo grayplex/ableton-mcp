@@ -192,3 +192,220 @@ class TestDetectConflicts:
         if conflicts:
             high_conflicts = [c for c in conflicts if c["severity"] == "high"]
             assert len(high_conflicts) >= 1
+
+
+# ---------------------------------------------------------------------------
+# MCP tool tests: apply_section_mix_recipe, detect_frequency_conflicts,
+# setup_sidechain_chain
+# ---------------------------------------------------------------------------
+
+from MCP_Server.tools.mixing import (  # noqa: E402
+    apply_section_mix_recipe,
+    detect_frequency_conflicts,
+    setup_sidechain_chain,
+)
+
+
+def _make_arrangement_state(sections=None):
+    """Build a mock arrangement state with cue points and tracks."""
+    if sections is None:
+        sections = [
+            {"name": "Intro", "time": 0.0},
+            {"name": "Verse", "time": 16.0},
+            {"name": "Chorus", "time": 32.0},
+        ]
+    return {
+        "cue_points": sections,
+        "signature_numerator": 4,
+        "signature_denominator": 4,
+        "song_length": 64.0,
+        "tracks": [
+            {"index": 0, "name": "Kick"},
+            {"index": 1, "name": "Bass"},
+            {"index": 2, "name": "Lead"},
+        ],
+    }
+
+
+def _make_mix_state():
+    """Build a mock mix state with tracks and devices."""
+    return {
+        "tracks": [
+            {
+                "name": "Kick",
+                "index": 0,
+                "volume": 0.85,
+                "pan": 0.0,
+                "devices": [
+                    {"class_name": "Eq8", "index": 0, "parameters": []},
+                ],
+            },
+            {
+                "name": "Bass",
+                "index": 1,
+                "volume": 0.80,
+                "pan": 0.0,
+                "devices": [
+                    {"class_name": "Eq8", "index": 0, "parameters": []},
+                    {"class_name": "Compressor2", "index": 1, "parameters": []},
+                ],
+            },
+            {
+                "name": "Lead",
+                "index": 2,
+                "volume": 0.75,
+                "pan": 0.0,
+                "devices": [
+                    {"class_name": "Eq8", "index": 0, "parameters": []},
+                ],
+            },
+        ],
+        "return_tracks": [],
+        "master_track": {"name": "Master", "devices": []},
+    }
+
+
+class TestApplySectionMixRecipe:
+    """Verify apply_section_mix_recipe applies recipe per-section via automation."""
+
+    def test_valid_section_applies_recipe(self):
+        mock_conn = MagicMock()
+        arrangement = _make_arrangement_state()
+        mock_conn.send_command.side_effect = lambda cmd, args: {
+            "get_arrangement_state": arrangement,
+            "get_arrangement_clips": {"clips": [
+                {"start_time": 0.0, "end_time": 16.0, "length": 16.0, "name": "clip1"},
+            ]},
+            "insert_envelope_breakpoints": {"inserted": 2},
+        }.get(cmd, {})
+
+        with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
+            result_str = apply_section_mix_recipe(None, "Intro", 0, "kick", "house")
+
+        result = json.loads(result_str)
+        assert result["section"] == "Intro"
+        assert result["track_index"] == 0
+        assert result["role"] == "kick"
+        assert result["genre"] == "house"
+        assert result["devices_applied"] >= 1
+        assert result["automation_points"] >= 1
+
+    def test_section_not_found_returns_error(self):
+        mock_conn = MagicMock()
+        arrangement = _make_arrangement_state()
+        mock_conn.send_command.return_value = arrangement
+
+        with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
+            result_str = apply_section_mix_recipe(None, "NonExistent", 0, "kick", "house")
+
+        result = json.loads(result_str)
+        assert "error" in result
+        assert "not found" in result["error"].lower()
+
+    def test_invalid_recipe_returns_error(self):
+        result_str = apply_section_mix_recipe(None, "Intro", 0, "invalid_role", "invalid_genre")
+        result = json.loads(result_str)
+        assert "error" in result
+
+
+class TestDetectFrequencyConflicts:
+    """Verify detect_frequency_conflicts MCP tool analyzes section tracks."""
+
+    def test_returns_conflict_list(self):
+        mock_conn = MagicMock()
+        arrangement = _make_arrangement_state()
+        mix_state = _make_mix_state()
+
+        def side_effect(cmd, args):
+            if cmd == "get_arrangement_state":
+                return arrangement
+            if cmd == "get_mix_state":
+                return mix_state
+            if cmd == "get_arrangement_clips":
+                return {"clips": [
+                    {"start_time": 0.0, "end_time": 16.0, "length": 16.0, "name": "c"},
+                ]}
+            return {}
+
+        mock_conn.send_command.side_effect = side_effect
+
+        with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
+            result_str = detect_frequency_conflicts(None, "Intro", "house")
+
+        result = json.loads(result_str)
+        assert result["section"] == "Intro"
+        assert result["genre"] == "house"
+        assert "tracks_analyzed" in result
+        assert "conflicts" in result
+        assert isinstance(result["conflicts"], list)
+
+    def test_no_section_returns_error(self):
+        mock_conn = MagicMock()
+        arrangement = _make_arrangement_state()
+        mock_conn.send_command.return_value = arrangement
+
+        with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
+            result_str = detect_frequency_conflicts(None, "NonExistent", "house")
+
+        result = json.loads(result_str)
+        assert "error" in result
+
+
+class TestSetupSidechainChain:
+    """Verify setup_sidechain_chain auto-detects compressor and sets sidechain."""
+
+    def test_finds_tracks_and_sets_sidechain(self):
+        mock_conn = MagicMock()
+        mix_state = _make_mix_state()
+
+        def side_effect(cmd, args):
+            if cmd == "get_mix_state":
+                return mix_state
+            if cmd == "set_sidechain_source":
+                return {"device_name": "Compressor", "source_track": "Kick"}
+            return {}
+
+        mock_conn.send_command.side_effect = side_effect
+
+        with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
+            result_str = setup_sidechain_chain(None, "Kick", "Bass")
+
+        result = json.loads(result_str)
+        assert result["source"] == "Kick"
+        assert result["target"] == "Bass"
+        assert result["device_index"] == 1  # Compressor2 is at index 1
+        assert result["status"] == "sidechain_connected"
+
+    def test_source_not_found_returns_error(self):
+        mock_conn = MagicMock()
+        mix_state = _make_mix_state()
+        mock_conn.send_command.return_value = mix_state
+
+        with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
+            result_str = setup_sidechain_chain(None, "NonExistentTrack", "Bass")
+
+        result = json.loads(result_str)
+        assert "error" in result
+
+    def test_target_not_found_returns_error(self):
+        mock_conn = MagicMock()
+        mix_state = _make_mix_state()
+        mock_conn.send_command.return_value = mix_state
+
+        with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
+            result_str = setup_sidechain_chain(None, "Kick", "NonExistentTrack")
+
+        result = json.loads(result_str)
+        assert "error" in result
+
+    def test_no_compressor_returns_error(self):
+        mock_conn = MagicMock()
+        mix_state = _make_mix_state()
+        # Lead track has no Compressor2
+        mock_conn.send_command.return_value = mix_state
+
+        with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
+            result_str = setup_sidechain_chain(None, "Kick", "Lead")
+
+        result = json.loads(result_str)
+        assert "error" in result
