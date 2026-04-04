@@ -127,10 +127,11 @@ None — v1.9 complete.
 | 260403-refn03 | REFN-03: Refinement history log — conflict/redundancy detection in refine_section | 2026-04-03 | — | — |
 | 260403-rfna04 | RFNA-04: Revert section refinement — inverse-vector note revert + snapshot device revert | 2026-04-03 | — | — |
 | 260404-e6g | Implement list_production_briefs MCP tool with session-scoped brief history | 2026-04-04 | 87b43af | [260404-e6g-implement-list-production-briefs-mcp-too](./quick/260404-e6g-implement-list-production-briefs-mcp-too/) |
+| 260404-esg | Implement section-aware mixing: per-section apply_mix_recipe with frequency conflict detection and sidechain automation | 2026-04-04 | ae54699 | [260404-esg-implement-section-aware-mixing-per-secti](./quick/260404-esg-implement-section-aware-mixing-per-secti/) |
 
 ## Session Continuity
 
 Last session: 2026-04-03
 Stopped at: "Completed quick task 260403-rfna04"
-Last activity: 2026-04-04 - Completed quick task 260404-e6g: Implement list_production_briefs MCP tool with session-scoped brief history
+Last activity: 2026-04-04 - Completed quick task 260404-esg: Implement section-aware mixing: per-section apply_mix_recipe with frequency conflict detection and sidechain automation
 Resume file: None
