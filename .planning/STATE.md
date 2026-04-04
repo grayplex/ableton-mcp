@@ -128,7 +128,7 @@ None — v1.9 complete.
 | 260403-rfna04 | RFNA-04: Revert section refinement — inverse-vector note revert + snapshot device revert | 2026-04-03 | — | — |
 | 260404-e6g | Implement list_production_briefs MCP tool with session-scoped brief history | 2026-04-04 | 87b43af | [260404-e6g-implement-list-production-briefs-mcp-too](./quick/260404-e6g-implement-list-production-briefs-mcp-too/) |
 | 260404-esg | Implement section-aware mixing: per-section apply_mix_recipe with frequency conflict detection and sidechain automation | 2026-04-04 | ae54699 | [260404-esg-implement-section-aware-mixing-per-secti](./quick/260404-esg-implement-section-aware-mixing-per-secti/) |
-| 260404-f6v | Fix HIST-01: implement phase step-skipping in get_next_actions when active_phase_progress > 0.3 | 2026-04-04 | TBD | [260404-f6v-fix-hist-01-implement-phase-step-skippin](./quick/260404-f6v-fix-hist-01-implement-phase-step-skippin/) |
+| 260404-f6v | Fix HIST-01: implement phase step-skipping in get_next_actions when active_phase_progress > 0.3 | 2026-04-04 | d154f4b | [260404-f6v-fix-hist-01-implement-phase-step-skippin](./quick/260404-f6v-fix-hist-01-implement-phase-step-skippin/) |
 
 ## Session Continuity
 
