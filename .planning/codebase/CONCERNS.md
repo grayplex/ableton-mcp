@@ -34,6 +34,17 @@
 
 ---
 
+## Deferred Features
+
+~~**SESS-03 — Prompt history:**~~
+- Resolved: `list_production_briefs()` tool added. Session-scoped brief history stored in `MCP_Server/prompt/history.py`.
+
+**Section-aware mixing, frequency conflict detection, full sidechain automation:**
+- `apply_mix_recipe` applies a genre recipe globally to a track with no per-section variation. Per-section timbral changes require the slower `apply_section_device_refinement` with `write_automation=True`.
+- Source: `v1.4-REQUIREMENTS.md` Future Requirements
+
+---
+
 ## Architectural Risks
 
 **No formal session-state persistence:**
@@ -42,28 +53,6 @@
 **Ableton `_Framework.ControlSurface` is an undocumented private API:**
 - `from _Framework.ControlSurface import ControlSurface` (`AbletonMCP_Remote_Script/__init__.py:14`). The underscore prefix signals Ableton's private internal framework. Major Ableton version upgrades (e.g., Live 11 → 12) have historically changed or removed `_Framework` classes with no public notice.
 - Fix approach: Monitor Ableton Live release notes. Add a startup check that catches `ImportError` on `_Framework` and logs a clear message.
-
----
-
-## Deferred Features
-
-**HIST-01 — Execution history log:** ✅ resolved (260403-hist01)
-- `get_next_actions` now skips already-completed steps using `active_phase_progress` from the checkpoint. When `progress >= 0.3`, `skip_count = int(progress * total_steps)` steps are omitted from the front of the checklist (always leaving ≥1 step). The result includes `steps_skipped` when non-zero. The explicit `phase_name` path is unaffected — it always returns the full checklist. Deferral comment removed from `next_actions.py`.
-
-**ADPT-01 — Adaptive agenda refinement:** ✅ resolved (260403-adpt01)
-- `refine_agenda` now handles compound instructions split on 'and / then / also / , / ;' — each sub-instruction applied in sequence. New `move <phase> before|after <phase>` instruction type added for reordering. All modifications are logged in a `changes_made` list returned alongside the agenda. Unrecognised sub-instructions are silently skipped; recognised ones still apply. 27 new tests across `TestRefineAgendaMultiStep` and `TestRefineAgendaReorder`.
-
-**REFN-03 — Refinement history log:** ✅ resolved (260403-refn03)
-- New `MCP_Server/refinement/history.py` maintains an in-memory session log keyed by section name. `refine_section` now calls `detect_conflicts` (opposite-sign vector fields + mode_bias contradiction) and `detect_redundancies` (same instruction) before applying, and calls `record_refinement` after. Both lists are surfaced in the response as `conflicts` and `redundancies`. New `get_section_refinement_history` MCP tool exposes the log. 37 tests in `test_refinement_history.py`.
-
-**RFNA-04 — Revert section refinement:** ✅ resolved (260403-rfna04)
-- `revert_section_refinement` MCP tool added. Pops the last history entry via `pop_last_refinement`, applies inverse note ops (negated semitone/velocity/density shifts, swapped scale_substitutions via `_inverse_scale_subs`) and restores device params from the pre-application snapshot captured by `_build_apply_snapshot`. Returns `reverted_instruction`, `note_changes`, `device_changes`, and `warnings` (density_delta revert is best-effort lossless only when density=0; otherwise a warning is included). Error response returned when no history exists for the section.
-
-**PARS-03 — Prompt signal conflict resolution:** ✅ resolved (260403-pars03)
-- `ProductionBrief` now includes a `signal_conflicts` list. Three conflict types are detected: genre (multiple genre signals → first-wins), scale_bias (contradictory mood tonal pulls → first-wins), and energy_level (mood energy span ≥ 4 → averaged). Each conflict records `field`, `terms`, `values`, and `resolved_to`. Conflicts are also appended to the `reasoning` list.
-
-**SESS-03 — Prompt history:**
-- No `list_production_briefs()` tool. Session-scoped brief history is not persisted.
 
 ---
 
