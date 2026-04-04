@@ -36,9 +36,6 @@
 
 ## Deferred Features
 
-~~**SESS-03 — Prompt history:**~~
-- Resolved: `list_production_briefs()` tool added. Session-scoped brief history stored in `MCP_Server/prompt/history.py`.
-
 **Section-aware mixing, frequency conflict detection, full sidechain automation:**
 - `apply_mix_recipe` applies a genre recipe globally to a track with no per-section variation. Per-section timbral changes require the slower `apply_section_device_refinement` with `write_automation=True`.
 - Source: `v1.4-REQUIREMENTS.md` Future Requirements
