@@ -101,8 +101,9 @@
 - No `list_production_briefs()` tool. Session-scoped brief history is not persisted.
 - Source: `v1.7-REQUIREMENTS.md` Future Requirements → SESS-03
 
-**Section-aware mixing, frequency conflict detection, full sidechain automation:**
-- `apply_mix_recipe` applies a genre recipe globally to a track with no per-section variation. Per-section timbral changes require the slower `apply_section_device_refinement` with `write_automation=True`.
+**~~Section-aware mixing, frequency conflict detection, full sidechain automation:~~** RESOLVED
+- ~~`apply_mix_recipe` applies a genre recipe globally to a track with no per-section variation. Per-section timbral changes require the slower `apply_section_device_refinement` with `write_automation=True`.~~
+- Resolved: 2026-04-04 -- implemented `apply_section_mix_recipe`, `detect_frequency_conflicts`, and `setup_sidechain_chain` MCP tools
 - Source: `v1.4-REQUIREMENTS.md` Future Requirements
 
 ---
