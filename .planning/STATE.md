@@ -126,10 +126,11 @@ None — v1.9 complete.
 | 260403-hist01 | HIST-01: Execution history log — progress-based step skipping in get_next_actions | 2026-04-03 | cba674f | — |
 | 260403-refn03 | REFN-03: Refinement history log — conflict/redundancy detection in refine_section | 2026-04-03 | — | — |
 | 260403-rfna04 | RFNA-04: Revert section refinement — inverse-vector note revert + snapshot device revert | 2026-04-03 | — | — |
+| 260404-e6g | Implement list_production_briefs MCP tool with session-scoped brief history | 2026-04-04 | 87b43af | [260404-e6g-implement-list-production-briefs-mcp-too](./quick/260404-e6g-implement-list-production-briefs-mcp-too/) |
 
 ## Session Continuity
 
 Last session: 2026-04-03
 Stopped at: "Completed quick task 260403-rfna04"
-Last activity: 2026-04-03 - Completed quick task 260403-rfna04: RFNA-04 revert section refinement — inverse-vector note revert + snapshot device revert
+Last activity: 2026-04-04 - Completed quick task 260404-e6g: Implement list_production_briefs MCP tool with session-scoped brief history
 Resume file: None
