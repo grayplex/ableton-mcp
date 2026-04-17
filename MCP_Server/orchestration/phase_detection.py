@@ -23,4 +23,4 @@ _MELODY_NAMES = {
 # Device class names from get_device_classes RS output
 _COMPRESSOR = "Compressor2"
 _GLUE_COMPRESSOR = "GlueCompressor"
-_LIMITER = "Limiter2"
+_LIMITER = "Limiter"

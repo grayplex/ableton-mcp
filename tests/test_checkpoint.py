@@ -5,7 +5,7 @@ Covers all 7 CHKP-01/CHKP-02 success criteria:
 2. Setup complete + drums active (2 tracks, no drum clips)
 3. Drums complete (drum track with clips)
 4. No genre: active_phase=None, session_stats populated
-5. Master complete (GlueCompressor + Limiter2 on master)
+5. Master complete (GlueCompressor + Limiter on master)
 6. Resume hint is a single sentence (no newlines, len > 10)
 7. Session stats correctly populated
 """
@@ -143,7 +143,7 @@ class TestCheckpoint:
         Techno order: setup->drums->bass->sound_design->arrangement->mix->master.
         Each phase needs its conditions met: named tracks with instruments+clips,
         effect devices for sound_design, clips per section for arrangement,
-        Compressor2 for mix, GlueCompressor+Limiter2 for master."""
+        Compressor2 for mix, GlueCompressor+Limiter for master."""
         arr = {
             "tracks": [
                 _make_track("Kick Drums", True, 0, device_classes=["Compressor2"], has_clips=True),
@@ -155,7 +155,7 @@ class TestCheckpoint:
         dc = {"tracks": [{"index": 0, "name": "Kick Drums", "device_classes": ["Compressor2"]},
                          {"index": 1, "name": "Bass", "device_classes": ["AutoFilter"]}],
               "return_tracks": [],
-              "master_track": {"name": "Master", "device_classes": ["GlueCompressor", "Limiter2"]}}
+              "master_track": {"name": "Master", "device_classes": ["GlueCompressor", "Limiter"]}}
         # 2 clips per track to satisfy arrangement (min_clips = max(2, 2 sections) = 2)
         clips = {
             "Kick Drums": [{"start_time": 0.0, "end_time": 8.0}, {"start_time": 32.0, "end_time": 40.0}],
@@ -167,7 +167,7 @@ class TestCheckpoint:
         assert "master" in result["completed_phases"]
 
     def test_master_template_only_not_complete(self):
-        """Master bus template (GlueCompressor + Limiter2) with no real tracks
+        """Master bus template (GlueCompressor + Limiter) with no real tracks
         should NOT report all phases complete. The short-circuit block was removed
         entirely; the sequential walk now handles all cases."""
         arr = {
@@ -177,7 +177,7 @@ class TestCheckpoint:
         }
         dc = {"tracks": [{"index": 0, "name": "Master Template", "device_classes": []}],
               "return_tracks": [],
-              "master_track": {"name": "Master", "device_classes": ["GlueCompressor", "Limiter2"]}}
+              "master_track": {"name": "Master", "device_classes": ["GlueCompressor", "Limiter"]}}
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
                    return_value=_make_conn(arr, dc)):
             result = get_checkpoint("house")
@@ -269,7 +269,7 @@ class TestCheckpoint:
 
     def test_scaffold_with_master_bus_not_complete(self):
         """A session with 2 bare scaffold tracks (one with Compressor2) and master bus
-        with GlueCompressor + Limiter2 should NOT report all phases complete.
+        with GlueCompressor + Limiter should NOT report all phases complete.
         The short-circuit block would falsely return all phases; the sequential walk
         correctly stops at drums (no drum-named track with instrument + clips)."""
         arr = {
@@ -283,7 +283,7 @@ class TestCheckpoint:
         dc = {"tracks": [{"index": 0, "name": "Track 1", "device_classes": ["Compressor2"]},
                          {"index": 1, "name": "Track 2", "device_classes": []}],
               "return_tracks": [],
-              "master_track": {"name": "Master", "device_classes": ["GlueCompressor", "Limiter2"]}}
+              "master_track": {"name": "Master", "device_classes": ["GlueCompressor", "Limiter"]}}
         with patch("MCP_Server.orchestration.checkpoint.get_ableton_connection",
                    return_value=_make_conn(arr, dc, clips_by_track={})):
             result = get_checkpoint("house")
