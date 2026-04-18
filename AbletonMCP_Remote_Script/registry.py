@@ -46,6 +46,11 @@ class CommandRegistry:
         return decorator
 
     @classmethod
+    def get_write_commands(cls) -> frozenset:
+        """Return frozenset of all write command names registered via @command(write=True)."""
+        return frozenset(name for name, _, is_write, _ in cls._entries if is_write)
+
+    @classmethod
     def build_tables(cls, instance):
         """Bind registered handlers to instance and return dispatch dicts.
 

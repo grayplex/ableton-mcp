@@ -75,6 +75,75 @@ _DRUM_PATTERNS = {
         "hihat": [_note(42, 0.0, 0.25, 72), _note(42, 0.5, 0.25, 72)],
         "clap_pitch": 39,
     },
+    # Neo-soul / R&B — swing feel, kick anticipation, snare on 2+4
+    "neo_soul_rnb": {
+        "kick_clap": [
+            _note(36, 0.0, 0.25, 100),   # kick beat 1
+            _note(36, 1.5, 0.25, 85),    # kick anticipation (and-of-2)
+            _note(38, 1.0, 0.25, 100),   # snare beat 2
+            _note(38, 3.0, 0.25, 100),   # snare beat 4
+        ],
+        "hihat": [
+            _note(42, 0.0, 0.25, 65),    # hi-hat beat 1
+            _note(42, 1.0, 0.25, 60),    # hi-hat beat 2
+            _note(42, 2.0, 0.25, 65),    # hi-hat beat 3
+            _note(42, 3.0, 0.25, 60),    # hi-hat beat 4
+        ],
+        "clap_pitch": 38,
+    },
+}
+
+# ---------------------------------------------------------------------------
+# Bass pattern groups (mirrors drum pattern architecture)
+# ---------------------------------------------------------------------------
+
+_BASS_PATTERNS = {
+    # House / Disco / Lo-fi — Root-fifth pumping eighth-note pattern
+    "house": [
+        _note(36, 0.0, 0.5, 90), _note(36, 1.0, 0.25, 80),
+        _note(36, 2.0, 0.5, 90), _note(41, 3.0, 0.5, 85),
+    ],
+    # Techno / DnB — Driving monotone root with short staccato hits
+    "techno": [
+        _note(36, 0.0, 0.25, 100), _note(36, 1.0, 0.25, 100),
+        _note(36, 2.0, 0.25, 100), _note(36, 3.0, 0.25, 100),
+    ],
+    # Hip-hop / Trap — Syncopated 808 sub pattern, swing feel
+    "hiphop": [
+        _note(36, 0.0, 1.0, 100), _note(36, 1.5, 0.5, 85),
+        _note(34, 2.5, 1.0, 95), _note(36, 3.5, 0.5, 80),
+    ],
+    # Dubstep — Half-time sub-bass with wide intervals for wobble feel
+    "dubstep": [
+        _note(36, 0.0, 1.5, 110), _note(29, 2.0, 1.0, 105),
+        _note(36, 3.0, 0.5, 100), _note(31, 3.5, 0.5, 95),
+    ],
+    # Trance / Synthwave / Future Bass — Rolling arpeggiated bass
+    "trance": [
+        _note(36, 0.0, 0.5, 95), _note(48, 0.5, 0.5, 80),
+        _note(43, 2.0, 0.5, 90), _note(36, 3.0, 1.0, 95),
+    ],
+    # Neo-soul / R&B — Smooth walking bass with chromatic approach
+    "neo_soul_rnb": [
+        _note(36, 0.0, 1.0, 85), _note(40, 1.0, 1.0, 80),
+        _note(43, 2.0, 1.0, 85), _note(41, 3.0, 1.0, 80),
+    ],
+}
+
+# Map genre_id -> bass pattern group
+_GENRE_BASS_GROUP = {
+    "house":        "house",
+    "disco_funk":   "house",
+    "lo_fi":        "house",
+    "techno":       "techno",
+    "drum_and_bass": "techno",
+    "hip_hop_trap": "hiphop",
+    "dubstep":      "dubstep",
+    "trance":       "trance",
+    "synthwave":    "trance",
+    "future_bass":  "trance",
+    "ambient":      "trance",
+    "neo_soul_rnb": "neo_soul_rnb",
 }
 
 # Map genre_id -> drum pattern group (None = no drums)
@@ -90,7 +159,7 @@ _GENRE_DRUM_GROUP = {
     "synthwave":    "trance",
     "future_bass":  "trance",
     "ambient":      None,
-    "neo_soul_rnb": "house",  # default to house pattern
+    "neo_soul_rnb": "neo_soul_rnb",
 }
 
 # ---------------------------------------------------------------------------
@@ -117,12 +186,13 @@ _GENRE_PARAMS = {
 # ---------------------------------------------------------------------------
 
 def _step(step_number, description, tool_name, suggested_args, phase, depends_on_step=None):
-    # Omit depends_on_step when None; omit phase (redundant with checklist.phase_name) to minimize tokens
+    # Omit depends_on_step when None to minimize tokens
     d = {
         "step_number": step_number,
         "tool_name": tool_name,
         "description": description,
         "suggested_args": suggested_args,
+        "phase": phase,
     }
     if depends_on_step is not None:
         d["depends_on_step"] = depends_on_step
@@ -164,7 +234,11 @@ def _build_setup_steps(genre_id, blueprint):
     ]
 
 
-_SENTINEL_NOTE = "<track_index>: resolve via get_all_tracks()"
+
+# Sentinel resolution: steps using "<track_index>" / "<clip_index>" sentinels
+# include a hint in their description instructing Claude to resolve the value
+# via get_arrangement_overview or get_all_tracks at call time.
+_SENTINEL_HINT = " -- resolve <track_index> via get_arrangement_overview or get_all_tracks"
 
 
 def _build_drums_steps(genre_id, pattern, section_name):
@@ -178,36 +252,36 @@ def _build_drums_steps(genre_id, pattern, section_name):
 
     if section_name:
         clip_step = _step(4,
-            f"Arrangement clip for Drums in '{section_name}'. {_SENTINEL_NOTE}",
+            f"Arrangement clip for Drums in '{section_name}'",
             "create_arrangement_midi_clip",
             {"track_index": "<track_index>", "start_time": "<section_start_beat>", "length": "<section_length_beats>"},
             pt, 3)
     else:
         clip_step = _step(4,
-            f"Session clip for Drums (4 bars). {_SENTINEL_NOTE}",
+            f"Session clip for Drums (4 bars)",
             "create_clip",
-            {"track_index": "<track_index>", "clip_index": 0, "length": 4.0},
+            {"track_index": "<track_index>", "clip_index": "<clip_index>", "length": 4.0},
             pt, 3)
 
     steps = [
         _step(1, "Create Drums MIDI track",
               "create_midi_track", {"index": -1}, pt),
-        _step(2, f"Name track 'Drums'. {_SENTINEL_NOTE}",
+        _step(2, f"Name track 'Drums'" + _SENTINEL_HINT,
               "set_track_name", {"track_index": "<track_index>", "name": "Drums"}, pt, 1),
-        _step(3, f"Load Drum Rack. {_SENTINEL_NOTE}",
-              "load_instrument_or_effect", {"track_index": "<track_index>", "instrument_name": "Drum Rack"}, pt, 2),
+        _step(3, f"Load Drum Rack",
+              "load_instrument_or_effect", {"track_index": "<track_index>", "path": "instruments/Drum Rack"}, pt, 2),
         clip_step,
-        _step(5, f"Add {beat_desc} notes. {_SENTINEL_NOTE}",
+        _step(5, f"Add {beat_desc} notes",
               "add_notes_to_clip",
-              {"track_index": "<track_index>", "clip_index": 0, "notes": kick_clap_notes},
+              {"track_index": "<track_index>", "clip_index": "<clip_index>", "notes": kick_clap_notes},
               pt, 4),
-        _step(6, f"Add hi-hat notes (p42). {_SENTINEL_NOTE}",
+        _step(6, f"Add hi-hat notes (p42)",
               "add_notes_to_clip",
-              {"track_index": "<track_index>", "clip_index": 0, "notes": hihat_notes},
+              {"track_index": "<track_index>", "clip_index": "<clip_index>", "notes": hihat_notes},
               pt, 5),
-        _step(7, "Quantize Drums clip notes",
+        _step(7, "Quantize Drums clip",
               "quantize_notes",
-              {"track_index": "<track_index>", "clip_index": 0},
+              {"track_index": "<track_index>", "clip_index": "<clip_index>"},
               pt, 6),
     ]
     return steps
@@ -216,37 +290,35 @@ def _build_drums_steps(genre_id, pattern, section_name):
 def _build_bass_steps(genre_id, instruments, section_name):
     pt = "bass"
     bass_instr = instruments.get("bass", "Analog")
-    bass_notes = [
-        _note(36, 0.0, 0.5, 90), _note(36, 1.0, 0.5, 85),
-        _note(41, 2.0, 0.5, 90), _note(36, 3.0, 0.5, 85),
-    ]
+    bass_group = _GENRE_BASS_GROUP.get(genre_id, "house")
+    bass_notes = _BASS_PATTERNS[bass_group]
 
     if section_name:
         clip_step = _step(4,
-            f"Arrangement clip for Bass in '{section_name}'. {_SENTINEL_NOTE}",
+            f"Arrangement clip for Bass in '{section_name}'",
             "create_arrangement_midi_clip",
             {"track_index": "<track_index>", "start_time": "<section_start_beat>", "length": "<section_length_beats>"},
             pt, 3)
     else:
         clip_step = _step(4,
-            f"Session clip for Bass (4 bars). {_SENTINEL_NOTE}",
+            f"Session clip for Bass (4 bars)",
             "create_clip",
-            {"track_index": "<track_index>", "clip_index": 0, "length": 4.0},
+            {"track_index": "<track_index>", "clip_index": "<clip_index>", "length": 4.0},
             pt, 3)
 
     return [
         _step(1, "Create Bass MIDI track",
               "create_midi_track", {"index": -1}, pt),
-        _step(2, f"Name track 'Bass'. {_SENTINEL_NOTE}",
+        _step(2, f"Name track 'Bass'" + _SENTINEL_HINT,
               "set_track_name", {"track_index": "<track_index>", "name": "Bass"}, pt, 1),
-        _step(3, f"Load {bass_instr} on Bass track. {_SENTINEL_NOTE}",
-              "load_instrument_or_effect", {"track_index": "<track_index>", "instrument_name": bass_instr}, pt, 2),
+        _step(3, f"Load {bass_instr} on Bass track",
+              "load_instrument_or_effect", {"track_index": "<track_index>", "path": f"instruments/{bass_instr}"}, pt, 2),
         clip_step,
-        _step(5, f"Add bass line notes. {_SENTINEL_NOTE}",
+        _step(5, f"Add bass line notes",
               "add_notes_to_clip",
-              {"track_index": "<track_index>", "clip_index": 0, "notes": bass_notes},
+              {"track_index": "<track_index>", "clip_index": "<clip_index>", "notes": bass_notes},
               pt, 4),
-        _step(6, f"Set Bass volume to 0.85. {_SENTINEL_NOTE}",
+        _step(6, f"Set Bass volume to 0.85",
               "set_track_volume",
               {"track_index": "<track_index>", "volume": 0.85},
               pt, 5),
@@ -263,30 +335,30 @@ def _build_harmony_steps(genre_id, instruments, section_name):
 
     if section_name:
         clip_step = _step(4,
-            f"Arrangement clip for Chords in '{section_name}'. {_SENTINEL_NOTE}",
+            f"Arrangement clip for Chords in '{section_name}'",
             "create_arrangement_midi_clip",
             {"track_index": "<track_index>", "start_time": "<section_start_beat>", "length": "<section_length_beats>"},
             pt, 3)
     else:
         clip_step = _step(4,
-            f"Session clip for Chords (8 bars). {_SENTINEL_NOTE}",
+            f"Session clip for Chords (8 bars)",
             "create_clip",
-            {"track_index": "<track_index>", "clip_index": 0, "length": 8.0},
+            {"track_index": "<track_index>", "clip_index": "<clip_index>", "length": 8.0},
             pt, 3)
 
     return [
         _step(1, "Create Chords MIDI track",
               "create_midi_track", {"index": -1}, pt),
-        _step(2, f"Name track 'Chords'. {_SENTINEL_NOTE}",
+        _step(2, f"Name track 'Chords'" + _SENTINEL_HINT,
               "set_track_name", {"track_index": "<track_index>", "name": "Chords"}, pt, 1),
-        _step(3, f"Load {harmony_instr} on Chords track. {_SENTINEL_NOTE}",
-              "load_instrument_or_effect", {"track_index": "<track_index>", "instrument_name": harmony_instr}, pt, 2),
+        _step(3, f"Load {harmony_instr} on Chords track",
+              "load_instrument_or_effect", {"track_index": "<track_index>", "path": f"instruments/{harmony_instr}"}, pt, 2),
         clip_step,
-        _step(5, f"Add 2-chord loop notes. {_SENTINEL_NOTE}",
+        _step(5, f"Add 2-chord loop notes",
               "add_notes_to_clip",
-              {"track_index": "<track_index>", "clip_index": 0, "notes": chord_notes},
+              {"track_index": "<track_index>", "clip_index": "<clip_index>", "notes": chord_notes},
               pt, 4),
-        _step(6, f"Set Chords volume to 0.75. {_SENTINEL_NOTE}",
+        _step(6, f"Set Chords volume to 0.75",
               "set_track_volume",
               {"track_index": "<track_index>", "volume": 0.75},
               pt, 5),
@@ -304,52 +376,54 @@ def _build_melody_steps(genre_id, instruments, section_name):
 
     if section_name:
         clip_step = _step(4,
-            f"Arrangement clip for Lead in '{section_name}'. {_SENTINEL_NOTE}",
+            f"Arrangement clip for Lead in '{section_name}'",
             "create_arrangement_midi_clip",
             {"track_index": "<track_index>", "start_time": "<section_start_beat>", "length": "<section_length_beats>"},
             pt, 3)
     else:
         clip_step = _step(4,
-            f"Session clip for Lead (8 bars). {_SENTINEL_NOTE}",
+            f"Session clip for Lead (8 bars)",
             "create_clip",
-            {"track_index": "<track_index>", "clip_index": 0, "length": 8.0},
+            {"track_index": "<track_index>", "clip_index": "<clip_index>", "length": 8.0},
             pt, 3)
 
     return [
         _step(1, "Create Lead MIDI track",
               "create_midi_track", {"index": -1}, pt),
-        _step(2, f"Name track 'Lead'. {_SENTINEL_NOTE}",
+        _step(2, f"Name track 'Lead'" + _SENTINEL_HINT,
               "set_track_name", {"track_index": "<track_index>", "name": "Lead"}, pt, 1),
-        _step(3, f"Load {melody_instr} on Lead track. {_SENTINEL_NOTE}",
-              "load_instrument_or_effect", {"track_index": "<track_index>", "instrument_name": melody_instr}, pt, 2),
+        _step(3, f"Load {melody_instr} on Lead track",
+              "load_instrument_or_effect", {"track_index": "<track_index>", "path": f"instruments/{melody_instr}"}, pt, 2),
         clip_step,
-        _step(5, f"Add melodic phrase notes. {_SENTINEL_NOTE}",
+        _step(5, f"Add melodic phrase notes",
               "add_notes_to_clip",
-              {"track_index": "<track_index>", "clip_index": 0, "notes": melody_notes},
+              {"track_index": "<track_index>", "clip_index": "<clip_index>", "notes": melody_notes},
               pt, 4),
     ]
 
 
 def _build_sound_design_steps(genre_id):
     pt = "sound_design"
-    sn = "Replace <synth_track_index> with actual index from get_all_tracks()"
+    sn = "resolve <synth_track_index> via get_arrangement_overview or get_all_tracks"
     return [
-        _step(1, f"Load Auto Filter on synth track. {sn}",
+        _step(1, "Query tracks to resolve synth track index",
+              "get_arrangement_overview", {}, pt),
+        _step(2, f"Load Auto Filter on synth track. {sn}",
               "load_instrument_or_effect",
-              {"track_index": "<synth_track_index>", "instrument_name": "Auto Filter"},
-              pt),
-        _step(2, f"Set Auto Filter Frequency to 0.6. {sn}",
+              {"track_index": "<synth_track_index>", "path": "audio_effects/Auto Filter"},
+              pt, 1),
+        _step(3, f"Set Auto Filter Frequency to 0.6. {sn}",
               "set_device_parameter",
               {"track_index": "<synth_track_index>", "device_index": 0, "parameter_name": "Frequency", "value": 0.6},
-              pt, 1),
-        _step(3, f"Load Reverb on synth track. {sn}",
-              "load_instrument_or_effect",
-              {"track_index": "<synth_track_index>", "instrument_name": "Reverb"},
               pt, 2),
-        _step(4, f"Set Reverb Dry/Wet to 0.3. {sn}",
+        _step(4, f"Load Reverb on synth track. {sn}",
+              "load_instrument_or_effect",
+              {"track_index": "<synth_track_index>", "path": "audio_effects/Reverb"},
+              pt, 3),
+        _step(5, f"Set Reverb Dry/Wet to 0.3. {sn}",
               "set_device_parameter",
               {"track_index": "<synth_track_index>", "device_index": 1, "parameter_name": "Dry/Wet", "value": 0.3},
-              pt, 3),
+              pt, 4),
     ]
 
 
@@ -367,8 +441,6 @@ def _build_arrangement_steps(genre_id, section_name):
               "get_section_checklist",
               {"plan": {"genre": genre_id, "sections": []}, "section_name": sn},
               pt, 3),
-        _step(5, "Review evaluate_session output and apply each item in top_fixes",
-              "—", {}, pt, 4),
     ]
 
 
@@ -378,15 +450,18 @@ def _build_mix_steps(genre_id, blueprint):
     if not roles:
         roles = ["kick", "bass", "pad"]
 
-    steps = []
+    steps = [
+        _step(1, "Query tracks to resolve role track indices",
+              "get_arrangement_overview", {}, pt),
+    ]
     for i, role in enumerate(roles):
         steps.append(_step(
-            i + 1,
-            f"Apply mix recipe for {role}. Replace <{role}_track_index> with actual index from get_all_tracks().",
+            i + 2,
+            f"Apply mix recipe for {role}. resolve <{role}_track_index> via get_arrangement_overview or get_all_tracks.",
             "apply_mix_recipe",
             {"track_index": f"<{role}_track_index>", "role": role, "genre": genre_id},
             pt,
-            i if i > 0 else None,
+            i + 1 if i > 0 else 1,
         ))
 
     n = len(steps)
@@ -482,8 +557,7 @@ def get_execution_plan(phase_name: str, genre: str,
         step["step_number"] = i + 1
 
     total = len(steps)
-    # estimated_tool_calls excludes description-only steps (tool_name == "—")
-    tool_calls = sum(1 for s in steps if s["tool_name"] != "—")
+    tool_calls = total
 
     return PhaseChecklist(
         phase_name=phase_name_lower,

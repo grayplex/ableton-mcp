@@ -129,6 +129,32 @@ def get_next_actions(ctx: Context, genre: str, phase_name: str = None, n: int = 
 
 
 @mcp.tool()
+def refine_agenda(ctx: Context, agenda: str, instruction: str) -> str:
+    """Refine an existing production agenda with a natural-language instruction.
+
+    Modifies a ProductionAgenda returned by get_production_agenda without
+    regenerating from scratch. Useful for adjustments mid-production, e.g.
+    "skip mastering", "add a second melody phase", "remove sound design".
+
+    Args:
+        agenda: JSON string of a ProductionAgenda (from get_production_agenda).
+        instruction: Natural-language refinement instruction, e.g.
+                     "skip mastering", "add a second melody phase".
+
+    Returns:
+        JSON string with the modified ProductionAgenda. If the instruction is
+        not recognised, returns the original agenda unchanged.
+    """
+    from MCP_Server.orchestration.agenda import refine_agenda as _refine
+    try:
+        agenda_dict = json.loads(agenda)
+    except (json.JSONDecodeError, TypeError):
+        return json.dumps({"error": "agenda must be a valid JSON string"})
+    result = _refine(agenda_dict, instruction)
+    return json.dumps(result)
+
+
+@mcp.tool()
 def get_phase_transition_guidance(ctx: Context, from_phase: str, genre: str = None,
                                    to_phase: str = None) -> str:
     """Check if a production phase is complete enough to advance to the next.

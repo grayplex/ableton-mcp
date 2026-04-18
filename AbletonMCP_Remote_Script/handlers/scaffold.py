@@ -3,6 +3,23 @@
 from AbletonMCP_Remote_Script.registry import command
 
 
+def _is_instrument_device(device):
+    """Return True if device is an instrument (drum machine, instrument rack, or plugin instrument).
+
+    Excludes audio effect racks, MIDI effect racks, and standalone audio/MIDI effects.
+    """
+    try:
+        if device.can_have_drum_pads:
+            return True
+        if device.can_have_chains:
+            return "instrument" in device.class_display_name.lower()
+        # Standalone device: instrument if class_name does not indicate audio or MIDI effect
+        cn = device.class_name.lower()
+        return "audio_effect" not in cn and "midi_effect" not in cn
+    except Exception:
+        return False
+
+
 class ScaffoldHandler:
     """Mixin class for scaffold command handlers."""
 
@@ -54,7 +71,7 @@ class ScaffoldHandler:
 
         Returns:
             cue_points: List of {name, time} dicts from song cue points.
-            tracks: List of {"name": str, "has_devices": bool} dicts.
+            tracks: List of {"index": int, "name": str, "has_instrument": bool, "has_clips": bool} dicts.
             song_length: Total song length in beats.
             signature_numerator: Time signature numerator.
             signature_denominator: Time signature denominator.
@@ -64,10 +81,18 @@ class ScaffoldHandler:
             cue_points.append({"name": cp.name, "time": cp.time})
 
         tracks = []
-        for track in self._song.tracks:
+        for i, track in enumerate(self._song.tracks):
+            clip_list = [
+                {"start_time": c.start_time, "length": c.length}
+                for c in track.arrangement_clips
+            ]
             tracks.append({
+                "index": i,
                 "name": track.name,
-                "has_devices": len(track.devices) > 0,
+                "has_instrument": any(_is_instrument_device(d) for d in track.devices),
+                "has_clips": len(clip_list) > 0,
+                "clip_count": len(clip_list),
+                "clips": clip_list,
             })
 
         return {

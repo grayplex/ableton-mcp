@@ -272,9 +272,9 @@ def _mock_overview_factory(cue_points=None, tracks=None, song_length=256.0,
         cue_points = [{"name": "intro", "time": 0.0}, {"name": "drop", "time": 64.0}]
     if tracks is None:
         tracks = [
-            {"name": "kick", "has_devices": True},
-            {"name": "bass", "has_devices": True},
-            {"name": "lead", "has_devices": True},
+            {"index": 0, "name": "kick", "has_instrument": True},
+            {"index": 1, "name": "bass", "has_instrument": True},
+            {"index": 2, "name": "lead", "has_instrument": True},
         ]
 
     def side_effect(cmd, params=None):

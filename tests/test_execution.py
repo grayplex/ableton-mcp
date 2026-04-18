@@ -21,9 +21,9 @@ def _mock_execution_factory(tracks=None, cue_points=None, song_length=256.0, tim
     """Return a side_effect for mocking get_arrangement_state with device info."""
     if tracks is None:
         tracks = [
-            {"name": "kick", "has_devices": True},
-            {"name": "bass", "has_devices": False},
-            {"name": "lead", "has_devices": True},
+            {"index": 0, "name": "kick", "has_instrument": True},
+            {"index": 1, "name": "bass", "has_instrument": False},
+            {"index": 2, "name": "lead", "has_instrument": True},
         ]
     if cue_points is None:
         cue_points = []
@@ -53,8 +53,8 @@ class TestSectionChecklist:
         """Returns per-role status for a named section."""
         mock_connection.send_command.side_effect = _mock_execution_factory(
             tracks=[
-                {"name": "kick", "has_devices": True},
-                {"name": "bass", "has_devices": False},
+                {"index": 0, "name": "kick", "has_instrument": True},
+                {"index": 1, "name": "bass", "has_instrument": False},
             ]
         )
         plan = {
@@ -78,12 +78,12 @@ class TestSectionChecklist:
         """Roles in multiple sections get correct numbered track names."""
         mock_connection.send_command.side_effect = _mock_execution_factory(
             tracks=[
-                {"name": "lead", "has_devices": True},
-                {"name": "lead 2", "has_devices": False},
-                {"name": "lead 3", "has_devices": True},
-                {"name": "pad", "has_devices": True},
-                {"name": "pad 2", "has_devices": False},
-                {"name": "bass", "has_devices": True},
+                {"index": 0, "name": "lead", "has_instrument": True},
+                {"index": 1, "name": "lead 2", "has_instrument": False},
+                {"index": 2, "name": "lead 3", "has_instrument": True},
+                {"index": 3, "name": "pad", "has_instrument": True},
+                {"index": 4, "name": "pad 2", "has_instrument": False},
+                {"index": 5, "name": "bass", "has_instrument": True},
             ]
         )
         plan = {
@@ -122,7 +122,7 @@ class TestSectionChecklist:
         """Role whose track was renamed in Ableton gets status 'not_found'."""
         mock_connection.send_command.side_effect = _mock_execution_factory(
             tracks=[
-                {"name": "kick", "has_devices": True},
+                {"index": 0, "name": "kick", "has_instrument": True},
                 # "bass" track is missing (user renamed it)
             ]
         )
@@ -142,7 +142,7 @@ class TestSectionChecklist:
     async def test_dedup_within_section(self, mcp_server, mock_connection):
         """Duplicate roles within a single section are deduplicated."""
         mock_connection.send_command.side_effect = _mock_execution_factory(
-            tracks=[{"name": "lead", "has_devices": True}]
+            tracks=[{"index": 0, "name": "lead", "has_instrument": True}]
         )
         plan = {
             "sections": [
@@ -169,10 +169,10 @@ class TestArrangementProgress:
         """Returns only tracks with no devices loaded."""
         mock_connection.send_command.side_effect = _mock_execution_factory(
             tracks=[
-                {"name": "kick", "has_devices": True},
-                {"name": "bass", "has_devices": False},
-                {"name": "lead", "has_devices": True},
-                {"name": "pad", "has_devices": False},
+                {"index": 0, "name": "kick", "has_instrument": True},
+                {"index": 1, "name": "bass", "has_instrument": False},
+                {"index": 2, "name": "lead", "has_instrument": True},
+                {"index": 3, "name": "pad", "has_instrument": False},
             ]
         )
         result = await mcp_server.call_tool("get_arrangement_progress", {})
@@ -186,8 +186,8 @@ class TestArrangementProgress:
         """All tracks have instruments -> empty list."""
         mock_connection.send_command.side_effect = _mock_execution_factory(
             tracks=[
-                {"name": "kick", "has_devices": True},
-                {"name": "bass", "has_devices": True},
+                {"index": 0, "name": "kick", "has_instrument": True},
+                {"index": 1, "name": "bass", "has_instrument": True},
             ]
         )
         result = await mcp_server.call_tool("get_arrangement_progress", {})
@@ -206,6 +206,38 @@ class TestArrangementProgress:
         assert parsed["empty_tracks"] == []
         assert parsed["total_tracks"] == 0
         assert parsed["empty_count"] == 0
+
+
+# ---------------------------------------------------------------------------
+# Tool registration
+# ---------------------------------------------------------------------------
+
+class TestArrangementOverview:
+    """Tests for get_arrangement_overview track index inclusion."""
+
+    async def test_arrangement_overview_includes_track_index(self, mcp_server, mock_connection):
+        """get_arrangement_overview returns tracks as {name, index} dicts, not bare strings."""
+        mock_connection.send_command.side_effect = _mock_execution_factory(
+            tracks=[
+                {"index": 0, "name": "kick", "has_instrument": True},
+                {"index": 1, "name": "bass", "has_instrument": False},
+                {"index": 2, "name": "lead", "has_instrument": True},
+            ],
+            cue_points=[],
+        )
+        result = await mcp_server.call_tool("get_arrangement_overview", {})
+        parsed = json.loads(result[0][0].text)
+
+        assert isinstance(parsed["tracks"], list)
+        assert len(parsed["tracks"]) == 3
+        # Each track should be a dict with name and index
+        for track in parsed["tracks"]:
+            assert isinstance(track, dict), f"Expected dict, got {type(track)}: {track}"
+            assert "name" in track
+            assert "index" in track
+        assert parsed["tracks"][0] == {"name": "kick", "index": 0}
+        assert parsed["tracks"][1] == {"name": "bass", "index": 1}
+        assert parsed["tracks"][2] == {"name": "lead", "index": 2}
 
 
 # ---------------------------------------------------------------------------

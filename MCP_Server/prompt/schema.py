@@ -34,3 +34,4 @@ class ProductionBrief(TypedDict):
     velocity_style: str              # "laid_back" | "medium" | "driving"
     confidence: float                # 0.0–1.0
     reasoning: list                  # list of plain-English derivation notes
+    signal_conflicts: list           # list of {"field", "terms", "values", "resolved_to"} dicts

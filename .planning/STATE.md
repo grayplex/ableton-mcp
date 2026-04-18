@@ -57,7 +57,7 @@ Milestone: v1.9 COMPLETE (shipped 2026-04-01)
 - [v1.9]: Checkpoint reads live Ableton state (not persisted) — phase completion inferred heuristically from session topology
 - [v1.9]: ExecutionStep uses sentinel values for session-state args — Claude resolves at call time; keeps checklist generation stateless
 - [v1.9]: Token budget enforced by compact note arrays (≤8 notes per step) and short descriptions; all checklists <2000 chars
-- [v1.9]: master phase short-circuits phase-walk — GlueCompressor+Limiter2 on master → all phases complete (avoids requiring sound_design devices)
+- [v1.9]: master phase short-circuit removed — sequential walk handles master detection at phase_type=="master" check; no premature all-complete bypass
 - [v1.9]: get_next_actions with explicit phase_name bypasses checkpoint (pure computation, no connection needed)
 
 ### Roadmap Evolution
@@ -81,8 +81,58 @@ None.
 
 None — v1.9 complete.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260401-ox3 | get_arrangement_state omits track index — add index field to scaffold handler return value | 2026-04-01 | cd2cdfb | [260401-ox3-get-arrangement-state-omits-track-index-](./quick/260401-ox3-get-arrangement-state-omits-track-index-/) |
+| 260401-p4t | Checkpoint clips-by-track is capped at 8 tracks | 2026-04-01 | 2a4a93c | [260401-p4t-checkpoint-clips-by-track-is-capped-at-8](./quick/260401-p4t-checkpoint-clips-by-track-is-capped-at-8/) |
+| 260401-p9j | fix clip_index hardcoding in execution.py — query for first empty slot instead of assuming slot 0 | 2026-04-01 | 86eabb9 | [260401-p9j-fix-clip-index-hardcoding-in-execution-p](./quick/260401-p9j-fix-clip-index-hardcoding-in-execution-p/) |
+| 260401-p84 | has_devices means any device, not just instruments | 2026-04-01 | 7aa9c9e | [260401-p84-has-devices-means-any-device-not-just-in](./quick/260401-p84-has-devices-means-any-device-not-just-in/) |
+| 260401-pil | Prompt parser is English-only — document the limitation in lexicon.py and add a raw_descriptors fallback note | 2026-04-01 | 2fef4ef | [260401-pil-prompt-parser-is-english-only-document-t](./quick/260401-pil-prompt-parser-is-english-only-document-t/) |
+| 260401-pjl | Deduplicate phase-detection constants from checkpoint.py and next_actions.py into shared module | 2026-04-01 | f3e9dec | [260401-pjl-deduplicate-phase-detection-constants-fr](./quick/260401-pjl-deduplicate-phase-detection-constants-fr/) |
+| 260401-po3 | deduplicate get_ableton_connection calls in checkpoint and next_actions | 2026-04-01 | 23a4ea8 | [260401-po3-deduplicate-get-ableton-connection-calls](./quick/260401-po3-deduplicate-get-ableton-connection-calls/) |
+| 260401-pp9 | _step() drops the phase key from ExecutionStep output | 2026-04-01 | efe75a3 | [260401-pp9-step-drops-the-phase-key-from-executions](./quick/260401-pp9-step-drops-the-phase-key-from-executions/) |
+| 260401-pqm | _build_arrangement_steps contains a non-callable placeholder step | 2026-04-01 | bd31b7e | [260401-pqm-build-arrangement-steps-contains-a-non-c](./quick/260401-pqm-build-arrangement-steps-contains-a-non-c/) |
+| 260401-prt | neo_soul_rnb drum pattern falls back to house in _GENRE_DRUM_GROUP | 2026-04-01 | 3813b35 | [260401-prt-neo-soul-rnb-drum-pattern-falls-back-to-](./quick/260401-prt-neo-soul-rnb-drum-pattern-falls-back-to-/) |
+| 260401-pxk | audit and fix _GAC_PATCH_TARGETS in conftest.py | 2026-04-01 | d489d35 | [260401-pxk-audit-and-fix-gac-patch-targets-in-conft](./quick/260401-pxk-audit-and-fix-gac-patch-targets-in-conft/) |
+| 260401-pws | _build_bass_steps uses identical static notes for all genres — add per-genre bass pattern variation | 2026-04-01 | 7ec420f | [260401-pws-build-bass-steps-uses-identical-static-n](./quick/260401-pws-build-bass-steps-uses-identical-static-n/) |
+| 260401-pye | Checkpoint makes N+2 sequential socket round-trips | 2026-04-01 | 049dd57 | [260401-pye-checkpoint-makes-n-2-sequential-socket-r](./quick/260401-pye-checkpoint-makes-n-2-sequential-socket-r/) |
+| 260401-q1g | fix get_transition_guidance duplicate checkpoint queries | 2026-04-01 | ec74dcb | [260401-q1g-fix-get-transition-guidance-duplicate-ch](./quick/260401-q1g-fix-get-transition-guidance-duplicate-ch/) |
+| 260401-q25 | fix get_next_actions checkpoint latency when called without phase_name | 2026-04-01 | d04f164 | [260401-q25-fix-get-next-actions-checkpoint-latency-](./quick/260401-q25-fix-get-next-actions-checkpoint-latency-/) |
+| 260401-q5l | apply_recipe has 30-second timeout with no progress feedback | 2026-04-01 | b832a42 | [260401-q5l-apply-recipe-has-30-second-timeout-with-](./quick/260401-q5l-apply-recipe-has-30-second-timeout-with-/) |
+| 260401-q7f | ADPT-01 - add refine_agenda tool for adaptive agenda refinement | 2026-04-01 | 19b9051 | [260401-q7f-adpt-01-add-refine-agenda-tool-for-adapt](./quick/260401-q7f-adpt-01-add-refine-agenda-tool-for-adapt/) |
+| 260401-qc5 | Guard master short-circuit against empty-session false-positive | 2026-04-01 | bc8eafa | [260401-qc5-master-phase-short-circuits-phase-walk-w](./quick/260401-qc5-master-phase-short-circuits-phase-walk-w/) |
+| 260401-qhm | make send_command thread-safe by holding a per-connection lock during the socket write+read cycle | 2026-04-02 | 4d86ff9 | [260401-qhm-make-send-command-thread-safe-by-holding](./quick/260401-qhm-make-send-command-thread-safe-by-holding/) |
+| 260401-qjf | fix get_arrangement_state track index sentinel resolution | 2026-04-02 | a05dc6e | [260401-qjf-fix-get-arrangement-state-track-index-se](./quick/260401-qjf-fix-get-arrangement-state-track-index-se/) |
+| 260402-l9f | Fix checkpoint cache not invalidated after write operations | 2026-04-02 | ba09f84 | [260402-l9f-fix-checkpoint-cache-not-invalidated-aft](./quick/260402-l9f-fix-checkpoint-cache-not-invalidated-aft/) |
+| 260402-lky | Skip ping in get_ableton_connection when connection is healthy | 2026-04-02 | 4867792 | [260402-lky-skip-ping-in-get-ableton-connection-when](./quick/260402-lky-skip-ping-in-get-ableton-connection-when/) |
+| 260402-lys | Add get_device_classes RS command to avoid full parameter serialization in checkpoint | 2026-04-02 | 6be4b56 | [260402-lys-add-get-device-classes-rs-command-to-avo](./quick/260402-lys-add-get-device-classes-rs-command-to-avo/) |
+| 260402-ofy | Fix apply_mix_recipe and apply_master_recipe run_in_executor connection contention | 2026-04-02 | 01acab4 | [260402-ofy-fix-apply-mix-recipe-and-apply-master-re](./quick/260402-ofy-fix-apply-mix-recipe-and-apply-master-re/) |
+| 260402-p28 | Expand phase detection name sets to cover common custom track names | 2026-04-02 | 4f99e0e | [260402-p28-expand-phase-detection-name-sets-to-cove](./quick/260402-p28-expand-phase-detection-name-sets-to-cove/) |
+| 260402-r2p | Fix master short-circuit false production-complete | 2026-04-02 | 7fbd8ff | [260402-r2p-fix-master-short-circuit-false-productio](./quick/260402-r2p-fix-master-short-circuit-false-productio/) |
+| 260402-rb4 | Ensure all sentinel-arg execution steps have depends_on_step | 2026-04-02 | eda5a73 | [260402-rb4-ensure-all-sentinel-arg-execution-steps-](./quick/260402-rb4-ensure-all-sentinel-arg-execution-steps-/) |
+| 260402-t7c | Increase browser load verification tick delay for reliability under load | 2026-04-02 | 9a408bc | [260402-t7c-increase-browser-load-verification-tick-](./quick/260402-t7c-increase-browser-load-verification-tick-/) |
+| 260402-o86 | Fix duplicate framing protocol implementation in MCP_Server and AbletonMCP_Remote_Script | 2026-04-02 | db37347 | [260402-o86-fix-duplicate-framing-protocol-implement](./quick/260402-o86-fix-duplicate-framing-protocol-implement/) |
+| 260402-ohp | Fix apply_recipe RS-side per-device timeout alignment with MCP-side timeout | 2026-04-02 | d3203f5 | [260402-ohp-fix-apply-recipe-rs-side-per-device-time](./quick/260402-ohp-fix-apply-recipe-rs-side-per-device-time/) |
+| 260402-op1 | Fix connection singleton concurrent safety - document and simplify locking design | 2026-04-02 | 7dc18b1 | [260402-op1-fix-connection-singleton-concurrent-safe](./quick/260402-op1-fix-connection-singleton-concurrent-safe/) |
+| 260402-p7k | Fix missing dev dependencies (mcp, pytest-asyncio, tiktoken) | 2026-04-02 | ce57889 | [260402-p7k-fix-missing-dev-dependencies-mcp-pytest-](./quick/260402-p7k-fix-missing-dev-dependencies-mcp-pytest-/) |
+| 260402-q4q | Fix get_arrangement_state track index sentinel staleness concern in CONCERNS.md | 2026-04-02 | d4f516e | [260402-q4q-fix-get-arrangement-state-track-index-se](./quick/260402-q4q-fix-get-arrangement-state-track-index-se/) |
+| 260402-qik | Fix duplicate framing protocol implementation (CONCERNS.md update — code already fixed in 260402-o86) | 2026-04-03 | dd07d50 | [260402-qik-fix-duplicate-framing-protocol-implement](./quick/260402-qik-fix-duplicate-framing-protocol-implement/) |
+| 260402-qyx | Implement parallel phase execution support — true musical dependency map and parallelizable field | 2026-04-02 | f751f22 | [260402-qyx-implement-parallel-phase-execution-suppo](./quick/260402-qyx-implement-parallel-phase-execution-suppo/) |
+| 260402-r8x | Implement compare_sections tool for cross-section diffing (SNAP-03) | 2026-04-03 | b5ed4a9 | [260402-r8x-implement-compare-sections-tool-for-cros](./quick/260402-r8x-implement-compare-sections-tool-for-cros/) |
+| 260403-pars03 | PARS-03: Prompt signal conflict resolution — add signal_conflicts to ProductionBrief | 2026-04-03 | 13323cc | — |
+| 260403-adpt01 | ADPT-01: Adaptive agenda refinement — multi-step instructions, move/reorder, changes_made | 2026-04-03 | d08036d | — |
+| 260403-hist01 | HIST-01: Execution history log — progress-based step skipping in get_next_actions | 2026-04-03 | cba674f | — |
+| 260403-refn03 | REFN-03: Refinement history log — conflict/redundancy detection in refine_section | 2026-04-03 | — | — |
+| 260403-rfna04 | RFNA-04: Revert section refinement — inverse-vector note revert + snapshot device revert | 2026-04-03 | — | — |
+| 260404-e6g | Implement list_production_briefs MCP tool with session-scoped brief history | 2026-04-04 | 87b43af | [260404-e6g-implement-list-production-briefs-mcp-too](./quick/260404-e6g-implement-list-production-briefs-mcp-too/) |
+| 260404-esg | Implement section-aware mixing: per-section apply_mix_recipe with frequency conflict detection and sidechain automation | 2026-04-04 | ae54699 | [260404-esg-implement-section-aware-mixing-per-secti](./quick/260404-esg-implement-section-aware-mixing-per-secti/) |
+| 260404-f6v | Fix HIST-01: implement phase step-skipping in get_next_actions when active_phase_progress > 0.3 | 2026-04-04 | d154f4b | [260404-f6v-fix-hist-01-implement-phase-step-skippin](./quick/260404-f6v-fix-hist-01-implement-phase-step-skippin/) |
+
 ## Session Continuity
 
-Last session: 2026-04-01
-Stopped at: "v1.9 complete — all 4 phases shipped, 31 tests passing"
+Last session: 2026-04-03
+Stopped at: "Completed quick task 260403-rfna04"
+Last activity: 2026-04-04 - Completed quick task 260404-f6v: Fix HIST-01: implement phase step-skipping in get_next_actions when active_phase_progress > 0.3
 Resume file: None

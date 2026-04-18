@@ -259,3 +259,83 @@ class TestReasoningCompleteness:
     def test_reasoning_has_at_least_5_entries_for_genre_prompt(self):
         brief = derive("techno")
         assert len(brief["reasoning"]) >= 5
+
+
+class TestSignalConflicts:
+    """PARS-03: contradictory signals are surfaced in signal_conflicts list."""
+
+    def test_no_conflict_gives_empty_list(self):
+        # Single genre, single mood — no conflict
+        brief = derive("dark techno")
+        assert brief["signal_conflicts"] == []
+
+    def test_scale_bias_conflict_detected(self):
+        # "euphoric" → scale_bias=major, "dark" → scale_bias=minor
+        brief = derive("euphoric dark techno")
+        conflict_fields = [c["field"] for c in brief["signal_conflicts"]]
+        assert "scale_bias" in conflict_fields
+
+    def test_scale_bias_conflict_terms_and_values(self):
+        brief = derive("euphoric dark techno")
+        conflict = next(c for c in brief["signal_conflicts"] if c["field"] == "scale_bias")
+        assert "euphoric" in conflict["terms"]
+        assert "dark" in conflict["terms"]
+        assert "major" in conflict["values"]
+        assert "minor" in conflict["values"]
+
+    def test_scale_bias_conflict_resolved_to_first(self):
+        # "euphoric" appears before "dark" → major wins (first-wins)
+        brief = derive("euphoric dark techno")
+        conflict = next(c for c in brief["signal_conflicts"] if c["field"] == "scale_bias")
+        assert conflict["resolved_to"] == "major"
+
+    def test_scale_bias_resolved_to_matches_actual_key_feel(self):
+        # The resolved_to value must match the actual key_feel selected
+        brief = derive("euphoric dark techno")
+        conflict = next(c for c in brief["signal_conflicts"] if c["field"] == "scale_bias")
+        resolved_scale = conflict["resolved_to"]
+        # "major" scale_bias → major mode; "minor" → minor mode
+        from MCP_Server.prompt.deriver import _SCALE_BIAS_MAP, _MINOR_SCALES
+        expected_scale = _SCALE_BIAS_MAP.get(resolved_scale, "natural_minor")
+        assert brief["key_feel"]["scale"] == expected_scale
+
+    def test_multi_genre_conflict_detected(self):
+        # Two genre signals in one prompt
+        brief = derive("techno house")
+        conflict_fields = [c["field"] for c in brief["signal_conflicts"]]
+        assert "primary_genre" in conflict_fields
+
+    def test_multi_genre_conflict_resolved_to_first(self):
+        brief = derive("techno house")
+        conflict = next(c for c in brief["signal_conflicts"] if c["field"] == "primary_genre")
+        # First matched genre wins
+        assert conflict["resolved_to"] == brief["primary_genre"]
+
+    def test_energy_conflict_detected_wide_span(self):
+        # "euphoric" energy=8, "melancholic" energy=3 → span=5 ≥ 4
+        brief = derive("euphoric melancholic")
+        conflict_fields = [c["field"] for c in brief["signal_conflicts"]]
+        assert "energy_level" in conflict_fields
+
+    def test_energy_conflict_resolved_to_is_averaged(self):
+        brief = derive("euphoric melancholic")
+        conflict = next(c for c in brief["signal_conflicts"] if c["field"] == "energy_level")
+        assert conflict["resolved_to"] == brief["energy_level"]
+
+    def test_energy_no_conflict_small_span(self):
+        # "euphoric" energy=8, "dark" energy=5 → span=3 < 4, no energy conflict
+        brief = derive("euphoric dark techno")
+        conflict_fields = [c["field"] for c in brief["signal_conflicts"]]
+        assert "energy_level" not in conflict_fields
+
+    def test_conflicts_appear_in_reasoning(self):
+        # Each detected conflict must add a reasoning entry
+        brief = derive("euphoric dark techno")
+        reasoning_text = " ".join(brief["reasoning"]).lower()
+        assert "conflict" in reasoning_text
+
+    def test_signal_conflicts_field_always_present(self):
+        # signal_conflicts must be present even when empty
+        brief = derive("techno")
+        assert "signal_conflicts" in brief
+        assert isinstance(brief["signal_conflicts"], list)

@@ -424,14 +424,22 @@ from MCP_Server.tools.mixing import (  # noqa: E402
 )
 
 
+def _mock_ctx():
+    """Create a mock Context for recipe tool tests."""
+    ctx = MagicMock()
+    ctx.info = MagicMock()
+    return ctx
+
+
 class TestApplyMixRecipe:
     """Verify apply_mix_recipe MCP tool converts recipe and sends single command."""
 
     def test_valid_recipe_calls_send_command(self):
         mock_conn = MagicMock()
         mock_conn.send_command.return_value = {"applied": True, "devices": []}
+        ctx = _mock_ctx()
         with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
-            result = apply_mix_recipe(None, 0, "kick", "house")
+            result = apply_mix_recipe(ctx, 0, "kick", "house")
         mock_conn.send_command.assert_called_once()
         call_args = mock_conn.send_command.call_args
         assert call_args[0][0] == "apply_recipe"
@@ -440,17 +448,22 @@ class TestApplyMixRecipe:
         assert payload["track_index"] == 0
         assert isinstance(payload["devices"], list)
         assert len(payload["devices"]) > 0
+        # Timeout passthrough: payload timeout must match send_command kwarg
+        assert "timeout" in payload
+        assert payload["timeout"] == call_args[1]["timeout"]
 
     def test_invalid_role_returns_error(self):
-        result = apply_mix_recipe(None, 0, "invalid_role", "house")
+        ctx = _mock_ctx()
+        result = apply_mix_recipe(ctx, 0, "invalid_role", "house")
         assert "Error" in result
         assert "No recipe found" in result
 
     def test_payload_has_correct_structure(self):
         mock_conn = MagicMock()
         mock_conn.send_command.return_value = {"applied": True}
+        ctx = _mock_ctx()
         with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
-            apply_mix_recipe(None, 0, "kick", "house")
+            apply_mix_recipe(ctx, 0, "kick", "house")
         payload = mock_conn.send_command.call_args[0][1]
         for device_spec in payload["devices"]:
             assert "class_name" in device_spec, "Each device must have class_name"
@@ -461,8 +474,9 @@ class TestApplyMixRecipe:
         """Params should be converted from natural units to normalized 0.0-1.0."""
         mock_conn = MagicMock()
         mock_conn.send_command.return_value = {"applied": True}
+        ctx = _mock_ctx()
         with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
-            apply_mix_recipe(None, 0, "kick", "house")
+            apply_mix_recipe(ctx, 0, "kick", "house")
         payload = mock_conn.send_command.call_args[0][1]
         for device_spec in payload["devices"]:
             for param_name, value in device_spec["params"].items():
@@ -477,19 +491,24 @@ class TestApplyMasterRecipe:
     def test_valid_genre_calls_with_master_track_type(self):
         mock_conn = MagicMock()
         mock_conn.send_command.return_value = {"applied": True, "devices": []}
+        ctx = _mock_ctx()
         with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
-            result = apply_master_recipe(None, "house")
+            result = apply_master_recipe(ctx, "house")
         mock_conn.send_command.assert_called_once()
         call_args = mock_conn.send_command.call_args
         assert call_args[0][0] == "apply_recipe"
         payload = call_args[0][1]
         assert payload["track_type"] == "master"
+        # Timeout passthrough: payload timeout must match send_command kwarg
+        assert "timeout" in payload
+        assert payload["timeout"] == call_args[1]["timeout"]
 
     def test_master_recipe_contains_expected_devices(self):
         mock_conn = MagicMock()
         mock_conn.send_command.return_value = {"applied": True}
+        ctx = _mock_ctx()
         with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
-            apply_master_recipe(None, "house")
+            apply_master_recipe(ctx, "house")
         payload = mock_conn.send_command.call_args[0][1]
         class_names = {d["class_name"] for d in payload["devices"]}
         assert "GlueCompressor" in class_names
@@ -497,7 +516,8 @@ class TestApplyMasterRecipe:
         assert "Limiter" in class_names
 
     def test_invalid_genre_returns_error(self):
-        result = apply_master_recipe(None, "invalid_genre")
+        ctx = _mock_ctx()
+        result = apply_master_recipe(ctx, "invalid_genre")
         assert "Error" in result
         assert "No master recipe" in result
 
@@ -539,8 +559,9 @@ class TestBatchParameterSetting:
         """apply_mix_recipe should call send_command exactly once (not N times)."""
         mock_conn = MagicMock()
         mock_conn.send_command.return_value = {"applied": True}
+        ctx = _mock_ctx()
         with patch("MCP_Server.tools.mixing.get_ableton_connection", return_value=mock_conn):
-            apply_mix_recipe(None, 0, "kick", "house")
+            apply_mix_recipe(ctx, 0, "kick", "house")
         assert mock_conn.send_command.call_count == 1, (
             f"Expected 1 send_command call, got {mock_conn.send_command.call_count}"
         )

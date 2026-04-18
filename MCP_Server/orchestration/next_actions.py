@@ -6,18 +6,25 @@ from MCP_Server.genres.catalog import resolve_alias
 from MCP_Server.orchestration.agenda import AGENDA_CATALOG
 from MCP_Server.orchestration.checkpoint import get_checkpoint, _infer_completed_phases, _build_session_stats
 from MCP_Server.orchestration.execution import get_execution_plan
+from MCP_Server.orchestration.phase_detection import _DRUM_NAMES, _BASS_NAMES, _HARMONY_NAMES, _MELODY_NAMES, _COMPRESSOR, _GLUE_COMPRESSOR, _LIMITER
 
 logger = logging.getLogger("AbletonMCPServer")
 
-# Phase completion heuristics (same as checkpoint.py, duplicated for clarity)
-_DRUM_NAMES = {"drum", "kick", "snare", "percussion", "beat"}
-_BASS_NAMES = {"bass", "sub"}
-_HARMONY_NAMES = {"chord", "pad", "harm", "keys", "piano", "strings", "organ"}
-_MELODY_NAMES = {"lead", "melody", "mel", "synth", "arp"}
+_NON_CALLABLE = frozenset({"\u2014", "", None})  # em-dash, empty, None
+
 _EFFECT_CLASSES = {"AutoFilter", "Reverb", "Redux", "Saturator", "Chorus", "Flanger", "Phaser"}
-_COMPRESSOR = "Compressor2"
-_GLUE_COMPRESSOR = "GlueCompressor"
-_LIMITER = "Limiter2"
+
+
+def _filter_steps(steps):
+    """Separate callable steps from description-only placeholders."""
+    callable_steps = []
+    notes = []
+    for s in steps:
+        if s.get("tool_name") in _NON_CALLABLE:
+            notes.append(s.get("description", ""))
+        else:
+            callable_steps.append(s)
+    return callable_steps, notes
 
 
 def _phase_complete(phase_type: str, tracks: list, clips_by_track: dict,
@@ -32,9 +39,9 @@ def _phase_complete(phase_type: str, tracks: list, clips_by_track: dict,
 
     all_device_classes = set()
     for t in tracks:
-        for d in t.get("devices", []):
-            all_device_classes.add(d.get("class_name", ""))
-    master_class_names = {d.get("class_name", "") for d in master_devices}
+        for cn in t.get("device_classes", []):
+            all_device_classes.add(cn)
+    master_class_names = set(master_devices)
 
     if phase_type == "setup":
         if len(tracks) >= 2:
@@ -46,7 +53,7 @@ def _phase_complete(phase_type: str, tracks: list, clips_by_track: dict,
         if not drum_tracks:
             return False, ["No drum/kick track found — create a Drums track and load a Drum Rack"]
         t = drum_tracks[0]
-        if not t.get("has_devices"):
+        if not t.get("has_instrument"):
             return False, [f"Track '{t['name']}' has no instrument loaded — load a Drum Rack"]
         if not track_has_clips(t["name"]):
             return False, [f"Track '{t['name']}' has no clips — add drum notes with add_notes_to_clip"]
@@ -57,7 +64,7 @@ def _phase_complete(phase_type: str, tracks: list, clips_by_track: dict,
         if not bass_tracks:
             return False, ["No bass track found — create a Bass track and load a bass instrument"]
         t = bass_tracks[0]
-        if not t.get("has_devices"):
+        if not t.get("has_instrument"):
             return False, [f"Track '{t['name']}' has no instrument — load Analog or Wavetable"]
         if not track_has_clips(t["name"]):
             return False, [f"Track '{t['name']}' has no clips — write a bass line with add_notes_to_clip"]
@@ -87,7 +94,7 @@ def _phase_complete(phase_type: str, tracks: list, clips_by_track: dict,
         return False, ["No effect devices found on any track — add Auto Filter or Reverb via load_instrument_or_effect"]
 
     elif phase_type == "arrangement":
-        instrument_tracks = [t for t in tracks if t.get("has_devices")]
+        instrument_tracks = [t for t in tracks if t.get("has_instrument")]
         if len(instrument_tracks) < 2:
             return False, ["Fewer than 2 tracks have instruments — complete earlier phases first"]
         empty = [t["name"] for t in instrument_tracks if not track_has_clips(t["name"])]
@@ -126,13 +133,16 @@ def get_next_actions_result(genre: str, phase_name: str = None, n: int = 10) -> 
         checklist = get_execution_plan(phase_name, genre)
         if "error" in checklist:
             return checklist
-        steps = checklist["steps"][:n]
-        return {
+        steps, notes = _filter_steps(checklist["steps"][:n])
+        result = {
             "checkpoint_summary": f"Showing full {phase_name} checklist for {genre} (phase explicitly specified)",
             "active_phase": phase_name,
             "genre": genre,
             "steps": steps,
         }
+        if notes:
+            result["notes"] = notes
+        return result
 
     # No explicit phase — read checkpoint from live Ableton
     try:
@@ -140,25 +150,34 @@ def get_next_actions_result(genre: str, phase_name: str = None, n: int = 10) -> 
     except Exception as e:
         # Fallback: return setup checklist
         checklist = get_execution_plan("setup", genre)
-        steps = checklist.get("steps", [])[:n] if "error" not in checklist else []
-        return {
+        raw_steps = checklist.get("steps", [])[:n] if "error" not in checklist else []
+        steps, notes = _filter_steps(raw_steps)
+        result = {
             "checkpoint_summary": f"No live session — showing full setup checklist for {genre}",
             "active_phase": "setup",
             "genre": genre,
             "steps": steps,
         }
+        if notes:
+            result["notes"] = notes
+        return result
 
     if "error" in checkpoint:
         checklist = get_execution_plan("setup", genre)
-        steps = checklist.get("steps", [])[:n] if "error" not in checklist else []
-        return {
+        raw_steps = checklist.get("steps", [])[:n] if "error" not in checklist else []
+        steps, notes = _filter_steps(raw_steps)
+        result = {
             "checkpoint_summary": f"Could not read session ({checkpoint['error']}) — showing setup checklist",
             "active_phase": "setup",
             "genre": genre,
             "steps": steps,
         }
+        if notes:
+            result["notes"] = notes
+        return result
 
     active_phase = checkpoint.get("active_phase") or "setup"
+    active_phase_progress = checkpoint.get("active_phase_progress", 0.0)
     completed = checkpoint.get("completed_phases", [])
     genre_id = checkpoint.get("genre") or genre
 
@@ -176,21 +195,43 @@ def get_next_actions_result(genre: str, phase_name: str = None, n: int = 10) -> 
         return {"checkpoint_summary": summary, "active_phase": active_phase,
                 "genre": genre_id, "steps": []}
 
-    # Skip steps if phase already started (progress > 0.3) — return all for now (HIST-01 deferred)
-    steps = checklist["steps"][:n]
+    # HIST-01: skip already-completed steps based on active_phase_progress.
+    # progress=0.3 → track+instrument exist; skip the creation steps.
+    # progress=0.0 → phase not yet started; return all steps from step 1.
+    all_steps = checklist["steps"]
+    skip_count = 0
+    if active_phase_progress >= 0.3:
+        skip_count = int(active_phase_progress * len(all_steps))
+        # Always return at least 1 step
+        skip_count = min(skip_count, max(0, len(all_steps) - 1))
 
-    return {
+    remaining = all_steps[skip_count:]
+    steps, notes = _filter_steps(remaining[:n])
+
+    result = {
         "checkpoint_summary": summary,
         "active_phase": active_phase,
         "genre": genre_id,
         "steps": steps,
     }
+    if skip_count > 0:
+        result["steps_skipped"] = skip_count
+    if notes:
+        result["notes"] = notes
+    return result
 
 
-def get_transition_guidance(from_phase: str, genre: str = None, to_phase: str = None) -> dict:
+def get_transition_guidance(from_phase: str, genre: str = None, to_phase: str = None,
+                            *, tracks: list = None, clips_by_track: dict = None,
+                            master_devices: list = None) -> dict:
     """Validate whether from_phase is complete and ready to advance.
 
-    Reads live Ableton state. Returns go/no-go with blockers and fix hints.
+    Reads live Ableton state unless pre-fetched data is provided.
+    When all three optional params (tracks, clips_by_track, master_devices) are
+    supplied, no Ableton connection is made — useful when checkpoint data is
+    already available from a prior get_checkpoint call.
+
+    Returns go/no-go with blockers and fix hints.
     """
     # Resolve genre
     genre_id = None
@@ -206,27 +247,30 @@ def get_transition_guidance(from_phase: str, genre: str = None, to_phase: str = 
             idx = phase_order.index(from_phase)
             to_phase = phase_order[idx + 1] if idx + 1 < len(phase_order) else None
 
-    # Read Ableton state
-    try:
-        conn = get_ableton_connection()
-        arrangement_state = conn.send_command("get_arrangement_state")
-        mix_state = conn.send_command("get_mix_state")
-    except Exception as e:
-        return {"error": f"Could not connect to Ableton: {e}"}
-
-    tracks = arrangement_state.get("tracks", [])
-    master_devices = mix_state.get("master_track", {}).get("devices", [])
-
-    # Fetch clips for up to 8 tracks
-    clips_by_track = {}
-    conn2 = get_ableton_connection()
-    for track in tracks[:8]:
+    # Read Ableton state (skip if pre-fetched data provided)
+    if tracks is not None and clips_by_track is not None and master_devices is not None:
+        # Use pre-fetched data — no Ableton connection needed
+        pass
+    else:
         try:
-            result = conn2.send_command("get_arrangement_clips",
-                                        {"track_index": track.get("index", 0)})
-            clips_by_track[track["name"]] = result.get("clips", [])
-        except Exception:
-            clips_by_track[track["name"]] = []
+            conn = get_ableton_connection()
+            arrangement_state = conn.send_command("get_arrangement_state")
+            device_classes = conn.send_command("get_device_classes")
+        except Exception as e:
+            return {"error": f"Could not connect to Ableton: {e}"}
+
+        tracks = arrangement_state.get("tracks", [])
+        master_devices = device_classes.get("master_track", {}).get("device_classes", [])
+
+        # Merge device class names into arrangement tracks for phase detection
+        dc_by_name = {}
+        for dc_track in device_classes.get("tracks", []):
+            dc_by_name[dc_track["name"]] = dc_track.get("device_classes", [])
+        for t in tracks:
+            t["device_classes"] = dc_by_name.get(t["name"], [])
+
+        # Build clips_by_track from arrangement_state (no extra round-trips)
+        clips_by_track = {track["name"]: track.get("clips", []) for track in tracks}
 
     is_complete, blockers = _phase_complete(from_phase, tracks, clips_by_track, master_devices)
 

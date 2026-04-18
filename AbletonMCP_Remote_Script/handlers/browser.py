@@ -452,7 +452,7 @@ class BrowserHandlers:
         response_queue = queue.Queue()
         devices_before = len(track.devices)
 
-        def do_load(retries_remaining=1):
+        def do_load(retries_remaining=2):
             """Load item on main thread with same-callback pattern."""
             try:
                 # CRITICAL: selected_track and load_item in the SAME callback
@@ -460,7 +460,7 @@ class BrowserHandlers:
                 app.browser.load_item(item)
 
                 self.schedule_message(
-                    1,
+                    4,
                     lambda: self._verify_load(
                         track,
                         devices_before,
@@ -549,7 +549,7 @@ class BrowserHandlers:
                             self._song.view.selected_track = track
                             app.browser.load_item(item)
                             self.schedule_message(
-                                1,
+                                4,
                                 lambda: self._verify_load(
                                     track,
                                     devices_before,

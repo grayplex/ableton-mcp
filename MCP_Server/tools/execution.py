@@ -94,7 +94,7 @@ def get_section_checklist(ctx: Context, plan: dict, section_name: str) -> str:
         # Get live track state from Ableton
         ableton = get_ableton_connection()
         state = ableton.send_command("get_arrangement_state")
-        track_map = {t["name"]: t["has_devices"] for t in state["tracks"]}
+        track_map = {t["name"]: t["has_instrument"] for t in state["tracks"]}
 
         # Build role status list
         roles = []
@@ -141,7 +141,7 @@ def get_arrangement_progress(ctx: Context) -> str:
         state = ableton.send_command("get_arrangement_state")
 
         tracks = state["tracks"]
-        empty_tracks = [t["name"] for t in tracks if not t["has_devices"]]
+        empty_tracks = [t["name"] for t in tracks if not t["has_instrument"]]
 
         return json.dumps({
             "empty_tracks": empty_tracks,

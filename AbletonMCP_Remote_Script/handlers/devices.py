@@ -2530,6 +2530,7 @@ class DeviceHandlers:
         track_index = params.get("track_index", 0)
         track_type = params.get("track_type", "track")
         devices_spec = params.get("devices", [])
+        total_timeout = params.get("timeout", 30.0)
 
         if not devices_spec:
             raise ValueError("No devices provided in recipe")
@@ -2580,7 +2581,7 @@ class DeviceHandlers:
                 )
 
             try:
-                result = response_queue.get(timeout=30.0)
+                result = response_queue.get(timeout=total_timeout)
                 if isinstance(result, dict) and result.get("status") == "error":
                     raise Exception(result.get("message", "Unknown error"))
                 return result
@@ -2788,6 +2789,45 @@ class DeviceHandlers:
             return result
         except Exception as e:
             self.log_message(f"Error getting mix state: {e}")
+            raise
+
+    @command("get_device_classes")
+    def _get_device_classes(self, params=None):
+        """Get device class names for all tracks (no parameters).
+
+        Lightweight alternative to get_mix_state for code that only needs
+        to know which device types are loaded (e.g., checkpoint phase detection).
+
+        Returns:
+            tracks: list of {index, name, device_classes}
+            return_tracks: list of {index, name, device_classes}
+            master_track: {name, device_classes}
+        """
+        try:
+            result = {"tracks": [], "return_tracks": [], "master_track": {}}
+
+            for i, track in enumerate(self._song.tracks):
+                result["tracks"].append({
+                    "index": i,
+                    "name": track.name,
+                    "device_classes": [d.class_name for d in track.devices],
+                })
+
+            for i, track in enumerate(self._song.return_tracks):
+                result["return_tracks"].append({
+                    "index": i,
+                    "name": track.name,
+                    "device_classes": [d.class_name for d in track.devices],
+                })
+
+            master = self._song.master_track
+            result["master_track"] = {
+                "name": master.name,
+                "device_classes": [d.class_name for d in master.devices],
+            }
+            return result
+        except Exception as e:
+            self.log_message(f"Error getting device classes: {e}")
             raise
 
     @command("get_track_meters")

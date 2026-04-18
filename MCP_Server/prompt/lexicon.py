@@ -5,6 +5,11 @@ across five signal types: genre, mood, instrument, effect, and tempo.
 
 Normalization convention: terms use underscores as separators internally;
 the parser normalizes input tokens to this form before lookup.
+
+Language: English-only. All lookup tables contain English terms exclusively.
+Non-English input tokens will not match any signal and fall through to
+raw_descriptors in the parser. Adding multilingual aliases here would
+extend coverage without parser changes.
 """
 
 # ---------------------------------------------------------------------------

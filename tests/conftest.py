@@ -1,5 +1,6 @@
 """Shared test fixtures for ableton-mcp test suite."""
 
+import ast
 import os
 from unittest.mock import MagicMock, patch
 
@@ -7,28 +8,51 @@ import pytest
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# All modules that import get_ableton_connection via `from ... import`
-_GAC_PATCH_TARGETS = [
-    "MCP_Server.connection.get_ableton_connection",
-    "MCP_Server.tools.automation.get_ableton_connection",
-    "MCP_Server.tools.audio_clips.get_ableton_connection",
-    "MCP_Server.tools.session.get_ableton_connection",
-    "MCP_Server.tools.tracks.get_ableton_connection",
-    "MCP_Server.tools.clips.get_ableton_connection",
-    "MCP_Server.tools.transport.get_ableton_connection",
-    "MCP_Server.tools.devices.get_ableton_connection",
-    "MCP_Server.tools.browser.get_ableton_connection",
-    "MCP_Server.tools.mixer.get_ableton_connection",
-    "MCP_Server.tools.notes.get_ableton_connection",
-    "MCP_Server.tools.routing.get_ableton_connection",
-    "MCP_Server.tools.scenes.get_ableton_connection",
-    "MCP_Server.tools.arrangement.get_ableton_connection",
-    "MCP_Server.tools.grooves.get_ableton_connection",
-    "MCP_Server.tools.scaffold.get_ableton_connection",
-    "MCP_Server.tools.execution.get_ableton_connection",
-    "MCP_Server.tools.mixing.get_ableton_connection",
-    "MCP_Server.tools.analysis.get_ableton_connection",
-]
+
+def _discover_gac_patch_targets() -> list[str]:
+    """Return patch target strings for every module that imports get_ableton_connection.
+
+    Scans all .py files under MCP_Server/ with ast.parse (no code execution)
+    and emits "<module>.get_ableton_connection" for any file containing:
+
+        from MCP_Server.connection import ... get_ableton_connection ...
+
+    The source definition site (MCP_Server.connection) is always included so
+    that code using attribute-access style is also covered.
+    """
+    targets = {"MCP_Server.connection.get_ableton_connection"}
+
+    mcp_root = os.path.join(ROOT_DIR, "MCP_Server")
+    for dirpath, _dirs, filenames in os.walk(mcp_root):
+        for filename in filenames:
+            if not filename.endswith(".py"):
+                continue
+            filepath = os.path.join(dirpath, filename)
+            rel = os.path.relpath(filepath, ROOT_DIR)
+            # e.g. MCP_Server/tools/clips.py → MCP_Server.tools.clips
+            module = rel.replace(os.sep, ".")[:-3]
+            if module.endswith(".__init__"):
+                module = module[:-9]
+
+            try:
+                with open(filepath, encoding="utf-8") as fh:
+                    tree = ast.parse(fh.read(), filename=filepath)
+            except (SyntaxError, UnicodeDecodeError):
+                continue
+
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.ImportFrom):
+                    continue
+                if node.module != "MCP_Server.connection":
+                    continue
+                if any(alias.name == "get_ableton_connection" for alias in node.names):
+                    targets.add(f"{module}.get_ableton_connection")
+                    break
+
+    return sorted(targets)
+
+
+_GAC_PATCH_TARGETS = _discover_gac_patch_targets()
 
 
 @pytest.fixture

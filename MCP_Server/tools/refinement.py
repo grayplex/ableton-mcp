@@ -19,6 +19,14 @@ from MCP_Server.prompt.deriver import (
 )
 from MCP_Server.prompt.lexicon import GROOVE_HINTS
 from MCP_Server.prompt.parser import classify_prompt
+from MCP_Server.refinement.history import (
+    clear_history,
+    detect_conflicts,
+    detect_redundancies,
+    get_history,
+    pop_last_refinement,
+    record_refinement,
+)
 from MCP_Server.refinement.interpreter import build_section_refinement_plan
 from MCP_Server.refinement.schema import ClipSummary, SectionState, TrackStateEntry
 from MCP_Server.server import mcp
@@ -271,6 +279,112 @@ def get_section_state(ctx: Context, section_name: str, genre: str = None) -> str
 
 
 @mcp.tool()
+def compare_sections(ctx: Context, section_a: str, section_b: str, genre: str = None) -> str:
+    """Compare two named arrangement sections and return a structured diff.
+
+    Calls get_section_state for each section, then computes per-track differences
+    in clip counts, note density, pitch ranges, mix parameters, and device chains.
+
+    Args:
+        section_a: First section name (matches locator, case-insensitive)
+        section_b: Second section name (matches locator, case-insensitive)
+        genre: Optional genre for recipe delta computation
+    """
+    state_a_str = get_section_state(ctx, section_a, genre=genre)
+    state_b_str = get_section_state(ctx, section_b, genre=genre)
+    state_a = json.loads(state_a_str)
+    state_b = json.loads(state_b_str)
+
+    # Check for errors in either section
+    if state_a.get("error"):
+        return json.dumps({
+            "section_a": section_a, "section_b": section_b,
+            "error": state_a["error"], "diff": None,
+        })
+    if state_b.get("error"):
+        return json.dumps({
+            "section_a": section_a, "section_b": section_b,
+            "error": state_b["error"], "diff": None,
+        })
+
+    # Index tracks by name
+    tracks_a = {t["track_name"]: t for t in state_a["tracks"]}
+    tracks_b = {t["track_name"]: t for t in state_b["tracks"]}
+
+    names_a = set(tracks_a.keys())
+    names_b = set(tracks_b.keys())
+    only_in_a = sorted(names_a - names_b)
+    only_in_b = sorted(names_b - names_a)
+    common = sorted(names_a & names_b)
+
+    track_diffs = []
+    for name in common:
+        ta = tracks_a[name]
+        tb = tracks_b[name]
+
+        clips_a = ta["clips"]
+        clips_b = tb["clips"]
+
+        # Total notes (None treated as 0 for audio clips)
+        total_notes_a = sum(c.get("note_count") or 0 for c in clips_a)
+        total_notes_b = sum(c.get("note_count") or 0 for c in clips_b)
+
+        # Average rhythm density across MIDI clips (skip None)
+        def _avg_density(clips):
+            densities = [c["rhythm_density"] for c in clips
+                         if c.get("rhythm_density") is not None]
+            return round(sum(densities) / len(densities), 2) if densities else None
+
+        # Pitch range (overall min/max across all clips)
+        def _pitch_range(clips):
+            mins = [c["pitch_min"] for c in clips if c.get("pitch_min") is not None]
+            maxs = [c["pitch_max"] for c in clips if c.get("pitch_max") is not None]
+            return {
+                "min": min(mins) if mins else None,
+                "max": max(maxs) if maxs else None,
+            }
+
+        # Devices comparison
+        devices_a_names = {d["class_name"] for d in ta["mix_context"].get("devices", [])}
+        devices_b_names = {d["class_name"] for d in tb["mix_context"].get("devices", [])}
+
+        track_diffs.append({
+            "track_name": name,
+            "role": ta.get("role"),
+            "clips": {"a": len(clips_a), "b": len(clips_b)},
+            "total_notes": {"a": total_notes_a, "b": total_notes_b},
+            "avg_rhythm_density": {"a": _avg_density(clips_a), "b": _avg_density(clips_b)},
+            "pitch_range": {"a": _pitch_range(clips_a), "b": _pitch_range(clips_b)},
+            "mix": {
+                "volume": {
+                    "a": ta["mix_context"].get("volume"),
+                    "b": tb["mix_context"].get("volume"),
+                },
+                "pan": {
+                    "a": ta["mix_context"].get("pan"),
+                    "b": tb["mix_context"].get("pan"),
+                },
+            },
+            "devices_a_only": sorted(devices_a_names - devices_b_names),
+            "devices_b_only": sorted(devices_b_names - devices_a_names),
+            "devices_both": sorted(devices_a_names & devices_b_names),
+        })
+
+    return json.dumps({
+        "section_a": section_a,
+        "section_b": section_b,
+        "bar_ranges": {
+            "section_a": {"start": state_a["start_bar"], "end": state_a["end_bar"]},
+            "section_b": {"start": state_b["start_bar"], "end": state_b["end_bar"]},
+        },
+        "only_in_a": only_in_a,
+        "only_in_b": only_in_b,
+        "track_diffs": track_diffs,
+        "error": None,
+    })
+
+
+@mcp.tool()
 def interpret_section_refinement(ctx: Context, section_name: str, instruction: str) -> str:
     """Interpret a refinement instruction for a named section — returns a read-only plan.
 
@@ -450,6 +564,45 @@ def _find_device_index(mix_state_track: dict, class_name: str):
         if d.get("class_name") == class_name:
             return d.get("index")
     return None
+
+
+# ---------------------------------------------------------------------------
+# RFNA-04 helpers
+# ---------------------------------------------------------------------------
+
+
+def _build_apply_snapshot(plan_tracks: list) -> dict:
+    """Build a pre-application snapshot from plan data (zero extra Ableton calls).
+
+    For each track captures:
+    - note_op: the NoteOperation dict (semitone_shift, density_delta,
+      scale_substitutions, velocity_shift) — used to compute inverse on revert.
+    - device_params: {class_name: {param_name: current_normalized}} extracted
+      from each DeviceChange.current_normalized — used for exact restoration.
+
+    Returns:
+        {track_name: {note_op: {...}, device_params: {class: {param: float}}}}
+    """
+    snapshot: dict = {}
+    for entry in plan_tracks:
+        track_name = entry["track_name"]
+        note_op = dict(entry.get("note_operation") or {})
+        device_params: dict = {}
+        for dc in entry.get("device_changes") or []:
+            cls = dc["class_name"]
+            if cls not in device_params:
+                device_params[cls] = {}
+            device_params[cls][dc["param_name"]] = dc["current_normalized"]
+        snapshot[track_name] = {"note_op": note_op, "device_params": device_params}
+    return snapshot
+
+
+def _inverse_scale_subs(scale_subs: list) -> list:
+    """Return the inverse of a scale substitution list (swap from/to pairs)."""
+    return [
+        {"from_pitch_class": s["to_pitch_class"], "to_pitch_class": s["from_pitch_class"]}
+        for s in (scale_subs or [])
+    ]
 
 
 @mcp.tool()
@@ -715,7 +868,19 @@ def refine_section(
     conn = get_ableton_connection()
     plan = build_section_refinement_plan(section_name, instruction, conn)
 
+    # REFN-03: check for conflicts and redundancies before applying
+    conflicts = detect_conflicts(section_name, plan["vector"])
+    redundancies = detect_redundancies(section_name, instruction)
+
+    # RFNA-04: capture pre-application snapshot (zero extra Ableton calls —
+    # uses current_normalized values already present in the plan's DeviceChange list)
+    snapshot = _build_apply_snapshot(plan["tracks"])
+
     if not plan["tracks"]:
+        # Still record when the instruction was recognised (vector non-empty),
+        # so subsequent calls can detect conflicts/redundancies.
+        if plan["vector"]:
+            record_refinement(section_name, instruction, plan["vector"], [], snapshot)
         return json.dumps({
             "section": section_name,
             "instruction": instruction,
@@ -723,6 +888,8 @@ def refine_section(
             "note_changes": [],
             "device_changes": [],
             "reasoning": plan["reasoning"],
+            "conflicts": conflicts,
+            "redundancies": redundancies,
         })
 
     note_changes = []
@@ -774,11 +941,128 @@ def refine_section(
             if dev_result.get("devices_modified", 0) > 0:
                 tracks_with_changes.add(track_name)
 
-    return json.dumps({
+    # REFN-03 + RFNA-04: record applied refinement with snapshot to session log
+    record_refinement(section_name, instruction, plan["vector"], plan["tracks"], snapshot)
+
+    response = {
         "section": section_name,
         "instruction": instruction,
         "tracks_modified": len(tracks_with_changes),
         "note_changes": note_changes,
         "device_changes": device_changes,
         "reasoning": plan["reasoning"],
+        "conflicts": conflicts,
+        "redundancies": redundancies,
+    }
+    return json.dumps(response)
+
+
+@mcp.tool()
+def get_section_refinement_history(ctx: Context, section_name: str = None) -> str:
+    """Return the session-scoped log of applied section refinements.
+
+    Exposes the REFN-03 history so Claude can review what has already been
+    applied to a section before issuing new refinement instructions.
+
+    Args:
+        section_name: Named section to query. If omitted, returns all history
+                      across every section as a flat list.
+
+    Returns:
+        JSON with ``section`` (or null) and ``history`` list. Each entry has:
+        section, instruction, vector, tracks (list of track names), timestamp.
+    """
+    history = get_history(section_name)
+    return json.dumps({
+        "section": section_name,
+        "history": history,
+        "total": len(history),
+    })
+
+
+@mcp.tool()
+def revert_section_refinement(ctx: Context, section_name: str) -> str:
+    """Revert the most recently applied refinement for a named section.
+
+    Computes the inverse of the stored RefinementVector and re-applies it
+    as a new note refinement pass (negated shifts, swapped scale substitutions,
+    negated density). Device parameters are restored to their pre-refinement
+    values using the snapshot captured when the refinement was originally applied.
+
+    Removes the reverted entry from the refinement history log. Call multiple
+    times to step back through the refinement stack one entry at a time.
+
+    Note: density_delta revert is best-effort (halve-then-double is approximate).
+    For exact note restoration, use Ableton's native undo (Cmd/Ctrl+Z) instead.
+
+    Args:
+        section_name: Named arrangement section (case-insensitive locator match)
+
+    Returns:
+        JSON with reverted_instruction, note_changes, device_changes, and
+        a warning list for any non-exact revert operations.
+    """
+    last = pop_last_refinement(section_name)
+    if last is None:
+        return json.dumps({
+            "section": section_name,
+            "reverted_instruction": None,
+            "note_changes": [],
+            "device_changes": [],
+            "warnings": [],
+            "error": f"No refinement history found for section '{section_name}'",
+        })
+
+    instruction = last["instruction"]
+    snapshot: dict = last.get("snapshot") or {}
+    warnings: list = []
+
+    conn = get_ableton_connection()
+    note_changes = []
+    device_changes = []
+
+    for track_name in last.get("tracks") or []:
+        track_snap = snapshot.get(track_name) or {}
+        note_op = track_snap.get("note_op") or {}
+        device_params_snap = track_snap.get("device_params") or {}
+
+        # --- Inverse note operation ---
+        semitone_inv = -(note_op.get("semitone_shift") or 0)
+        velocity_inv = -(note_op.get("velocity_shift") or 0)
+        density_inv = -(note_op.get("density_delta") or 0)
+        scale_subs_inv = _inverse_scale_subs(note_op.get("scale_substitutions") or [])
+
+        if density_inv != 0:
+            warnings.append(
+                f"density_delta revert on '{track_name}' is best-effort "
+                f"(original={-density_inv:+d}, inverse={density_inv:+d}); "
+                "use Ableton undo for exact note restoration"
+            )
+
+        has_note_op = (semitone_inv != 0 or velocity_inv != 0
+                       or density_inv != 0 or scale_subs_inv)
+        if has_note_op:
+            note_result_str = apply_section_note_refinement(
+                ctx, section_name, track_name,
+                semitone_shift=semitone_inv,
+                density_delta=density_inv,
+                scale_substitutions=scale_subs_inv,
+                velocity_shift=velocity_inv,
+            )
+            note_changes.append(json.loads(note_result_str))
+
+        # --- Restore device params from snapshot ---
+        if device_params_snap:
+            dev_result_str = apply_section_device_refinement(
+                ctx, section_name, track_name,
+                param_targets=device_params_snap,
+            )
+            device_changes.append(json.loads(dev_result_str))
+
+    return json.dumps({
+        "section": section_name,
+        "reverted_instruction": instruction,
+        "note_changes": note_changes,
+        "device_changes": device_changes,
+        "warnings": warnings,
     })

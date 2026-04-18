@@ -9,6 +9,7 @@ import json
 from mcp.server.fastmcp import Context
 
 from MCP_Server.connection import format_error, get_ableton_connection
+from MCP_Server.orchestration.checkpoint import invalidate_checkpoint_cache
 from MCP_Server.server import mcp
 
 
@@ -146,6 +147,7 @@ def scaffold_arrangement(ctx: Context, plan: dict) -> str:
         }
         if locator_errors:
             response["locator_errors"] = locator_errors
+        invalidate_checkpoint_cache()
         return json.dumps(response)
     except Exception as e:
         return format_error(
@@ -159,8 +161,9 @@ def scaffold_arrangement(ctx: Context, plan: dict) -> str:
 def get_arrangement_overview(ctx: Context) -> str:
     """Get arrangement state: locators, tracks, session length in bars.
 
-    Returns locators with 1-indexed bar positions, flat track name list,
-    and session length in bars for mid-session re-orientation.
+    Returns locators with 1-indexed bar positions, tracks as {name, index}
+    dicts, and session length in bars for mid-session re-orientation.
+    Track indices can be used to resolve <track_index> sentinels directly.
     """
     try:
         ableton = get_ableton_connection()
@@ -183,7 +186,7 @@ def get_arrangement_overview(ctx: Context) -> str:
 
         return json.dumps({
             "locators": locators,
-            "tracks": [t["name"] for t in state["tracks"]],
+            "tracks": [{"name": t["name"], "index": t["index"]} for t in state["tracks"]],
             "session_length_bars": session_length_bars,
         })
     except Exception as e:

@@ -20,6 +20,7 @@ class ProductionPhase(TypedDict):
     roles: list              # list[str] — genre instrumentation roles relevant to this phase
     estimated_steps: int     # typical tool call count
     depends_on: list         # list[str] — phase_ids that must precede this one
+    parallelizable: bool     # True if this phase can run concurrently with other phases of the same dependency level
 
 
 class ProductionAgenda(TypedDict):

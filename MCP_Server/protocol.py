@@ -1,4 +1,6 @@
 """Length-prefix framing protocol for Ableton socket communication."""
+# Remote Script canonical source: AbletonMCP_Remote_Script/framing.py
+# Both files MUST stay in sync. See tests/test_protocol.py::TestProtocolSync.
 
 import json
 import socket

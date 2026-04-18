@@ -367,6 +367,58 @@ def derive(text: str) -> ProductionBrief:
     velocity_style, vel_note = _derive_velocity_style(energy_level, signal_set["mood_signals"])
     reasoning.append(vel_note)
 
+    # --- Conflict detection (PARS-03) ---
+    # Detects contradictory signals that were silently resolved and surfaces them
+    # in the signal_conflicts list so callers can present them to the user.
+    signal_conflicts: list[dict] = []
+
+    # Genre conflict: multiple genre signals detected; first wins
+    if len(genre_signals) > 1:
+        signal_conflicts.append({
+            "field": "primary_genre",
+            "terms": genre_signals,
+            "values": genre_signals,
+            "resolved_to": genre_signals[0],
+        })
+        reasoning.append(
+            f"genre conflict: {genre_signals} → resolved to '{genre_signals[0]}' (first-wins; others ignored)"
+        )
+
+    # Scale bias conflict: mood signals pull toward different tonal centers
+    mood_biases = [
+        (m["term"], m["scale_bias"])
+        for m in signal_set["mood_signals"]
+        if m.get("scale_bias")
+    ]
+    distinct_biases = list(dict.fromkeys(b for _, b in mood_biases))
+    if len(distinct_biases) > 1:
+        signal_conflicts.append({
+            "field": "scale_bias",
+            "terms": [t for t, _ in mood_biases],
+            "values": [b for _, b in mood_biases],
+            "resolved_to": distinct_biases[0],
+        })
+        reasoning.append(
+            f"scale_bias conflict: {[f'{t}→{b}' for t, b in mood_biases]}"
+            f" → resolved to '{distinct_biases[0]}' (first-wins)"
+        )
+
+    # Energy level conflict: mood signals span a wide range (≥4 points)
+    if len(signal_set["mood_signals"]) >= 2:
+        energy_vals = [m["energy_level"] for m in signal_set["mood_signals"]]
+        if max(energy_vals) - min(energy_vals) >= 4:
+            mood_terms = [m["term"] for m in signal_set["mood_signals"]]
+            signal_conflicts.append({
+                "field": "energy_level",
+                "terms": mood_terms,
+                "values": energy_vals,
+                "resolved_to": energy_level,
+            })
+            reasoning.append(
+                f"energy_level conflict: span={max(energy_vals) - min(energy_vals)}"
+                f" across {mood_terms} → resolved to {energy_level} (averaged)"
+            )
+
     return ProductionBrief(
         raw_prompt=text,
         primary_genre=primary_genre,
@@ -379,4 +431,5 @@ def derive(text: str) -> ProductionBrief:
         velocity_style=velocity_style,
         confidence=signal_set["confidence"],
         reasoning=reasoning,
+        signal_conflicts=signal_conflicts,
     )
